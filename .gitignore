@@ -10,7 +10,8 @@ terraform/.terraform/
 terraform/*.tfstate
 terraform/*.tfstate.backup
 terraform/*.tfvars
-terraform/.terraform.lock.hcl
+terraform/backend.hcl
+# Note: .terraform.lock.hcl should be committed
 
 # Web (see web/.gitignore for more)
 web/node_modules/

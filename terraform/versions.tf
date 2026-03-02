@@ -8,17 +8,22 @@ terraform {
     }
   }
 
-  # TODO: Configure a remote backend before using in production.
-  # Example using Cloudflare R2 (S3-compatible):
+  # Remote state stored in Cloudflare R2 (S3-compatible).
+  # The bucket must exist before running `terraform init` — see
+  # terraform/scripts/bootstrap-state-bucket.sh for first-time setup.
   #
-  # backend "s3" {
-  #   bucket                      = "gdgoc-wiki-tfstate"
-  #   key                         = "terraform.tfstate"
-  #   region                      = "auto"
-  #   endpoint                    = "https://<account-id>.r2.cloudflarestorage.com"
-  #   skip_credentials_validation = true
-  #   skip_metadata_api_check     = true
-  #   skip_region_validation      = true
-  #   force_path_style            = true
-  # }
+  # Dynamic values (endpoint, credentials) are supplied via backend.hcl,
+  # which is gitignored. Copy backend.hcl.example -> backend.hcl and fill
+  # in your values, then run:
+  #   terraform init -backend-config=backend.hcl
+  backend "s3" {
+    bucket = "gdgoc-wiki-tfstate"
+    key    = "terraform.tfstate"
+    region = "auto"
+
+    skip_credentials_validation = true
+    skip_metadata_api_check     = true
+    skip_region_validation      = true
+    force_path_style            = true
+  }
 }

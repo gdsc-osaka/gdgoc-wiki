@@ -1,0 +1,10 @@
+# Copy this file to backend.hcl and fill in your values.
+# NEVER commit backend.hcl — it contains credentials.
+#
+# Generate an R2 API token at:
+#   Cloudflare Dashboard -> R2 -> Manage R2 API tokens
+# Grant "Object Read & Write" on the gdgoc-wiki-tfstate bucket only.
+
+endpoint   = "https://<your-cloudflare-account-id>.r2.cloudflarestorage.com"
+access_key = "<r2-access-key-id>"
+secret_key = "<r2-secret-access-key>"

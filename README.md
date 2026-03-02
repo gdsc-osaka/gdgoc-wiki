@@ -141,16 +141,42 @@ Create a `production` environment in **Settings → Environments** to gate deplo
 
 ## Terraform
 
-Infrastructure is managed with Terraform in the `terraform/` directory.
+Infrastructure is managed with Terraform in the `terraform/` directory. State is stored remotely in a Cloudflare R2 bucket.
+
+### First-time setup
+
+```sh
+# 1. Create the R2 state bucket (requires wrangler login)
+bash terraform/scripts/bootstrap-state-bucket.sh
+
+# 2. Create an R2 API token in the Cloudflare dashboard
+#    Cloudflare Dashboard -> R2 -> Manage R2 API tokens
+#    Grant "Object Read & Write" on gdgoc-wiki-tfstate only.
+
+# 3. Configure the backend credentials
+cp terraform/backend.hcl.example terraform/backend.hcl
+# Edit backend.hcl with your account ID and R2 token
+
+# 4. Initialise
+cd terraform
+terraform init -backend-config=backend.hcl
+```
+
+### Day-to-day
 
 ```sh
 cd terraform
-terraform init
+terraform init -backend-config=backend.hcl
 terraform plan
 terraform apply
 ```
 
-Before using in production, configure a [remote backend](terraform/versions.tf) for shared state.
+### Required GitHub Secrets (Terraform)
+
+| Secret | Description |
+|--------|-------------|
+| `TF_STATE_R2_ACCESS_KEY_ID` | R2 API token Access Key ID (state bucket only) |
+| `TF_STATE_R2_SECRET_ACCESS_KEY` | R2 API token Secret Access Key (state bucket only) |
 
 ## Contributing
 
