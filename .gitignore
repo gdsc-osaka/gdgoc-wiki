@@ -1,1 +1,24 @@
-.idea
+# IDE
+.idea/
+.vscode/
+
+# macOS
+.DS_Store
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/*.tfvars
+terraform/.terraform.lock.hcl
+
+# Web (see web/.gitignore for more)
+web/node_modules/
+web/build/
+web/.react-router/
+web/.wrangler/
+web/.env.local
+web/.env.*.local
+web/coverage/
+web/playwright-report/
+web/test-results/

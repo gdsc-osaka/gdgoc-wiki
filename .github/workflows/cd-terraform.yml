@@ -1,0 +1,37 @@
+name: CD — Deploy Terraform
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "terraform/**"
+      - ".github/workflows/cd-terraform.yml"
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: terraform
+
+# Prevent concurrent Terraform applies
+concurrency:
+  group: deploy-terraform
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    name: Apply to Production
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.9"
+      - run: terraform init
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - run: terraform apply -auto-approve
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TF_VAR_cloudflare_account_id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          TF_VAR_environment: production

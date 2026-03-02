@@ -1,0 +1,68 @@
+name: CI — Terraform
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "terraform/**"
+      - ".github/workflows/ci-terraform.yml"
+  pull_request:
+    paths:
+      - "terraform/**"
+      - ".github/workflows/ci-terraform.yml"
+
+defaults:
+  run:
+    working-directory: terraform
+
+jobs:
+  validate:
+    name: Validate & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.9"
+      - name: terraform init (no backend)
+        run: terraform init -backend=false
+      - run: terraform validate
+      - name: Check formatting
+        run: terraform fmt -check -recursive
+
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    needs: validate
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.9"
+      - run: terraform init
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - name: terraform plan
+        id: plan
+        run: terraform plan -no-color 2>&1 | tee plan.txt
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TF_VAR_cloudflare_account_id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          TF_VAR_environment: staging
+      - name: Post plan as PR comment
+        uses: actions/github-script@v7
+        if: always()
+        with:
+          script: |
+            const fs = require("fs")
+            const plan = fs.readFileSync("terraform/plan.txt", "utf8")
+            const body = `### Terraform Plan\n\`\`\`\n${plan.slice(0, 60000)}\n\`\`\``
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            })

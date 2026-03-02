@@ -1,0 +1,6 @@
+# Copy this file to terraform.tfvars and fill in your values.
+# NEVER commit terraform.tfvars — it contains secrets.
+
+cloudflare_api_token  = "your-cloudflare-api-token"
+cloudflare_account_id = "your-cloudflare-account-id"
+environment           = "production"

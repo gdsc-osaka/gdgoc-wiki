@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "en-US"
+early_access: false
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  path_filters:
+    - "!**/.react-router/**"
+    - "!**/node_modules/**"
+    - "!**/.terraform/**"
+    - "!**/build/**"
+    - "!**/coverage/**"
+    - "!**/playwright-report/**"
+  path_instructions:
+    - path: "web/app/**"
+      instructions: |
+        This is a React Router v7 (Remix v3) app running on Cloudflare Workers.
+        - Server-side data access must go through loader/action — no direct DB calls from components.
+        - Cloudflare bindings are accessed via `context.cloudflare.env` in loaders/actions.
+        - Use strict TypeScript; avoid `any`.
+        - Auth checks belong in loaders/actions via a `requireRole` utility.
+    - path: "web/app/routes/**"
+      instructions: |
+        File-based routing: `_index.tsx`, `wiki.$slug.tsx`, etc.
+        Each route should export: default component, plus optional loader, action, meta, links.
+        Ensure all data-mutating routes use actions (POST/PUT/DELETE), not loaders.
+    - path: "web/workers/**"
+      instructions: |
+        Cloudflare Worker entry point. Keep minimal — only request dispatching logic here.
+        No business logic or direct DB queries.
+    - path: "terraform/**"
+      instructions: |
+        Cloudflare Terraform configuration (provider ~> 4.0).
+        - All sensitive values must use variables, never hardcoded strings.
+        - Resource names should follow `gdgoc-wiki-{environment}` convention.
+        - Verify outputs are exported for values referenced in wrangler.toml.
+  abort_on_close: true
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+chat:
+  auto_reply: true
