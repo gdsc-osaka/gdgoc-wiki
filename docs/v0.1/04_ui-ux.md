@@ -1,0 +1,228 @@
+# GDGoC Japan Wiki — UI/UX Flows (v0.1)
+
+## Design Principles
+
+- **Familiar**: Confluence-inspired layout so technical users feel at home immediately.
+- **Minimal friction**: AI does the heavy lifting; user reviews rather than writes from scratch.
+- **Bilingual-first**: Language switching is always visible and one click away.
+- **Google-native**: Google Sign-In, Google brand colors (blue #4285F4, red #EA4335, yellow #FBBC05, green #34A853), clean Material-influenced aesthetic.
+
+---
+
+## Screen Map
+
+```
+/                          → Wiki Home (tag browser + recent pages)
+/wiki/(slug)               → Wiki Page View  [content language via ?lang=ja|en]
+/wiki/(slug)?lang=en       → Wiki Page View — English content
+/wiki/(slug)/edit          → Page Editor
+/ingest                    → Content Ingestion Panel
+/search?q=...              → Search Results
+/admin                     → Admin Panel (admin only)
+/login                     → Google Sign-In page
+```
+
+App UI language (navbar / buttons) is independent of the URL — controlled via the globe icon and stored in `localStorage` / D1 (via server action).
+
+---
+
+## Key Screens
+
+### 1. Wiki Home `/`
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ [GDGoC Japan Wiki logo]        [Search bar]        [ja|en] [avatar] │
+├──────────────┬──────────────────────────────────────────────────┤
+│              │  Recently Updated                                │
+│  Page Tree   │  ┌─────────┐ ┌─────────┐ ┌─────────┐           │
+│  ▶ Root      │  │ Page A  │ │ Page B  │ │ Page C  │           │
+│    ▶ Child 1 │  └─────────┘ └─────────┘ └─────────┘           │
+│    ▶ Child 2 │                                                  │
+│  ▶ Root 2    │  Browse by Tag                                   │
+│              │  [Event Planning] [Speaker Mgmt] [Project Tips]  │
+│  [+ New Page]│  [Community]      [Technical]                    │
+└──────────────┴──────────────────────────────────────────────────┘
+```
+
+---
+
+### 2. Wiki Page View `/wiki/(slug)?lang=ja|en`
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ [Logo]                    [Search]              [ja|en] [avatar] │
+├──────────────┬───────────────────────────────┬──────────────────┤
+│              │                               │  On this page    │
+│  Page Tree   │  Page Title                   │  ─ Section 1     │
+│  (sidebar)   │  ─────────────────────────    │  ─ Section 2     │
+│              │  [tag] [tag]  · Author · Date │  ─ Section 3     │
+│              │  [Auto-translated badge?]      │                  │
+│              │                               │  Last edited by  │
+│              │  ## Section 1                 │  Hari, 2 days ago│
+│              │  Body content …               │                  │
+│              │                               │  Tags            │
+│              │  ## Section 2                 │  [Event Planning]│
+│              │  …                            │                  │
+│              │  [Image]                      │  [Edit page]     │
+│              │                               │  [JA] [EN]  ←page lang
+│              │                               │  [🌐 UI: 日本語] │
+└──────────────┴───────────────────────────────┴──────────────────┘
+```
+
+---
+
+### 3. Content Ingestion Panel `/ingest`
+
+**Step 1 — Input**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Add or update wiki content with AI                              │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │ Describe what you want to document…                       │  │
+│  │                                                           │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                                                                 │
+│  [📎 Add image]  [📄 Add Google Doc URL]                        │
+│                                                                 │
+│                                         [Generate with AI →]   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Step 2 — Changeset Review** (after AI generation)
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ AI proposed 3 changes  ·  review each before publishing        │
+│ "スタッフ管理の知見と2024秋イベントのKPTを記録します"           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ① UPDATE  イベント運営 > スタッフ管理              [Edit] [↺]  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  準備・当日の流れ                                        │   │
+│  │  + スタッフ管理の実践（2024年秋イベント）  ← new ██████  │   │
+│  │    当日は3名のスタッフを担当エリア別に…    ← new ██████  │   │
+│  │  次回チェックリスト追記                    ← new ██████  │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ② CREATE  スタッフKPT — 2024年秋イベント           [Edit] [↺]  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  Parent: イベント運営 > スタッフ管理                     │   │
+│  │  Type: event-report  Tags: [event-operations] [project]  │   │
+│  │  [full draft editor — TipTap]                            │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  [← Back to input]          [Save all as Draft]  [Publish →]   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+- **Green highlight** (`██`) = AI-added content; existing content shown without highlight.
+- **[Edit]** opens a full editor for that individual page/patch.
+- **[↺]** regenerates only that individual operation with optional feedback.
+- All operations are committed atomically on "Publish" or "Save all as Draft".
+
+---
+
+### 4. Search Results `/search?q=...`
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ [Logo]   [Search: "venue tokyo"    ]              [ja|en] [avatar]│
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  3 results for "venue tokyo"                                    │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │ Event Venues in Tokyo                  [Event Planning] │    │
+│  │ Last edited by Hari · 3 days ago                        │    │
+│  │ "…a list of recommended venues for tech meetups in…"   │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │ Tokyo Chapter — 2024 Event Retrospective    [Community] │    │
+│  │ …                                                       │    │
+│  └─────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 5. Admin Panel `/admin`
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Admin Panel                                                     │
+├──────────────┬──────────────────────────────────────────────────┤
+│ Users        │  Users (24)                                      │
+│ Pages        │  ┌──────────────────────────────────────────┐    │
+│ Tags         │  │ Name       Email         Role    Action  │    │
+│ Stats        │  │ Hari …     hari@…        admin           │    │
+│              │  │ Taro …     taro@…        member  [Edit]  │    │
+│              │  └──────────────────────────────────────────┘    │
+└──────────────┴──────────────────────────────────────────────────┘
+```
+
+---
+
+## User Flows
+
+### New User Sign-In
+1. Visit any page → redirected to `/login`.
+2. Click "Sign in with Google".
+3. better-auth Google OAuth popup → success.
+4. better-auth creates user record in D1 with role `member`.
+5. Redirected to wiki home.
+
+### AI-Powered Ingestion — lead / admin (happy path, multi-page)
+1. Click "+ New Page" in sidebar (or navigate to `/ingest`).
+2. Type or paste content; optionally attach images or a Google Doc URL.
+3. Click "Generate with AI".
+4. AI runs Phase 1 (Planner) → presents a changeset plan: e.g. "1 update + 1 new page".
+5. Review each operation in the changeset:
+   - Updated pages: diff view with new content highlighted green.
+   - New pages: full draft editor (title, parent, tags, body).
+6. Edit individual operations or regenerate any single operation with feedback.
+7. Resolve any sensitive content items (modal appears if flagged).
+8. Click "Publish" → all operations committed atomically; translation jobs enqueued for all affected pages.
+
+### AI-Powered Ingestion — member (happy path)
+1–7. Same as above.
+8. Click "Save all as Draft" → all operations saved as drafts; "Publish" is not shown.
+9. Lead or admin reviews the draft changeset and publishes.
+
+### Page Content Language Switch
+1. User is on `/wiki/some-slug` (content shown in default `localStorage` language, e.g. `ja`).
+2. Clicks [EN] toggle in the right sidebar.
+3. URL becomes `/wiki/some-slug?lang=en`; `localStorage` `content_lang` updated to `en`.
+4. If English translation exists in D1 → rendered immediately (no reload).
+5. If not → loading spinner → Remix action calls translation logic → gemini-3-flash-preview translates → cached in D1 → rendered.
+
+### App UI Language Switch
+1. User clicks the globe icon (🌐) in the top navbar.
+2. Dropdown shows: 日本語 / English.
+3. Selecting a language updates `localStorage` `ui_lang` and D1 via Remix action (if signed in).
+4. remix-i18next re-renders all UI strings in the new language — **URL does not change**.
+5. Page content language is unaffected.
+
+### Role Escalation
+1. Admin opens `/admin → Users`.
+2. Finds user, changes role dropdown from `member` to `lead`.
+3. D1 user record updated via Remix action.
+4. User's permissions take effect on next page load (Remix loaders re-read D1 on every request).
+
+---
+
+## Responsive Behavior
+
+- **Desktop (≥1024px)**: Three-column layout (page tree + content + ToC).
+- **Tablet (768–1023px)**: Two-column (collapsible page tree + content); ToC hidden.
+- **Mobile (<768px)**: Single column; page tree accessible via hamburger menu.
+
+---
+
+## Accessibility
+
+- All interactive elements keyboard-navigable.
+- ARIA labels on icon-only buttons (language switcher, edit, delete).
+- Sufficient color contrast (WCAG AA minimum).
+- `lang` HTML attribute updated dynamically on language switch.
