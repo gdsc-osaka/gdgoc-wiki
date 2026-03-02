@@ -141,7 +141,7 @@ export const pageVersions = sqliteTable('page_versions', {
 
 ### `tags`
 
-Canonical taxonomy — both `02_features.md` and `05_ai-ingestion.md` reference this list. Do not define tags elsewhere.
+Canonical **global** taxonomy — tags are shared across all chapters in v0.1; there are no per-chapter tags. Both `02_features.md` and `05_ai-ingestion.md` reference this list. Do not define tags elsewhere.
 
 **Canonical seed data:**
 

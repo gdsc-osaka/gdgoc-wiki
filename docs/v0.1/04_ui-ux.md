@@ -157,14 +157,19 @@ App UI language (navbar / buttons) is independent of the URL — controlled via 
 4. better-auth creates user record in D1 with role `member`.
 5. Redirected to wiki home.
 
-### AI-Powered Page Creation (happy path)
+### AI-Powered Page Creation — lead / admin (happy path)
 1. Click "+ New Page" in sidebar.
 2. Land on `/ingest`.
 3. Type text, optionally add images or a Google Doc URL.
 4. Click "Generate with AI".
 5. Review AI-generated draft; edit if needed.
 6. Set parent page and tags.
-7. Click "Publish" → page appears in sidebar tree.
+7. Click "Publish" → page appears in sidebar tree; background translation job enqueued.
+
+### AI-Powered Page Creation — member (happy path)
+1–6. Same as above.
+7. Click "Save Draft" → draft saved; "Publish" button is not shown.
+8. Lead or admin opens the draft from the admin panel or draft list and clicks "Publish".
 
 ### Page Content Language Switch
 1. User is on `/wiki/some-slug` (content shown in default `localStorage` language, e.g. `ja`).

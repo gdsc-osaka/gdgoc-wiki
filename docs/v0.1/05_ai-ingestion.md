@@ -196,15 +196,15 @@ AI extracts structured metadata into a prominent info box rendered at the top of
 
 - AI always processes and outputs content in **Japanese first**, regardless of the input language.
 - If input is in English, AI translates to Japanese internally as part of structuring.
-- After the Japanese page is **published** (not on draft save), an eager background translation job calls `POST /api/translate` to generate the English version using gemini-3-flash-preview.
-- The English version is stored in `pages/{id}.content.en` and `pages/{id}.title.en`.
+- After the Japanese page is **published** (not on draft save), the Remix action sends a message to Cloudflare Queues; the Queue consumer Worker runs the translation logic and generates the English version using gemini-3-flash-preview.
+- The English version is written to the `pages` D1 table (`content_en`, `title_en` columns).
 - Translation is **not** triggered when a member saves a draft — only when a lead/admin publishes.
 
 ### 4.3 Content Format Conversion: Markdown → TipTap JSON
 
 Gemini returns section bodies as **Markdown strings**. Before rendering in the editor or storing in D1, the server converts them to **TipTap JSON** (the format TipTap uses internally).
 
-**Conversion step (server-side, inside `POST /api/ingest`):**
+**Conversion step (server-side, inside the `/ingest` Remix route action):**
 
 ```
 Gemini JSON output
@@ -224,7 +224,7 @@ Gemini JSON output
 - Use `marked` for Markdown → HTML conversion; sanitize with `DOMPurify` before passing to TipTap.
 - TipTap extensions required: `StarterKit`, `Image`, `Link`, `Table`, `TableRow`, `TableCell`, `TableHeader`.
 - The full page content stored in D1 is a **single TipTap JSON document** that concatenates all sections (each section heading becomes a TipTap `heading` node).
-- Translation input/output: when `POST /api/translate` calls Gemini, it converts TipTap JSON → Markdown first (reverse direction), sends to Gemini, receives translated Markdown, converts back to TipTap JSON.
+- Translation input/output: when the translation logic (Queue consumer Worker or fallback Remix loader) calls Gemini, it converts TipTap JSON → Markdown first (reverse direction), sends to Gemini, receives translated Markdown, converts back to TipTap JSON.
 
 ### 4.4 Gemini Output JSON Schema
 
@@ -410,7 +410,7 @@ The AI outputs `actionabilityScore` (1–3) and `actionabilityNotes`:
 
 ## 8. D1 Updates After Ingestion
 
-On publish, the following fields are written to `pages/{id}`:
+On publish, the following columns are written to the `pages` D1 table:
 
 ```ts
 {
@@ -428,7 +428,7 @@ On publish, the following fields are written to `pages/{id}`:
 }
 ```
 
-After publish, two background jobs run: (1) `POST /api/translate` populates `content.en`, `title.en`, and sets `translationStatus.en = "ai"`; (2) the `ingestionSessions/{id}` document status is set to `"archived"` (retained for audit — not deleted).
+After publish, two background operations run via Cloudflare Queues: (1) the Queue consumer Worker runs translation logic, populates `content_en`, `title_en`, and sets `translation_status_en = "ai"` in D1; (2) the `ingestion_sessions` D1 row status is set to `"archived"` (retained for audit — not deleted).
 
 ---
 

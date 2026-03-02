@@ -11,7 +11,7 @@
 | Role | Permissions |
 |------|-------------|
 | `admin` | Full CRUD on all pages, manage user roles, delete any content |
-| `lead` | Create/edit/publish any page, manage tags, cannot delete other leads' pages |
+| `lead` | Create/edit/publish any page, manage tags. **Cannot delete pages** (admin only). |
 | `member` | Create pages, save own pages as draft, edit own drafts, view all published pages. **Cannot publish.** |
 | `viewer` | Read-only access to all published pages (cross-chapter visitors) |
 
@@ -118,13 +118,13 @@ App UI language and page content language are controlled separately and do not a
 
 **Primary trigger — eager background after publish:**
 1. Lead/admin publishes a page.
-2. Server immediately enqueues a background translation job (`POST /api/translate`).
+2. Server immediately sends a message to Cloudflare Queues (`env.TRANSLATION_QUEUE.send({ pageId })`).
 3. Job calls gemini-3-flash-preview to translate `content.ja` → `content.en` (and titles).
 4. D1 updated: `content_en`, `title_en`, `translation_status_en = "ai"`.
 5. Typically completes within seconds; page becomes bilingual without any user action.
 
 **Fallback — on-demand when translation is missing:**
-- If a user requests `?lang=en` and `translationStatus.en == "missing"` (e.g., page published before translation feature, or job failed), the client calls `POST /api/translate` on-demand and shows a loading indicator.
+- If a user requests `?lang=en` and `translationStatus.en == "missing"` (e.g., page published before translation feature, or job failed), the Remix loader invokes translation logic directly (server-side) and shows a loading indicator to the client.
 
 **Re-translation (lead/admin only):**
 - A "Re-translate" button triggers the same background job to overwrite the existing AI translation.
@@ -136,7 +136,7 @@ App UI language and page content language are controlled separately and do not a
 
 ### 4.5 UI Strings
 - All UI labels, buttons, and navigation strings are translated using `remix-i18next`.
-- Translation files: `messages/ja.json`, `messages/en.json`.
+- Translation files: `public/locales/ja/common.json`, `public/locales/en/common.json` (remix-i18next convention).
 - No locale-based URL routing (no `/ja/` or `/en/` path prefixes); remix-i18next is used with client-side language switching only.
 
 ---

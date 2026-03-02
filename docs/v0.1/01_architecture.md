@@ -51,7 +51,7 @@ A Remix full-stack application running on Cloudflare Workers, backed by Cloudfla
 | AI — Ingestion | gemini-3-flash-preview (multimodal) | Accepts text + images; structured JSON output; Google ecosystem |
 | AI — Translation | gemini-3-flash-preview | Same model; cost-efficient for translation tasks |
 | Hosting | Cloudflare Pages + Workers | Zero-config Remix deployment at the edge |
-| i18n — UI strings | remix-i18next | File-based translations (`public/locales/ja/`, `public/locales/en/`); no locale URL routing |
+| i18n — UI strings | remix-i18next | File-based translations (`public/locales/ja/common.json`, `public/locales/en/common.json`); no locale URL routing |
 | i18n — Page content | `?lang=` query param | Page content language in URL; independent from app UI language |
 
 ## Data Flow: Content Ingestion

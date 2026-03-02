@@ -29,7 +29,7 @@ A bilingual (Japanese / English), AI-powered wiki platform that makes it effortl
 | Role | Description |
 |------|-------------|
 | **Chapter Member** | Active member of any GDGoC Japan chapter. Can read all pages and create/edit pages they own. |
-| **Chapter Lead** | Chapter organizer. Has elevated editing rights; can publish/unpublish pages and manage chapter-level tags. |
+| **Chapter Lead** | Chapter organizer. Has elevated editing rights; can publish/unpublish pages and manage tags (global taxonomy only in v0.1). |
 | **Admin** | Platform administrator. Full control: user management, page deletion, system settings. |
 | **Cross-Chapter Viewer** | Authenticated member browsing another chapter's content. Read-only by default. |
 
