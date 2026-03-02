@@ -22,7 +22,7 @@
 /login                     → Google Sign-In page
 ```
 
-App UI language (navbar / buttons) is independent of the URL — controlled via the globe icon and stored in `localStorage` / Firestore.
+App UI language (navbar / buttons) is independent of the URL — controlled via the globe icon and stored in `localStorage` / D1 (via server action).
 
 ---
 
@@ -153,8 +153,8 @@ App UI language (navbar / buttons) is independent of the URL — controlled via 
 ### New User Sign-In
 1. Visit any page → redirected to `/login`.
 2. Click "Sign in with Google".
-3. Firebase Auth Google popup → success.
-4. User doc created with role `member`.
+3. better-auth Google OAuth popup → success.
+4. better-auth creates user record in D1 with role `member`.
 5. Redirected to wiki home.
 
 ### AI-Powered Page Creation (happy path)
@@ -170,21 +170,21 @@ App UI language (navbar / buttons) is independent of the URL — controlled via 
 1. User is on `/wiki/some-slug` (content shown in default `localStorage` language, e.g. `ja`).
 2. Clicks [EN] toggle in the right sidebar.
 3. URL becomes `/wiki/some-slug?lang=en`; `localStorage` `content_lang` updated to `en`.
-4. If English translation exists in Firestore → rendered immediately (no reload).
-5. If not → loading spinner → `POST /api/translate` → gemini-3-flash-preview translates → cached in Firestore → rendered.
+4. If English translation exists in D1 → rendered immediately (no reload).
+5. If not → loading spinner → Remix action calls translation logic → gemini-3-flash-preview translates → cached in D1 → rendered.
 
 ### App UI Language Switch
 1. User clicks the globe icon (🌐) in the top navbar.
 2. Dropdown shows: 日本語 / English.
-3. Selecting a language updates `localStorage` `ui_lang` and Firestore (if signed in).
-4. next-intl re-renders all UI strings in the new language — **URL does not change**.
+3. Selecting a language updates `localStorage` `ui_lang` and D1 via Remix action (if signed in).
+4. remix-i18next re-renders all UI strings in the new language — **URL does not change**.
 5. Page content language is unaffected.
 
 ### Role Escalation
 1. Admin opens `/admin → Users`.
 2. Finds user, changes role dropdown from `member` to `lead`.
-3. Firestore user document updated.
-4. User's permissions updated on next page load (or immediately via Firestore real-time listener).
+3. D1 user record updated via Remix action.
+4. User's permissions take effect on next page load (Remix loaders re-read D1 on every request).
 
 ---
 

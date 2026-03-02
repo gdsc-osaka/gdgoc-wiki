@@ -147,7 +147,7 @@ AI extracts structured metadata into a prominent info box rendered at the top of
                            ▼
               [Pre-processing]
               ├─ Fetch Google Doc text via Docs API
-              ├─ Upload images to Firebase Storage
+              ├─ Upload images to Cloudflare R2
               └─ Assemble multimodal payload
 
                            │
@@ -188,7 +188,7 @@ AI extracts structured metadata into a prominent info box rendered at the top of
                            │
                            ▼
               [Publish / Save Draft]
-              └─ Write to Firestore (Japanese content)
+              └─ Write to D1 (Japanese content)
               └─ Trigger translation job → English version
 ```
 
@@ -202,7 +202,7 @@ AI extracts structured metadata into a prominent info box rendered at the top of
 
 ### 4.3 Content Format Conversion: Markdown → TipTap JSON
 
-Gemini returns section bodies as **Markdown strings**. Before rendering in the editor or storing in Firestore, the server converts them to **TipTap JSON** (the format TipTap uses internally).
+Gemini returns section bodies as **Markdown strings**. Before rendering in the editor or storing in D1, the server converts them to **TipTap JSON** (the format TipTap uses internally).
 
 **Conversion step (server-side, inside `POST /api/ingest`):**
 
@@ -217,13 +217,13 @@ Gemini JSON output
   TipTap generateJSON(html, extensions)
           │
           ▼
-  TipTap JSON object  ← stored in Firestore as JSON string
+  TipTap JSON object  ← stored in D1 as JSON string
 ```
 
 **Rules:**
 - Use `marked` for Markdown → HTML conversion; sanitize with `DOMPurify` before passing to TipTap.
 - TipTap extensions required: `StarterKit`, `Image`, `Link`, `Table`, `TableRow`, `TableCell`, `TableHeader`.
-- The full page content stored in Firestore is a **single TipTap JSON document** that concatenates all sections (each section heading becomes a TipTap `heading` node).
+- The full page content stored in D1 is a **single TipTap JSON document** that concatenates all sections (each section heading becomes a TipTap `heading` node).
 - Translation input/output: when `POST /api/translate` calls Gemini, it converts TipTap JSON → Markdown first (reverse direction), sends to Gemini, receives translated Markdown, converts back to TipTap JSON.
 
 ### 4.4 Gemini Output JSON Schema
@@ -408,7 +408,7 @@ The AI outputs `actionabilityScore` (1–3) and `actionabilityNotes`:
 
 ---
 
-## 8. Firestore Updates After Ingestion
+## 8. D1 Updates After Ingestion
 
 On publish, the following fields are written to `pages/{id}`:
 
@@ -418,7 +418,7 @@ On publish, the following fields are written to `pages/{id}`:
   title: { ja: string; en: "" },
   content: { ja: string; en: "" },     // TipTap JSON strings (en filled by eager background job after publish)
   translationStatus: { ja: "human", en: "missing" },
-  searchTokens: string[],              // Generated server-side at publish time
+  // FTS5 index (pages_fts) is updated via SQLite trigger automatically — no separate field needed
 
   // Ingestion-specific fields
   pageType: string;                    // e.g. "event-report"

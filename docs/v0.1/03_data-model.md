@@ -1,147 +1,149 @@
 # GDGoC Japan Wiki — Data Model (v0.1)
 
-All data is stored in **Cloud Firestore**. Collections are listed below with their document schemas.
+All data is stored in **Cloudflare D1** (managed SQLite). Schemas are defined using **Drizzle ORM** (`drizzle-orm/sqlite-core`). Full-text search uses SQLite's native **FTS5** extension.
 
 ---
 
-## Collection: `users`
+## better-auth Managed Tables
 
-Document ID: Firebase Auth UID
+better-auth automatically creates and migrates these tables. **Do not define them manually.**
+
+| Table | Purpose |
+|-------|---------|
+| `user` | Core user record; extended with custom fields via `additionalFields` |
+| `session` | Active sessions (cookie-based) |
+| `account` | OAuth provider links (Google); stores OAuth tokens |
+| `verification` | Email/token verification records |
+
+### Custom fields added to `user` via `additionalFields`
 
 ```ts
-{
-  uid: string;                    // Firebase Auth UID
-  email: string;
-  displayName: string;
-  photoURL: string;
-  role: "admin" | "lead" | "member" | "viewer";
-  chapterId?: string;             // Reference to chapters/{chapterId}
-  preferredUiLanguage: "ja" | "en";       // App UI language (navbar, buttons)
-  preferredContentLanguage: "ja" | "en";  // Default page content language
-  createdAt: Timestamp;
-  lastLoginAt: Timestamp;
-}
+// better-auth config (auth.server.ts)
+user: {
+  additionalFields: {
+    role: {
+      type: "string",
+      defaultValue: "member",    // "admin" | "lead" | "member" | "viewer"
+    },
+    chapterId: {
+      type: "string",
+      required: false,           // references chapters.id
+    },
+    preferredUiLanguage: {
+      type: "string",
+      defaultValue: "ja",        // "ja" | "en"
+    },
+    preferredContentLanguage: {
+      type: "string",
+      defaultValue: "ja",        // "ja" | "en"
+    },
+  },
+},
 ```
 
 ---
 
-## Collection: `pages`
+## App-Defined Tables (Drizzle Schema)
 
-Document ID: auto-generated
-
-```ts
-{
-  id: string;                     // Same as document ID
-  title: {
-    ja: string;
-    en: string;
-  };
-  slug: string;                   // URL-safe title slug (unique)
-  content: {
-    ja: string;                   // TipTap JSON string (converted from Gemini Markdown at ingestion)
-    en: string;                   // TipTap JSON string (populated by translation job after publish)
-  };
-  translationStatus: {
-    ja: "human" | "ai" | "missing";
-    en: "human" | "ai" | "missing";
-  };
-  parentId: string | null;        // ID of parent page; null = root
-  order: number;                  // Sort order among siblings
-  tags: string[];                 // Tag slugs from canonical taxonomy (see Collection: tags)
-  searchTokens: string[];         // Normalized tokens from title+summary+tags; written at publish time
-  status: "draft" | "published";
-  pageType: "event-report" | "speaker-profile" | "project-log" | "how-to-guide" | "onboarding-guide" | null;
-  pageMetadata: { [key: string]: string };  // Info box fields (type-specific)
-  ingestionSessionId: string | null;        // Source ingestion session reference
-  actionabilityScore: 1 | 2 | 3 | null;    // AI self-assessment at time of ingestion
-  authorId: string;               // uid of creator
-  lastEditedBy: string;           // uid of last editor
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-  attachments: {
-    url: string;                  // Firebase Storage URL
-    name: string;
-    type: string;                 // MIME type
-  }[];
-}
-```
-
-### Subcollection: `pages/{pageId}/versions`
-
-Document ID: auto-generated (up to 10 retained)
+### `chapters`
 
 ```ts
-{
-  content: {
-    ja: string;
-    en: string;
-  };
-  title: {
-    ja: string;
-    en: string;
-  };
-  editedBy: string;               // uid
-  savedAt: Timestamp;
-}
+export const chapters = sqliteTable('chapters', {
+  id:         text('id').primaryKey(),
+  nameJa:     text('name_ja').notNull(),
+  nameEn:     text('name_en').notNull(),
+  university: text('university').notNull(),
+  region:     text('region').notNull(),
+  createdAt:  integer('created_at', { mode: 'timestamp' })
+                .notNull().default(sql`(unixepoch())`),
+})
 ```
 
----
-
-## Collection: `ingestionSessions`
-
-Documents created during AI ingestion. After the resulting page is published, status is set to `archived` and the document is **retained for audit trail** — do not delete, as `pages.ingestionSessionId` references it.
-
-Document ID: auto-generated
+### `pages`
 
 ```ts
-{
-  userId: string;
-  status: "pending" | "processing" | "done" | "error" | "archived";
-  inputs: {
-    texts: string[];
-    imageUrls: string[];          // Temporary Firebase Storage URLs
-    googleDocUrls: string[];
-  };
-  aiDraft: {                      // Populated after Gemini response
-    title: { ja: string; en: string };
-    sections: { heading: string; body: string }[];
-    suggestedParentId: string | null;
-    suggestedTags: string[];
-  } | null;
-  errorMessage: string | null;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-}
+export const pages = sqliteTable('pages', {
+  id:                   text('id').primaryKey(),
+  titleJa:              text('title_ja').notNull(),
+  titleEn:              text('title_en').notNull().default(''),
+  slug:                 text('slug').notNull().unique(),
+  contentJa:            text('content_ja').notNull(),          // TipTap JSON string
+  contentEn:            text('content_en').notNull().default(''), // TipTap JSON string
+  translationStatusJa:  text('translation_status_ja')
+                          .notNull().default('human'),          // "human" | "ai" | "missing"
+  translationStatusEn:  text('translation_status_en')
+                          .notNull().default('missing'),
+  summaryJa:            text('summary_ja').notNull().default(''), // 1-2 sentence excerpt
+  summaryEn:            text('summary_en').notNull().default(''),
+  parentId:             text('parent_id').references(() => pages.id),
+  sortOrder:            integer('sort_order').notNull().default(0),
+  status:               text('status').notNull().default('draft'), // "draft" | "published"
+  pageType:             text('page_type'),
+    // "event-report" | "speaker-profile" | "project-log"
+    // | "how-to-guide" | "onboarding-guide" | null
+  pageMetadata:         text('page_metadata'),                 // JSON string of info box fields
+  ingestionSessionId:   text('ingestion_session_id')
+                          .references(() => ingestionSessions.id),
+  actionabilityScore:   integer('actionability_score'),        // 1 | 2 | 3 | null
+  authorId:             text('author_id').notNull(),           // references user.id (better-auth)
+  lastEditedBy:         text('last_edited_by').notNull(),      // references user.id (better-auth)
+  createdAt:            integer('created_at', { mode: 'timestamp' })
+                          .notNull().default(sql`(unixepoch())`),
+  updatedAt:            integer('updated_at', { mode: 'timestamp' })
+                          .notNull().default(sql`(unixepoch())`),
+})
 ```
 
----
-
-## Collection: `chapters`
-
-Document ID: auto-generated (e.g., `gdgoc-tohoku-university`)
+### `page_tags` (junction)
 
 ```ts
-{
-  id: string;                     // Same as document ID
-  name: {
-    ja: string;                   // e.g. "東北大学GDGoC"
-    en: string;                   // e.g. "GDGoC Tohoku University"
-  };
-  university: string;             // University name (human-readable)
-  region: string;                 // e.g. "Tohoku", "Kanto", "Kansai"
-  createdAt: Timestamp;
-}
+export const pageTags = sqliteTable('page_tags', {
+  pageId:  text('page_id').notNull()
+             .references(() => pages.id, { onDelete: 'cascade' }),
+  tagSlug: text('tag_slug').notNull()
+             .references(() => tags.slug),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.pageId, t.tagSlug] }),
+}))
 ```
 
----
+### `page_attachments`
 
-## Collection: `tags`
+```ts
+export const pageAttachments = sqliteTable('page_attachments', {
+  id:        text('id').primaryKey(),
+  pageId:    text('page_id').notNull()
+               .references(() => pages.id, { onDelete: 'cascade' }),
+  r2Key:     text('r2_key').notNull(),     // R2 object key (path within bucket)
+  fileName:  text('file_name').notNull(),
+  mimeType:  text('mime_type').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' })
+               .notNull().default(sql`(unixepoch())`),
+})
+```
 
-Canonical predefined taxonomy; managed by admins. Both `02_features.md` and `05_ai-ingestion.md` reference this list — do not define tags elsewhere.
+### `page_versions` (last 10 retained per page)
 
-Document ID: tag slug
+```ts
+export const pageVersions = sqliteTable('page_versions', {
+  id:        text('id').primaryKey(),
+  pageId:    text('page_id').notNull()
+               .references(() => pages.id, { onDelete: 'cascade' }),
+  contentJa: text('content_ja').notNull(),
+  contentEn: text('content_en').notNull(),
+  titleJa:   text('title_ja').notNull(),
+  titleEn:   text('title_en').notNull(),
+  editedBy:  text('edited_by').notNull(),  // references user.id (better-auth)
+  savedAt:   integer('saved_at', { mode: 'timestamp' })
+               .notNull().default(sql`(unixepoch())`),
+})
+```
 
-**Canonical tag list (seed data):**
+### `tags`
+
+Canonical taxonomy — both `02_features.md` and `05_ai-ingestion.md` reference this list. Do not define tags elsewhere.
+
+**Canonical seed data:**
 
 | Slug | JA | EN | Color |
 |------|----|----|-------|
@@ -155,56 +157,148 @@ Document ID: tag slug
 | `template` | テンプレート | Template | #9E9E9E |
 
 ```ts
-{
-  slug: string;
-  label: {
-    ja: string;
-    en: string;
-  };
-  color: string;                  // Hex color for tag chip UI
-  pageCount: number;              // Denormalized count; updated at page publish/unpublish
+export const tags = sqliteTable('tags', {
+  slug:      text('slug').primaryKey(),
+  labelJa:   text('label_ja').notNull(),
+  labelEn:   text('label_en').notNull(),
+  color:     text('color').notNull(),
+  pageCount: integer('page_count').notNull().default(0), // denormalized; updated at publish/unpublish
+})
+```
+
+### `ingestion_sessions`
+
+Status is set to `archived` after the resulting page is published. **Do not delete** — `pages.ingestionSessionId` references this table.
+
+```ts
+export const ingestionSessions = sqliteTable('ingestion_sessions', {
+  id:           text('id').primaryKey(),
+  userId:       text('user_id').notNull(),   // references user.id (better-auth)
+  status:       text('status').notNull().default('pending'),
+    // "pending" | "processing" | "done" | "error" | "archived"
+  inputsJson:   text('inputs_json').notNull(),
+    // JSON: { texts: string[], imageKeys: string[], googleDocUrls: string[] }
+  aiDraftJson:  text('ai_draft_json'),        // JSON: full Gemini structured output
+  errorMessage: text('error_message'),
+  createdAt:    integer('created_at', { mode: 'timestamp' })
+                  .notNull().default(sql`(unixepoch())`),
+  updatedAt:    integer('updated_at', { mode: 'timestamp' })
+                  .notNull().default(sql`(unixepoch())`),
+})
+```
+
+---
+
+## Full-Text Search (SQLite FTS5)
+
+D1 supports SQLite's native FTS5 extension. This replaces any token-array workaround.
+
+The `pages_fts` virtual table is kept in sync with `pages` via SQLite triggers.
+
+```sql
+-- Create FTS5 virtual table (run as raw SQL migration)
+CREATE VIRTUAL TABLE IF NOT EXISTS pages_fts USING fts5(
+  page_id  UNINDEXED,
+  title_ja,
+  title_en,
+  summary_ja,
+  summary_en,
+  tags_text,     -- space-separated tag label strings (ja and en), updated via app logic
+  tokenize = 'unicode61'
+);
+
+-- Sync triggers
+CREATE TRIGGER pages_fts_insert AFTER INSERT ON pages BEGIN
+  INSERT INTO pages_fts(page_id, title_ja, title_en, summary_ja, summary_en, tags_text)
+  VALUES (new.id, new.title_ja, new.title_en, new.summary_ja, new.summary_en, '');
+END;
+
+CREATE TRIGGER pages_fts_update AFTER UPDATE ON pages BEGIN
+  UPDATE pages_fts
+  SET title_ja = new.title_ja, title_en = new.title_en,
+      summary_ja = new.summary_ja, summary_en = new.summary_en
+  WHERE page_id = new.id;
+END;
+
+CREATE TRIGGER pages_fts_delete AFTER DELETE ON pages BEGIN
+  DELETE FROM pages_fts WHERE page_id = old.id;
+END;
+```
+
+**`tags_text` update:** When a page's tags change (insert/delete in `page_tags`), the server updates `pages_fts.tags_text` with the concatenated label strings for that page.
+
+**Search query example:**
+
+```sql
+SELECT p.id, p.title_ja, p.title_en, p.summary_ja, p.slug
+FROM pages p
+JOIN pages_fts f ON f.page_id = p.id
+WHERE pages_fts MATCH :query
+  AND p.status = 'published'
+ORDER BY rank
+LIMIT 20;
+```
+
+FTS5 supports multi-word queries, prefix search (`tokyo*`), phrase search (`"tech talk"`), and relevance ranking — no client-side filtering needed.
+
+---
+
+## Cloudflare R2 Storage Layout
+
+```
+gdgoc-wiki/
+├── ingestion/{userId}/{sessionId}/{filename}   ← Temp upload (ingestion phase)
+└── pages/{pageId}/{filename}                   ← Published page attachments
+```
+
+Ingestion uploads are temporary; they are moved to `pages/{pageId}/` on publish or deleted if the session is abandoned.
+
+---
+
+## Authorization Model
+
+There are no Cloudflare-native security rules analogous to Firebase Security Rules. Authorization is enforced entirely **server-side** in Remix loaders and actions.
+
+```ts
+// Shared utility
+async function requireRole(
+  request: Request,
+  env: Env,
+  minRole: Role,
+): Promise<User> {
+  const session = await auth.api.getSession({ headers: request.headers })
+  if (!session) throw redirect('/login')
+  if (!hasRole(session.user.role, minRole)) throw new Response(null, { status: 403 })
+  return session.user
 }
+
+// Role hierarchy: admin > lead > member > viewer
 ```
+
+**Per-operation authorization:**
+
+| Operation | Minimum role |
+|-----------|-------------|
+| Read published pages | `viewer` (any authenticated user) |
+| Read drafts | `member` (own drafts only) or `lead`/`admin` |
+| Create page (save draft) | `member` |
+| Publish page | `lead` |
+| Edit any page | `lead` |
+| Delete page | `admin` |
+| Manage user roles | `admin` |
+| Write own profile fields | Any authenticated user (own record only) |
 
 ---
 
-## Firebase Storage Structure
+## Indexes
 
+```sql
+CREATE INDEX idx_pages_status_updated  ON pages (status, updated_at DESC);
+CREATE INDEX idx_pages_parent_order    ON pages (parent_id, sort_order ASC);
+CREATE INDEX idx_pages_author          ON pages (author_id, updated_at DESC);
+CREATE INDEX idx_pages_slug            ON pages (slug);
+CREATE INDEX idx_page_tags_page        ON page_tags (page_id);
+CREATE INDEX idx_page_tags_tag         ON page_tags (tag_slug);
+CREATE INDEX idx_page_versions_page    ON page_versions (page_id, saved_at DESC);
+CREATE INDEX idx_ingestion_sessions_user ON ingestion_sessions (user_id);
 ```
-/ingestion/{userId}/{sessionId}/{filename}   ← Temporary upload during ingestion
-/pages/{pageId}/{filename}                   ← Permanent page attachments
-```
-
----
-
-## Firestore Security Rules (summary)
-
-```
-pages (read):     any authenticated user
-pages (create):   role in [member, lead, admin]
-pages (update):   author OR role in [lead, admin]
-pages (delete):   role == admin
-
-users (read):     own document OR role == admin
-users (write):    own document, restricted to fields [preferredUiLanguage, preferredContentLanguage, chapterId, displayName, photoURL] OR role == admin (unrestricted)
-
-ingestionSessions: own document only
-
-chapters (read):  any authenticated user
-chapters (write): role == admin
-
-tags (read):      any authenticated user
-tags (write):     role == admin
-```
-
----
-
-## Indexes Required
-
-| Collection | Fields | Query |
-|-----------|--------|-------|
-| `pages` | `status ASC`, `updatedAt DESC` | List published pages, newest first |
-| `pages` | `parentId ASC`, `order ASC` | Fetch children of a parent page |
-| `pages` | `tags ARRAY`, `status ASC` | Filter by tag |
-| `pages` | `authorId ASC`, `updatedAt DESC` | My pages view |
-| `pages` | `searchTokens ARRAY`, `status ASC` | Token-indexed search (single token + status filter) |

@@ -3,8 +3,8 @@
 ## 1. Authentication & Roles
 
 ### 1.1 Google Sign-In
-- Users authenticate exclusively with their Google account via Firebase Auth.
-- On first sign-in, a user document is created in Firestore with role `member`.
+- Users authenticate exclusively with their Google account via **better-auth** (Google OAuth provider).
+- On first sign-in, better-auth creates a `user` record in D1 with the default role `member`.
 
 ### 1.2 Role Definitions
 
@@ -45,7 +45,7 @@
 - "Regenerate" button re-runs AI with additional instructions.
 
 ### 2.4 Publish
-- **Leads and admins** click "Publish" → page written to Firestore with `status: "published"`. A background translation job is immediately enqueued (see §4.4).
+- **Leads and admins** click "Publish" → page written to D1 with `status: "published"`. A background translation job is immediately enqueued to Cloudflare Queues (see §4.4).
 - **Members** can only click "Save Draft" → page written with `status: "draft"`. A lead or admin must open the draft and publish it.
 - There is no review queue or `in_review` state in v0.1.
 
@@ -65,17 +65,19 @@
 
 ### 3.3 Search
 
-Firestore does not support native full-text search. v0.1 uses a **token-indexed search** approach on Firestore directly, with a migration path to Algolia in v0.2.
+v0.1 uses **SQLite FTS5** (built into Cloudflare D1), which provides real full-text search with no additional service required.
 
 **How it works:**
-- At write time (publish or update), the server generates a `searchTokens: string[]` field on each page document containing normalized tokens from: page title (ja + en), `summary.ja`, `summary.en`, and `tags`.
-- Tokenization: lowercase, split on whitespace and punctuation, strip stop words.
-- Search query: the user's search string is split into tokens; a Firestore `array-contains` query is issued for the first token; results are then filtered client-side for remaining tokens.
+- A `pages_fts` FTS5 virtual table is kept in sync with `pages` via SQLite triggers (see `03_data-model.md`).
+- Indexed fields: `title_ja`, `title_en`, `summary_ja`, `summary_en`, `tags_text` (space-separated tag labels).
+- Search uses FTS5's `MATCH` operator with `unicode61` tokenizer (handles Japanese word boundaries via character-level tokenization; suitable for v0.1).
+- Results are ordered by FTS5 relevance rank.
 
-**Limitations (v0.1):**
-- Single-token Firestore queries only (multi-token AND filtering is client-side on the result set).
-- No fuzzy matching, synonym handling, or ranking by relevance.
-- Algolia integration is planned for v0.2 to remove these constraints.
+**Capabilities:**
+- Multi-word queries (AND by default in FTS5).
+- Prefix search (`tokyo*`).
+- Phrase search (`"tech talk"`).
+- Relevance ranking built-in — no client-side filtering needed.
 
 **UI:** Search box in top navigation; results show page title + summary excerpt + tags.
 
@@ -94,21 +96,21 @@ App UI language and page content language are controlled separately and do not a
 
 | Axis | What it controls | Mechanism |
 |------|-----------------|-----------|
-| **App UI language** | Navigation, buttons, labels, toasts | Globe icon in navbar; writes to `localStorage` (`ui_lang`) and authenticated users' Firestore preference; **no URL change** |
+| **App UI language** | Navigation, buttons, labels, toasts | Globe icon in navbar; writes to `localStorage` (`ui_lang`) and authenticated users' D1 preference via server action; **no URL change** |
 | **Page content language** | Wiki page body, title | Language toggle on the page; appends `?lang=ja` or `?lang=en` to the current URL; shareable links preserve choice; falls back to `localStorage` (`content_lang`) if absent |
 
 ### 4.2 App UI Language Switcher
 - Globe icon always visible in the top navigation bar.
 - Dropdown with options: 日本語 / English.
 - Selection stored immediately in `localStorage` under `ui_lang`.
-- For authenticated users, also written directly to Firestore `users/{uid}.preferredUiLanguage` from the client (own-document write; see security rules in `03_data-model.md`).
-- On load, priority order: Firestore preference → `localStorage` → browser `Accept-Language` header → default `ja`.
-- No page reload required; next-intl re-renders UI strings client-side.
+- For authenticated users, also persisted to D1 `user.preferredUiLanguage` via a Remix action (see authorization model in `03_data-model.md`).
+- On load, priority order: D1 user preference (read in Remix loader) → `localStorage` → browser `Accept-Language` header → default `ja`.
+- No page reload required; remix-i18next re-renders UI strings client-side.
 
 ### 4.3 Page Content Language Toggle
 - Two-button toggle (JA / EN) displayed in the page right-sidebar and on the ingestion draft panel.
 - Clicking switches the `?lang=` query parameter in the URL (e.g., `/wiki/some-slug?lang=en`).
-- Selected language also persisted in `localStorage` under `content_lang` and, for authenticated users, written to Firestore `users/{uid}.preferredContentLanguage` (own-document write).
+- Selected language also persisted in `localStorage` under `content_lang` and, for authenticated users, written to D1 `user.preferredContentLanguage` via a Remix action.
 - URL with `?lang=` is fully shareable — recipient sees the page in the specified language.
 - If the requested translation does not yet exist, a loading indicator is shown while the API translates on-demand (see §4.4).
 
@@ -118,7 +120,7 @@ App UI language and page content language are controlled separately and do not a
 1. Lead/admin publishes a page.
 2. Server immediately enqueues a background translation job (`POST /api/translate`).
 3. Job calls gemini-3-flash-preview to translate `content.ja` → `content.en` (and titles).
-4. Firestore updated: `content.en`, `title.en`, `translationStatus.en = "ai"`.
+4. D1 updated: `content_en`, `title_en`, `translation_status_en = "ai"`.
 5. Typically completes within seconds; page becomes bilingual without any user action.
 
 **Fallback — on-demand when translation is missing:**
@@ -133,9 +135,9 @@ App UI language and page content language are controlled separately and do not a
 - No badge for `"human"` translations.
 
 ### 4.5 UI Strings
-- All UI labels, buttons, and navigation strings are translated using `next-intl`.
+- All UI labels, buttons, and navigation strings are translated using `remix-i18next`.
 - Translation files: `messages/ja.json`, `messages/en.json`.
-- No locale-based URL routing (no `/ja/` or `/en/` path prefixes); next-intl is used in client-side mode only.
+- No locale-based URL routing (no `/ja/` or `/en/` path prefixes); remix-i18next is used with client-side language switching only.
 
 ---
 
@@ -144,7 +146,7 @@ App UI language and page content language are controlled separately and do not a
 - Rich-text editor powered by **TipTap**.
 - Supported formatting: headings (H1–H3), bold, italic, inline code, code blocks, bullet/numbered lists, blockquotes, images (inline), hyperlinks, tables.
 - Markdown shortcuts supported (e.g., `##` for heading, `**bold**`).
-- Auto-save draft to Firestore every 30 seconds.
+- Auto-save draft to D1 every 30 seconds via a Remix action (`POST /pages/:id/draft`).
 - Version history: last 10 versions stored per page (restore available to lead/admin).
 
 ---
