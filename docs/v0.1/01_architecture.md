@@ -76,20 +76,38 @@ User confirms → POST /api/pages → Firestore write
 
 ## Data Flow: Translation
 
+Translation is **eager** (triggered automatically on publish) with **on-demand** as a fallback.
+
 ```
-User clicks language switcher on a page
+PRIMARY — Eager background (triggered at publish time)
+─────────────────────────────────────────────────────
+Lead/admin publishes page
         │
         ▼
-Check Firestore: does translation exist and is it fresh?
-  ├─ YES → return cached translation
-  └─ NO  → call POST /api/translate
-                │
-                ▼
-           gemini-3-flash-preview (translate page content ja↔en)
-                │
-                ▼
-           Store translation in Firestore under page document
-           Return translated content to client
+POST /api/pages (write Firestore, status: published)
+        │
+        ▼ (background, non-blocking to user)
+POST /api/translate enqueued
+        │
+        ▼
+gemini-3-flash-preview (translate content.ja → content.en, title.ja → title.en)
+        │
+        ▼
+Firestore updated: content.en, title.en, translationStatus.en = "ai"
+
+
+FALLBACK — On-demand (translationStatus.en == "missing")
+──────────────────────────────────────────────────────────
+User requests ?lang=en; translation is missing
+        │
+        ▼
+Client shows loading indicator
+        │
+        ▼
+POST /api/translate (synchronous for the requesting client)
+        │
+        ▼
+gemini-3-flash-preview translates → Firestore updated → response returned
 ```
 
 ## Security Model

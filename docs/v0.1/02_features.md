@@ -12,7 +12,7 @@
 |------|-------------|
 | `admin` | Full CRUD on all pages, manage user roles, delete any content |
 | `lead` | Create/edit/publish any page, manage tags, cannot delete other leads' pages |
-| `member` | Create pages, edit own pages, view all published pages |
+| `member` | Create pages, save own pages as draft, edit own drafts, view all published pages. **Cannot publish.** |
 | `viewer` | Read-only access to all published pages (cross-chapter visitors) |
 
 - Roles are assigned manually by an `admin` via a simple admin panel.
@@ -45,8 +45,9 @@
 - "Regenerate" button re-runs AI with additional instructions.
 
 ### 2.4 Publish
-- User clicks "Publish" (lead/admin) or "Submit for Review" (member).
-- Page is written to Firestore with status `published` or `draft`.
+- **Leads and admins** click "Publish" → page written to Firestore with `status: "published"`. A background translation job is immediately enqueued (see §4.4).
+- **Members** can only click "Save Draft" → page written with `status: "draft"`. A lead or admin must open the draft and publish it.
+- There is no review queue or `in_review` state in v0.1.
 
 ---
 
@@ -63,11 +64,24 @@
 - Drag-and-drop reordering of pages in sidebar (lead/admin only).
 
 ### 3.3 Search
-- Full-text search across all published pages (Firestore-based in v0.1; Algolia considered for v0.2).
-- Search box in top navigation; results show page title + excerpt.
+
+Firestore does not support native full-text search. v0.1 uses a **token-indexed search** approach on Firestore directly, with a migration path to Algolia in v0.2.
+
+**How it works:**
+- At write time (publish or update), the server generates a `searchTokens: string[]` field on each page document containing normalized tokens from: page title (ja + en), `summary.ja`, `summary.en`, and `tags`.
+- Tokenization: lowercase, split on whitespace and punctuation, strip stop words.
+- Search query: the user's search string is split into tokens; a Firestore `array-contains` query is issued for the first token; results are then filtered client-side for remaining tokens.
+
+**Limitations (v0.1):**
+- Single-token Firestore queries only (multi-token AND filtering is client-side on the result set).
+- No fuzzy matching, synonym handling, or ranking by relevance.
+- Algolia integration is planned for v0.2 to remove these constraints.
+
+**UI:** Search box in top navigation; results show page title + summary excerpt + tags.
 
 ### 3.4 Tags
-- Pages are tagged with predefined taxonomy labels (e.g., "Event Planning", "Speaker Management", "Project Tips", "Community", "Technical").
+- Pages are tagged with labels from the canonical tag taxonomy defined in `03_data-model.md §Collection: tags`.
+- Up to 5 tags per page; AI suggests tags at ingestion time from the same canonical list.
 - Tag filter on the wiki home page.
 
 ---
@@ -87,22 +101,36 @@ App UI language and page content language are controlled separately and do not a
 - Globe icon always visible in the top navigation bar.
 - Dropdown with options: 日本語 / English.
 - Selection stored immediately in `localStorage` under `ui_lang`.
-- For authenticated users, also written to Firestore `users/{uid}.preferredUiLanguage`.
+- For authenticated users, also written directly to Firestore `users/{uid}.preferredUiLanguage` from the client (own-document write; see security rules in `03_data-model.md`).
 - On load, priority order: Firestore preference → `localStorage` → browser `Accept-Language` header → default `ja`.
 - No page reload required; next-intl re-renders UI strings client-side.
 
 ### 4.3 Page Content Language Toggle
 - Two-button toggle (JA / EN) displayed in the page right-sidebar and on the ingestion draft panel.
 - Clicking switches the `?lang=` query parameter in the URL (e.g., `/wiki/some-slug?lang=en`).
-- Selected language also persisted in `localStorage` under `content_lang` as the new default.
+- Selected language also persisted in `localStorage` under `content_lang` and, for authenticated users, written to Firestore `users/{uid}.preferredContentLanguage` (own-document write).
 - URL with `?lang=` is fully shareable — recipient sees the page in the specified language.
 - If the requested translation does not yet exist, a loading indicator is shown while the API translates on-demand (see §4.4).
 
 ### 4.4 Translation Flow
-- Each page document in Firestore stores content in both `ja` and `en` fields.
-- At ingestion time, gemini-3-flash-preview translates the page to the other language automatically.
-- Users can manually trigger re-translation of a page (lead/admin).
-- Translation status indicator on each page: "Auto-translated" badge if not reviewed by a human.
+
+**Primary trigger — eager background after publish:**
+1. Lead/admin publishes a page.
+2. Server immediately enqueues a background translation job (`POST /api/translate`).
+3. Job calls gemini-3-flash-preview to translate `content.ja` → `content.en` (and titles).
+4. Firestore updated: `content.en`, `title.en`, `translationStatus.en = "ai"`.
+5. Typically completes within seconds; page becomes bilingual without any user action.
+
+**Fallback — on-demand when translation is missing:**
+- If a user requests `?lang=en` and `translationStatus.en == "missing"` (e.g., page published before translation feature, or job failed), the client calls `POST /api/translate` on-demand and shows a loading indicator.
+
+**Re-translation (lead/admin only):**
+- A "Re-translate" button triggers the same background job to overwrite the existing AI translation.
+- Sets `translationStatus.en = "ai"` again; a human-reviewed translation (`"human"`) is never overwritten automatically.
+
+**Status indicator:**
+- "自動翻訳 / Auto-translated" badge shown when `translationStatus` for the viewed language is `"ai"`.
+- No badge for `"human"` translations.
 
 ### 4.5 UI Strings
 - All UI labels, buttons, and navigation strings are translated using `next-intl`.

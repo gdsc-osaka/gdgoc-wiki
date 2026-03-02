@@ -196,10 +196,37 @@ AI extracts structured metadata into a prominent info box rendered at the top of
 
 - AI always processes and outputs content in **Japanese first**, regardless of the input language.
 - If input is in English, AI translates to Japanese internally as part of structuring.
-- After the Japanese page is published (or saved as draft), a separate `POST /api/translate` call generates the English version using gemini-3-flash-preview.
+- After the Japanese page is **published** (not on draft save), an eager background translation job calls `POST /api/translate` to generate the English version using gemini-3-flash-preview.
 - The English version is stored in `pages/{id}.content.en` and `pages/{id}.title.en`.
+- Translation is **not** triggered when a member saves a draft — only when a lead/admin publishes.
 
-### 4.3 Gemini Output JSON Schema
+### 4.3 Content Format Conversion: Markdown → TipTap JSON
+
+Gemini returns section bodies as **Markdown strings**. Before rendering in the editor or storing in Firestore, the server converts them to **TipTap JSON** (the format TipTap uses internally).
+
+**Conversion step (server-side, inside `POST /api/ingest`):**
+
+```
+Gemini JSON output
+  └─ sections[].body  (Markdown string)
+          │
+          ▼
+  marked (Markdown → HTML)
+          │
+          ▼
+  TipTap generateJSON(html, extensions)
+          │
+          ▼
+  TipTap JSON object  ← stored in Firestore as JSON string
+```
+
+**Rules:**
+- Use `marked` for Markdown → HTML conversion; sanitize with `DOMPurify` before passing to TipTap.
+- TipTap extensions required: `StarterKit`, `Image`, `Link`, `Table`, `TableRow`, `TableCell`, `TableHeader`.
+- The full page content stored in Firestore is a **single TipTap JSON document** that concatenates all sections (each section heading becomes a TipTap `heading` node).
+- Translation input/output: when `POST /api/translate` calls Gemini, it converts TipTap JSON → Markdown first (reverse direction), sends to Gemini, receives translated Markdown, converts back to TipTap JSON.
+
+### 4.4 Gemini Output JSON Schema
 
 ```ts
 {
@@ -290,8 +317,11 @@ AI extracts structured metadata into a prominent info box rendered at the top of
 [ここに §2 の各テンプレートを挿入]
 
 ## タグ分類（最大5つ選択）
-イベント運営 / スピーカー管理 / スポンサー / プロジェクト / 新メンバー向け /
-渉外・外部連携 / 技術 / コミュニティ運営 / テンプレート
+以下のslugと日本語ラベルを使用してください（03_data-model.mdの正規リストと一致）:
+event-operations（イベント運営）/ speaker-management（スピーカー管理）/
+sponsor-relations（スポンサー・渉外）/ project（プロジェクト）/
+onboarding（新メンバー向け）/ community-ops（コミュニティ運営）/
+technical（技術）/ template（テンプレート）
 ```
 
 ### 5.2 User Message Construction
@@ -385,9 +415,10 @@ On publish, the following fields are written to `pages/{id}`:
 ```ts
 {
   // Standard page fields (see data-model.md)
-  title: { ja: string; en: "" },       // en filled after translation job
-  content: { ja: string; en: "" },
+  title: { ja: string; en: "" },
+  content: { ja: string; en: "" },     // TipTap JSON strings (en filled by eager background job after publish)
   translationStatus: { ja: "human", en: "missing" },
+  searchTokens: string[],              // Generated server-side at publish time
 
   // Ingestion-specific fields
   pageType: string;                    // e.g. "event-report"
@@ -397,7 +428,7 @@ On publish, the following fields are written to `pages/{id}`:
 }
 ```
 
-After the Japanese page is saved, a background job calls `POST /api/translate` to populate `content.en`, `title.en`, and set `translationStatus.en = "ai"`.
+After publish, two background jobs run: (1) `POST /api/translate` populates `content.en`, `title.en`, and sets `translationStatus.en = "ai"`; (2) the `ingestionSessions/{id}` document status is set to `"archived"` (retained for audit — not deleted).
 
 ---
 

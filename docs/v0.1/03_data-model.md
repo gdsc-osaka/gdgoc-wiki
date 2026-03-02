@@ -16,7 +16,8 @@ Document ID: Firebase Auth UID
   photoURL: string;
   role: "admin" | "lead" | "member" | "viewer";
   chapterId?: string;             // Reference to chapters/{chapterId}
-  preferredLanguage: "ja" | "en";
+  preferredUiLanguage: "ja" | "en";       // App UI language (navbar, buttons)
+  preferredContentLanguage: "ja" | "en";  // Default page content language
   createdAt: Timestamp;
   lastLoginAt: Timestamp;
 }
@@ -37,8 +38,8 @@ Document ID: auto-generated
   };
   slug: string;                   // URL-safe title slug (unique)
   content: {
-    ja: string;                   // Rich-text HTML (TipTap output)
-    en: string;
+    ja: string;                   // TipTap JSON string (converted from Gemini Markdown at ingestion)
+    en: string;                   // TipTap JSON string (populated by translation job after publish)
   };
   translationStatus: {
     ja: "human" | "ai" | "missing";
@@ -46,7 +47,8 @@ Document ID: auto-generated
   };
   parentId: string | null;        // ID of parent page; null = root
   order: number;                  // Sort order among siblings
-  tags: string[];                 // e.g. ["Event Planning", "Speaker Management"]
+  tags: string[];                 // Tag slugs from canonical taxonomy (see Collection: tags)
+  searchTokens: string[];         // Normalized tokens from title+summary+tags; written at publish time
   status: "draft" | "published";
   pageType: "event-report" | "speaker-profile" | "project-log" | "how-to-guide" | "onboarding-guide" | null;
   pageMetadata: { [key: string]: string };  // Info box fields (type-specific)
@@ -87,14 +89,14 @@ Document ID: auto-generated (up to 10 retained)
 
 ## Collection: `ingestionSessions`
 
-Temporary documents created during AI ingestion; deleted after page is published.
+Documents created during AI ingestion. After the resulting page is published, status is set to `archived` and the document is **retained for audit trail** — do not delete, as `pages.ingestionSessionId` references it.
 
 Document ID: auto-generated
 
 ```ts
 {
   userId: string;
-  status: "pending" | "processing" | "done" | "error";
+  status: "pending" | "processing" | "done" | "error" | "archived";
   inputs: {
     texts: string[];
     imageUrls: string[];          // Temporary Firebase Storage URLs
@@ -135,9 +137,22 @@ Document ID: auto-generated (e.g., `gdgoc-tohoku-university`)
 
 ## Collection: `tags`
 
-Predefined taxonomy; managed by admins.
+Canonical predefined taxonomy; managed by admins. Both `02_features.md` and `05_ai-ingestion.md` reference this list — do not define tags elsewhere.
 
-Document ID: tag slug (e.g., `event-planning`)
+Document ID: tag slug
+
+**Canonical tag list (seed data):**
+
+| Slug | JA | EN | Color |
+|------|----|----|-------|
+| `event-operations` | イベント運営 | Event Operations | #4285F4 |
+| `speaker-management` | スピーカー管理 | Speaker Management | #EA4335 |
+| `sponsor-relations` | スポンサー・渉外 | Sponsor & External Relations | #FBBC05 |
+| `project` | プロジェクト | Project | #34A853 |
+| `onboarding` | 新メンバー向け | Onboarding | #7B61FF |
+| `community-ops` | コミュニティ運営 | Community Ops | #FF6D00 |
+| `technical` | 技術 | Technical | #00BCD4 |
+| `template` | テンプレート | Template | #9E9E9E |
 
 ```ts
 {
@@ -147,7 +162,7 @@ Document ID: tag slug (e.g., `event-planning`)
     en: string;
   };
   color: string;                  // Hex color for tag chip UI
-  pageCount: number;              // Denormalized count
+  pageCount: number;              // Denormalized count; updated at page publish/unpublish
 }
 ```
 
@@ -171,7 +186,7 @@ pages (update):   author OR role in [lead, admin]
 pages (delete):   role == admin
 
 users (read):     own document OR role == admin
-users (write):    role == admin
+users (write):    own document, restricted to fields [preferredUiLanguage, preferredContentLanguage, chapterId, displayName, photoURL] OR role == admin (unrestricted)
 
 ingestionSessions: own document only
 
@@ -192,3 +207,4 @@ tags (write):     role == admin
 | `pages` | `parentId ASC`, `order ASC` | Fetch children of a parent page |
 | `pages` | `tags ARRAY`, `status ASC` | Filter by tag |
 | `pages` | `authorId ASC`, `updatedAt DESC` | My pages view |
+| `pages` | `searchTokens ARRAY`, `status ASC` | Token-indexed search (single token + status filter) |
