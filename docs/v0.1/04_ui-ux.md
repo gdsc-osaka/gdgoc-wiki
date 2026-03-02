@@ -74,37 +74,53 @@ App UI language (navbar / buttons) is independent of the URL — controlled via 
 
 ### 3. Content Ingestion Panel `/ingest`
 
+**Step 1 — Input**
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│ Create a new wiki page with AI                                  │
+│ Add or update wiki content with AI                              │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌───────────────────────────────────────────────────────────┐  │
 │  │ Describe what you want to document…                       │  │
-│  │                                                           │  │
 │  │                                                           │  │
 │  └───────────────────────────────────────────────────────────┘  │
 │                                                                 │
 │  [📎 Add image]  [📄 Add Google Doc URL]                        │
 │                                                                 │
 │                                         [Generate with AI →]   │
-├─────────────────────────────────────────────────────────────────┤
-│  ⟳ AI is structuring your content…                             │
-│  ─────────────────────────────────────                         │
-│  (after generation:)                                            │
-│                                                                 │
-│  Title: [Suggested title — editable]                           │
-│  Parent: [Suggested parent — dropdown]                         │
-│  Tags:  [Event Planning ×] [+ add tag]                         │
-│                                                                 │
-│  ┌─ Rich text editor (TipTap) ───────────────────────────────┐  │
-│  │ ## Section 1                                              │  │
-│  │ AI-generated body …                                       │  │
-│  └───────────────────────────────────────────────────────────┘  │
-│                                                                 │
-│  [← Regenerate]                    [Save Draft]  [Publish →]   │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+**Step 2 — Changeset Review** (after AI generation)
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ AI proposed 3 changes  ·  review each before publishing        │
+│ "スタッフ管理の知見と2024秋イベントのKPTを記録します"           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ① UPDATE  イベント運営 > スタッフ管理              [Edit] [↺]  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  準備・当日の流れ                                        │   │
+│  │  + スタッフ管理の実践（2024年秋イベント）  ← new ██████  │   │
+│  │    当日は3名のスタッフを担当エリア別に…    ← new ██████  │   │
+│  │  次回チェックリスト追記                    ← new ██████  │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ② CREATE  スタッフKPT — 2024年秋イベント           [Edit] [↺]  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  Parent: イベント運営 > スタッフ管理                     │   │
+│  │  Type: event-report  Tags: [event-operations] [project]  │   │
+│  │  [full draft editor — TipTap]                            │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  [← Back to input]          [Save all as Draft]  [Publish →]   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+- **Green highlight** (`██`) = AI-added content; existing content shown without highlight.
+- **[Edit]** opens a full editor for that individual page/patch.
+- **[↺]** regenerates only that individual operation with optional feedback.
+- All operations are committed atomically on "Publish" or "Save all as Draft".
 
 ---
 
@@ -157,19 +173,22 @@ App UI language (navbar / buttons) is independent of the URL — controlled via 
 4. better-auth creates user record in D1 with role `member`.
 5. Redirected to wiki home.
 
-### AI-Powered Page Creation — lead / admin (happy path)
-1. Click "+ New Page" in sidebar.
-2. Land on `/ingest`.
-3. Type text, optionally add images or a Google Doc URL.
-4. Click "Generate with AI".
-5. Review AI-generated draft; edit if needed.
-6. Set parent page and tags.
-7. Click "Publish" → page appears in sidebar tree; background translation job enqueued.
+### AI-Powered Ingestion — lead / admin (happy path, multi-page)
+1. Click "+ New Page" in sidebar (or navigate to `/ingest`).
+2. Type or paste content; optionally attach images or a Google Doc URL.
+3. Click "Generate with AI".
+4. AI runs Phase 1 (Planner) → presents a changeset plan: e.g. "1 update + 1 new page".
+5. Review each operation in the changeset:
+   - Updated pages: diff view with new content highlighted green.
+   - New pages: full draft editor (title, parent, tags, body).
+6. Edit individual operations or regenerate any single operation with feedback.
+7. Resolve any sensitive content items (modal appears if flagged).
+8. Click "Publish" → all operations committed atomically; translation jobs enqueued for all affected pages.
 
-### AI-Powered Page Creation — member (happy path)
-1–6. Same as above.
-7. Click "Save Draft" → draft saved; "Publish" button is not shown.
-8. Lead or admin opens the draft from the admin panel or draft list and clicks "Publish".
+### AI-Powered Ingestion — member (happy path)
+1–7. Same as above.
+8. Click "Save all as Draft" → all operations saved as drafts; "Publish" is not shown.
+9. Lead or admin reviews the draft changeset and publishes.
 
 ### Page Content Language Switch
 1. User is on `/wiki/some-slug` (content shown in default `localStorage` language, e.g. `ja`).
