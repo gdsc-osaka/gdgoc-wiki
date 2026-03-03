@@ -163,6 +163,8 @@ function ToolbarButton({
       type="button"
       onClick={onClick}
       title={title}
+      aria-label={title}
+      aria-pressed={active}
       className={`rounded px-1.5 py-0.5 text-sm transition-colors ${
         active ? "bg-blue-100 text-blue-700" : "text-gray-600 hover:bg-gray-100"
       }`}

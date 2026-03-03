@@ -28,7 +28,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
     .split(";")
     .map((c) => c.trim())
     .find((c) => c.startsWith("gdrive_oauth_state="))
-    ?.split("=")[1]
+    ?.replace(/^gdrive_oauth_state=/, "")
 
   if (!stateCookie || stateCookie !== state) {
     throw redirect("/ingest?error=drive_auth_state_mismatch")
@@ -75,7 +75,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
   // Clear state cookie and redirect back
   throw redirect("/ingest", {
     headers: {
-      "Set-Cookie": "gdrive_oauth_state=; Path=/; HttpOnly; Max-Age=0",
+      "Set-Cookie": "gdrive_oauth_state=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Secure",
     },
   })
 }

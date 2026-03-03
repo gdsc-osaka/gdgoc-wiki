@@ -24,7 +24,17 @@ export default {
 
     for (const message of batch.messages) {
       try {
-        const { pageId } = message.body as { pageId: string }
+        const body = message.body
+        if (
+          typeof body !== "object" ||
+          body === null ||
+          typeof (body as Record<string, unknown>).pageId !== "string"
+        ) {
+          console.warn("translation-jobs: invalid message body, dropping", message.id)
+          message.ack()
+          continue
+        }
+        const { pageId } = body as { pageId: string }
         console.log("translation-jobs: processing page", pageId)
 
         const page = await db

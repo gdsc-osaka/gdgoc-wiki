@@ -22,7 +22,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
   // Store state in cookie for verification in callback
   throw redirect(authUrl, {
     headers: {
-      "Set-Cookie": `gdrive_oauth_state=${state}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600`,
+      "Set-Cookie": `gdrive_oauth_state=${state}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600; Secure`,
     },
   })
 }

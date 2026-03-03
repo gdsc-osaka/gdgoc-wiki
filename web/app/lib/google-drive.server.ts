@@ -42,23 +42,36 @@ interface TokenResponse {
   token_type: string
 }
 
+const TOKEN_TIMEOUT_MS = 10_000
+const EXPORT_TIMEOUT_MS = 30_000
+
+function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController()
+  const id = setTimeout(() => controller.abort(), timeoutMs)
+  return fetch(url, { ...init, signal: controller.signal }).finally(() => clearTimeout(id))
+}
+
 export async function exchangeCodeForToken(
   code: string,
   clientId: string,
   clientSecret: string,
   redirectUri: string,
 ): Promise<DriveToken> {
-  const response = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      code,
-      client_id: clientId,
-      client_secret: clientSecret,
-      redirect_uri: redirectUri,
-      grant_type: "authorization_code",
-    }),
-  })
+  const response = await fetchWithTimeout(
+    "https://oauth2.googleapis.com/token",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectUri,
+        grant_type: "authorization_code",
+      }),
+    },
+    TOKEN_TIMEOUT_MS,
+  )
 
   if (!response.ok) {
     const err = await response.text()
@@ -82,16 +95,20 @@ export async function refreshAccessToken(
   clientId: string,
   clientSecret: string,
 ): Promise<{ accessToken: string; expiresAt: Date }> {
-  const response = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      refresh_token: refreshToken,
-      client_id: clientId,
-      client_secret: clientSecret,
-      grant_type: "refresh_token",
-    }),
-  })
+  const response = await fetchWithTimeout(
+    "https://oauth2.googleapis.com/token",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        refresh_token: refreshToken,
+        client_id: clientId,
+        client_secret: clientSecret,
+        grant_type: "refresh_token",
+      }),
+    },
+    TOKEN_TIMEOUT_MS,
+  )
 
   if (!response.ok) {
     const err = await response.text()
@@ -121,9 +138,11 @@ export interface ExportResult {
 export async function exportDocAsPdf(fileId: string, accessToken: string): Promise<ExportResult> {
   const pdfUrl = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}/export?mimeType=application/pdf`
 
-  const pdfResponse = await fetch(pdfUrl, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  })
+  const pdfResponse = await fetchWithTimeout(
+    pdfUrl,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+    EXPORT_TIMEOUT_MS,
+  )
 
   if (pdfResponse.ok) {
     const buffer = await pdfResponse.arrayBuffer()
@@ -135,9 +154,11 @@ export async function exportDocAsPdf(fileId: string, accessToken: string): Promi
 
   // Fallback: plain text export
   const textUrl = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}/export?mimeType=text/plain`
-  const textResponse = await fetch(textUrl, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  })
+  const textResponse = await fetchWithTimeout(
+    textUrl,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+    EXPORT_TIMEOUT_MS,
+  )
 
   if (!textResponse.ok) {
     const err = await textResponse.text()

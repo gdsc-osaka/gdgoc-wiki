@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/d1"
 import { nanoid } from "nanoid"
 import { redirect } from "react-router"
@@ -24,15 +24,15 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
     .get()
 
   // Count published pages for display
-  const pagesResult = await db
-    .select({ id: schema.pages.id })
+  const countResult = await db
+    .select({ count: sql<number>`count(*)` })
     .from(schema.pages)
     .where(eq(schema.pages.status, "published"))
-    .all()
+    .get()
 
   return {
     driveConnected: !!driveToken,
-    pageCount: pagesResult.length,
+    pageCount: countResult?.count ?? 0,
   }
 }
 

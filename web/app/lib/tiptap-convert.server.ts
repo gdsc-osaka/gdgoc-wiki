@@ -165,12 +165,22 @@ function convertInline(nodes: TipTapNode[]): string {
   return nodes.map((node) => convertInlineNode(node)).join("")
 }
 
+const MARK_PRIORITY: Record<string, number> = {
+  link: 0,
+  strike: 1,
+  bold: 2,
+  italic: 3,
+  code: 4,
+}
+
 function convertInlineNode(node: TipTapNode): string {
   if (node.type === "text") {
     let text = node.text ?? ""
-    const marks = node.marks ?? []
+    const marks = [...(node.marks ?? [])].sort(
+      (a, b) => (MARK_PRIORITY[a.type] ?? 99) - (MARK_PRIORITY[b.type] ?? 99),
+    )
 
-    // Apply marks inside-out
+    // Apply marks in deterministic order
     for (const mark of marks) {
       switch (mark.type) {
         case "bold":

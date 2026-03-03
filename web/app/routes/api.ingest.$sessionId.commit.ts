@@ -2,32 +2,35 @@ import { eq } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/d1"
 import { nanoid } from "nanoid"
 import type { ActionFunctionArgs } from "react-router"
+import { z } from "zod"
 import * as schema from "~/db/schema"
 import { requireRole } from "~/lib/auth-utils.server"
 import { generateSlug } from "~/lib/ingestion-pipeline.server"
 
 // ---------------------------------------------------------------------------
-// Types
+// Validation
 // ---------------------------------------------------------------------------
 
-interface CommitOperation {
-  type: "create" | "update"
-  tempId?: string
-  pageId?: string
-  title: string
-  tiptapJson: string
-  summaryJa: string
-  pageType: string
-  pageMetadata: Record<string, string>
-  tags: string[]
-  suggestedParentId?: string | null
-  actionabilityScore: number
-}
+const CommitOperationSchema = z.object({
+  type: z.enum(["create", "update"]),
+  tempId: z.string().optional(),
+  pageId: z.string().optional(),
+  title: z.string().min(1),
+  tiptapJson: z.string(),
+  summaryJa: z.string(),
+  pageType: z.string(),
+  pageMetadata: z.record(z.string(), z.string()).default({}),
+  tags: z.array(z.string()).max(5).default([]),
+  suggestedParentId: z.string().nullable().optional(),
+  actionabilityScore: z.number(),
+})
 
-interface CommitBody {
-  publishStatus: "draft" | "published"
-  operations: CommitOperation[]
-}
+const CommitBodySchema = z.object({
+  publishStatus: z.enum(["draft", "published"]),
+  operations: z.array(CommitOperationSchema).min(1),
+})
+
+type CommitBody = z.infer<typeof CommitBodySchema>
 
 // ---------------------------------------------------------------------------
 // Action
@@ -48,7 +51,11 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
   if (!session) throw new Response("Not found", { status: 404 })
   if (session.userId !== user.id) throw new Response("Forbidden", { status: 403 })
 
-  const body = (await request.json()) as CommitBody
+  const parseResult = CommitBodySchema.safeParse(await request.json())
+  if (!parseResult.success) {
+    return new Response(parseResult.error.message, { status: 400 })
+  }
+  const body: CommitBody = parseResult.data
 
   // Members can only save as draft
   const userRole = user.role as string
@@ -57,6 +64,7 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
 
   const now = new Date()
   const pageIds: string[] = []
+  const translationPageIds: string[] = []
 
   // Execute atomically using D1 batch
   const statements = []
@@ -66,7 +74,15 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
       const pageId = nanoid()
       pageIds.push(pageId)
 
-      const slug = generateSlug(op.title)
+      // Generate a unique slug by checking for collisions
+      let slug = generateSlug(op.title) || nanoid(8)
+      const collision = await db
+        .select({ id: schema.pages.id })
+        .from(schema.pages)
+        .where(eq(schema.pages.slug, slug))
+        .get()
+      if (collision) slug = `${slug}-${nanoid(6)}`
+
       const metadata = JSON.stringify(op.pageMetadata ?? {})
 
       statements.push(
@@ -101,9 +117,8 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
         )
       }
 
-      // Enqueue translation job if publishing
       if (publishStatus === "published") {
-        await env.TRANSLATION_QUEUE.send({ pageId })
+        translationPageIds.push(pageId)
       }
     } else if (op.type === "update" && op.pageId) {
       pageIds.push(op.pageId)
@@ -148,9 +163,8 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
         ).bind(op.tiptapJson, op.title, op.summaryJa, params.sessionId, user.id, op.pageId),
       )
 
-      // Enqueue translation job if publishing
       if (publishStatus === "published") {
-        await env.TRANSLATION_QUEUE.send({ pageId: op.pageId })
+        translationPageIds.push(op.pageId)
       }
     }
   }
@@ -162,8 +176,12 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
     ).bind(params.sessionId),
   )
 
-  // Run all statements atomically
+  // Run all statements atomically — send translation jobs only after success
   await env.DB.batch(statements)
+
+  for (const pid of translationPageIds) {
+    await env.TRANSLATION_QUEUE.send({ pageId: pid })
+  }
 
   return Response.json({ pageIds })
 }

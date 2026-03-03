@@ -1,4 +1,4 @@
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 interface InputPanelProps {
   driveConnected: boolean
@@ -132,24 +132,11 @@ export default function InputPanel({ driveConnected }: InputPanelProps) {
         {images.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
             {images.map((img) => (
-              <div key={`${img.name}-${img.size}`} className="relative">
-                <img
-                  src={URL.createObjectURL(img)}
-                  alt={img.name}
-                  className="h-20 w-20 rounded-md object-cover ring-1 ring-gray-200"
-                />
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setImages((prev) => prev.filter((f) => f !== img))
-                  }}
-                  className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white"
-                >
-                  ×
-                </button>
-                {/* Hidden input to carry file */}
-              </div>
+              <ImagePreview
+                key={`${img.name}-${img.size}`}
+                img={img}
+                onRemove={() => setImages((prev) => prev.filter((f) => f !== img))}
+              />
             ))}
           </div>
         )}
@@ -203,6 +190,36 @@ export default function InputPanel({ driveConnected }: InputPanelProps) {
         </button>
       </div>
     </form>
+  )
+}
+
+function ImagePreview({ img, onRemove }: { img: File; onRemove: () => void }) {
+  const [url, setUrl] = useState("")
+
+  useEffect(() => {
+    const objectUrl = URL.createObjectURL(img)
+    setUrl(objectUrl)
+    return () => URL.revokeObjectURL(objectUrl)
+  }, [img])
+
+  return (
+    <div className="relative">
+      <img
+        src={url}
+        alt={img.name}
+        className="h-20 w-20 rounded-md object-cover ring-1 ring-gray-200"
+      />
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation()
+          onRemove()
+        }}
+        className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white"
+      >
+        ×
+      </button>
+    </div>
   )
 }
 

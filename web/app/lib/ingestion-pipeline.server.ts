@@ -236,11 +236,14 @@ export async function runIngestionPipeline(
       })
       .where(eq(schema.ingestionSessions.id, sessionId))
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
     console.error(`[ingestion-pipeline] session=${sessionId} error:`, err)
     await drizzle(env.DB, { schema })
       .update(schema.ingestionSessions)
-      .set({ status: "error", errorMessage: message, updatedAt: new Date() })
+      .set({
+        status: "error",
+        errorMessage: "Ingestion failed due to an internal error.",
+        updatedAt: new Date(),
+      })
       .where(eq(schema.ingestionSessions.id, sessionId))
   }
 }
@@ -254,24 +257,51 @@ export async function buildPageIndex(
   userText: string,
 ): Promise<PageIndexEntry[]> {
   try {
-    // Use FTS5 to find relevant published pages
-    const sanitized = userText.replace(/['"]/g, " ").slice(0, 500)
-    const results = await db
-      .select({
-        id: schema.pages.id,
-        titleJa: schema.pages.titleJa,
-        summaryJa: schema.pages.summaryJa,
-        slug: schema.pages.slug,
-      })
-      .from(schema.pages)
-      .where(and(eq(schema.pages.status, "published")))
-      .limit(200)
-      .all()
+    const sanitized = userText
+      .replace(/["'*^()]/g, " ")
+      .trim()
+      .slice(0, 500)
+
+    if (!sanitized) {
+      // No usable text — fall back to recency order
+      const fallback = await db
+        .select({
+          id: schema.pages.id,
+          titleJa: schema.pages.titleJa,
+          summaryJa: schema.pages.summaryJa,
+          slug: schema.pages.slug,
+        })
+        .from(schema.pages)
+        .where(eq(schema.pages.status, "published"))
+        .limit(200)
+        .all()
+      return fallback.map((r) => ({
+        id: r.id,
+        title: r.titleJa,
+        summary: r.summaryJa,
+        slug: r.slug,
+      }))
+    }
+
+    const results = await db.all<{
+      id: string
+      title_ja: string
+      summary_ja: string
+      slug: string
+    }>(
+      sql`SELECT p.id, p.title_ja, p.summary_ja, p.slug
+          FROM pages_fts
+          JOIN pages p ON pages_fts.page_id = p.id
+          WHERE pages_fts MATCH ${sanitized}
+            AND p.status = 'published'
+          ORDER BY rank
+          LIMIT 200`,
+    )
 
     return results.map((r) => ({
       id: r.id,
-      title: r.titleJa,
-      summary: r.summaryJa,
+      title: r.title_ja,
+      summary: r.summary_ja,
       slug: r.slug,
     }))
   } catch {

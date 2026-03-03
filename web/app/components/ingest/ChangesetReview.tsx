@@ -49,6 +49,7 @@ interface ChangesetReviewProps {
 // ---------------------------------------------------------------------------
 
 export default function ChangesetReview({ draft, sessionId, userRole }: ChangesetReviewProps) {
+  const [operations, setOperations] = useState(draft.operations)
   const [opStates, setOpStates] = useState<OperationState[]>(() =>
     draft.operations.map((op) => initOpState(op)),
   )
@@ -68,9 +69,11 @@ export default function ChangesetReview({ draft, sessionId, userRole }: Changese
     setOpStates((prev) => {
       const next = [...prev]
       const tags = next[idx].tags
+      const removing = tags.includes(slug)
+      if (!removing && tags.length >= 5) return prev
       next[idx] = {
         ...next[idx],
-        tags: tags.includes(slug) ? tags.filter((t) => t !== slug) : [...tags, slug],
+        tags: removing ? tags.filter((t) => t !== slug) : [...tags, slug],
       }
       return next
     })
@@ -93,6 +96,11 @@ export default function ChangesetReview({ draft, sessionId, userRole }: Changese
       })
       if (res.ok) {
         const data = (await res.json()) as { operation: ChangesetOperation }
+        setOperations((prev) => {
+          const next = [...prev]
+          next[idx] = data.operation
+          return next
+        })
         setOpStates((prev) => {
           const next = [...prev]
           next[idx] = initOpState(data.operation)
@@ -113,7 +121,7 @@ export default function ChangesetReview({ draft, sessionId, userRole }: Changese
     try {
       const body = {
         publishStatus,
-        operations: draft.operations.map((op, idx) => ({
+        operations: operations.map((op, idx) => ({
           type: op.type,
           tempId: op.tempId,
           pageId: op.pageId,
@@ -168,7 +176,7 @@ export default function ChangesetReview({ draft, sessionId, userRole }: Changese
       )}
 
       {/* Operation cards */}
-      {draft.operations.map((op, idx) => {
+      {operations.map((op, idx) => {
         const state = opStates[idx]
         const score = op.draft?.actionabilityScore ?? op.patch?.actionabilityScore
         const notes = op.draft?.actionabilityNotes ?? op.patch?.actionabilityNotes

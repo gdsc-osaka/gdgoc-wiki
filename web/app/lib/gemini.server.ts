@@ -241,13 +241,21 @@ export async function uploadFileToGemini(
   offset += fileBytes.byteLength
   body.set(endBytes, offset)
 
-  const response = await fetch(uploadUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": `multipart/related; boundary=${boundary}`,
-    },
-    body,
-  })
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 60_000)
+  let response: Response
+  try {
+    response = await fetch(uploadUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": `multipart/related; boundary=${boundary}`,
+      },
+      body,
+      signal: controller.signal,
+    })
+  } finally {
+    clearTimeout(timeoutId)
+  }
 
   if (!response.ok) {
     const err = await response.text()
@@ -388,13 +396,20 @@ Title (Japanese): ${titleJa}
 Content (Japanese Markdown):
 ${contentJa}`
 
+  const TranslationSchema = z.object({
+    titleEn: z.string().min(1),
+    contentEn: z.string().min(1),
+  })
+
   const result = await model.generateContent(prompt)
   const text = result.response.text()
   const json = JSON.parse(extractJson(text))
-  return {
-    titleEn: String(json.titleEn ?? ""),
-    contentEn: String(json.contentEn ?? ""),
+  const parsed = TranslationSchema.safeParse(json)
+  if (!parsed.success) {
+    console.error("Translation schema validation failed:", parsed.error, "raw:", text)
+    throw new Error("Translation output failed validation")
   }
+  return { titleEn: parsed.data.titleEn, contentEn: parsed.data.contentEn }
 }
 
 // ---------------------------------------------------------------------------

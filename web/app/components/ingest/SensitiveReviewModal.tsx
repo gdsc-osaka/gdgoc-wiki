@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import type { SensitiveItem } from "~/lib/gemini.server"
 
 // ---------------------------------------------------------------------------
@@ -50,6 +50,12 @@ export default function SensitiveReviewModal({ items, onProceed }: SensitiveRevi
     Object.fromEntries(items.map((item) => [item.id, "replace" as SensitiveResolution])),
   )
 
+  useEffect(() => {
+    setResolutions(
+      Object.fromEntries(items.map((item) => [item.id, "replace" as SensitiveResolution])),
+    )
+  }, [items])
+
   const allResolved = items.every((item) => resolutions[item.id] !== undefined)
 
   function setResolution(id: string, resolution: SensitiveResolution) {
@@ -65,7 +71,11 @@ export default function SensitiveReviewModal({ items, onProceed }: SensitiveRevi
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <dialog
+      open
+      className="fixed inset-0 z-50 flex h-full w-full items-center justify-center bg-black/40 p-4"
+      aria-labelledby="sensitive-review-title"
+    >
       <div className="w-full max-w-2xl rounded-xl bg-white shadow-xl">
         {/* Header */}
         <div className="flex items-start gap-3 border-b border-gray-100 px-6 py-5">
@@ -86,7 +96,9 @@ export default function SensitiveReviewModal({ items, onProceed }: SensitiveRevi
             </svg>
           </div>
           <div>
-            <h2 className="text-base font-semibold text-gray-900">機微情報が見つかりました</h2>
+            <h2 id="sensitive-review-title" className="text-base font-semibold text-gray-900">
+              機微情報が見つかりました
+            </h2>
             <p className="mt-0.5 text-sm text-gray-500">
               以下の項目について、公開前に対応を選択してください。
             </p>
@@ -148,6 +160,6 @@ export default function SensitiveReviewModal({ items, onProceed }: SensitiveRevi
           </button>
         </div>
       </div>
-    </div>
+    </dialog>
   )
 }

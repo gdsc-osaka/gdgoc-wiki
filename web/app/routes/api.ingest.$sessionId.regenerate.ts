@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/d1"
 import type { ActionFunctionArgs } from "react-router"
+import { z } from "zod"
 import * as schema from "~/db/schema"
 import { requireRole } from "~/lib/auth-utils.server"
 import {
@@ -41,8 +42,15 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
   if (session.userId !== user.id) return new Response("Forbidden", { status: 403 })
   if (session.status !== "done") return new Response("Session not complete", { status: 409 })
 
-  const body = (await request.json()) as { operationIndex: number; feedback?: string }
-  const { operationIndex, feedback } = body
+  const RegenerateBodySchema = z.object({
+    operationIndex: z.number().int().min(0),
+    feedback: z.string().optional(),
+  })
+  const parseResult = RegenerateBodySchema.safeParse(await request.json())
+  if (!parseResult.success) {
+    return new Response(parseResult.error.message, { status: 400 })
+  }
+  const { operationIndex, feedback } = parseResult.data
 
   const draft = JSON.parse(session.aiDraftJson ?? "null") as AiDraftJson | null
   if (!draft) return new Response("No draft found", { status: 404 })

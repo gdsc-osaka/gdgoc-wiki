@@ -32,7 +32,15 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
     sessionId: session.id,
     status: session.status,
     errorMessage: session.errorMessage,
-    draft: session.aiDraftJson ? (JSON.parse(session.aiDraftJson) as AiDraftJson) : null,
+    draft: (() => {
+      if (!session.aiDraftJson) return null
+      try {
+        return JSON.parse(session.aiDraftJson) as AiDraftJson
+      } catch {
+        console.error("Failed to parse ai_draft_json for session", params.sessionId)
+        return null
+      }
+    })(),
     userRole: user.role as string,
   }
 }
@@ -147,21 +155,29 @@ export default function IngestSessionPage() {
 // Apply sensitive resolutions to draft
 // ---------------------------------------------------------------------------
 
-function applySensitiveResolutions(draft: AiDraftJson, resolutions: ResolvedItem[]): AiDraftJson {
-  let json = JSON.stringify(draft)
+function walkStrings(value: unknown, from: string, to: string): unknown {
+  if (typeof value === "string") return value.split(from).join(to)
+  if (Array.isArray(value)) return value.map((v) => walkStrings(v, from, to))
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([k, v]) => [
+        k,
+        walkStrings(v, from, to),
+      ]),
+    )
+  }
+  return value
+}
 
+function applySensitiveResolutions(draft: AiDraftJson, resolutions: ResolvedItem[]): AiDraftJson {
+  let result: unknown = draft
   for (const { item, resolution } of resolutions) {
     if (resolution === "delete") {
-      json = json.split(item.excerpt).join("")
+      result = walkStrings(result, item.excerpt, "")
     } else if (resolution === "replace") {
-      json = json.split(item.excerpt).join("[要確認]")
+      result = walkStrings(result, item.excerpt, "[要確認]")
     }
     // "keep" — do nothing
   }
-
-  try {
-    return JSON.parse(json) as AiDraftJson
-  } catch {
-    return draft
-  }
+  return result as AiDraftJson
 }
