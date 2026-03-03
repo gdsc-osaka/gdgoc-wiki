@@ -161,6 +161,19 @@ export const pageAttachments = sqliteTable("page_attachments", {
 })
 
 // ---------------------------------------------------------------------------
+// google_drive_tokens (per-user OAuth tokens for Drive integration)
+// ---------------------------------------------------------------------------
+export const googleDriveTokens = sqliteTable("google_drive_tokens", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token"),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+})
+
+// ---------------------------------------------------------------------------
 // page_versions (last 10 retained per page)
 // ---------------------------------------------------------------------------
 export const pageVersions = sqliteTable("page_versions", {

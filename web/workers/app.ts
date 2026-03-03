@@ -1,4 +1,8 @@
+import { eq } from "drizzle-orm"
+import { drizzle } from "drizzle-orm/d1"
 import { createRequestHandler } from "react-router"
+import * as schema from "../app/db/schema"
+import { runTranslation } from "../app/lib/gemini.server"
 
 // The server build is a virtual module provided by @react-router/dev/vite at build time.
 const requestHandler = createRequestHandler(
@@ -14,13 +18,47 @@ export default {
   },
 
   // Queue consumer for background translation jobs.
-  // Messages are enqueued by the TRANSLATION_QUEUE producer binding.
-  // TODO: implement translation processing logic here.
-  async queue(batch: MessageBatch<unknown>, _env: Env, _ctx: ExecutionContext): Promise<void> {
+  // Messages are enqueued by the commit action after a page is published.
+  async queue(batch: MessageBatch<unknown>, env: Env, _ctx: ExecutionContext): Promise<void> {
+    const db = drizzle(env.DB, { schema })
+
     for (const message of batch.messages) {
       try {
-        console.log("translation-jobs: received message", message.id)
-        // TODO: process translation job (read page from D1, call Gemini, write result)
+        const { pageId } = message.body as { pageId: string }
+        console.log("translation-jobs: processing page", pageId)
+
+        const page = await db
+          .select({
+            contentJa: schema.pages.contentJa,
+            titleJa: schema.pages.titleJa,
+          })
+          .from(schema.pages)
+          .where(eq(schema.pages.id, pageId))
+          .get()
+
+        if (!page) {
+          console.warn("translation-jobs: page not found", pageId)
+          message.ack()
+          continue
+        }
+
+        const { contentEn, titleEn } = await runTranslation(
+          env.GEMINI_API_KEY,
+          page.contentJa,
+          page.titleJa,
+        )
+
+        await db
+          .update(schema.pages)
+          .set({
+            contentEn,
+            titleEn,
+            translationStatusEn: "ai",
+            updatedAt: new Date(),
+          })
+          .where(eq(schema.pages.id, pageId))
+
+        console.log("translation-jobs: done", pageId)
         message.ack()
       } catch (err) {
         console.error("translation-jobs: failed to process message", message.id, err)
