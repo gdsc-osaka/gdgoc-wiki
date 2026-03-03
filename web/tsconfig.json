@@ -1,5 +1,11 @@
 {
-  "include": ["**/*.ts", "**/*.tsx", ".react-router/types/**/*"],
+  "include": [
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "workers/**/*.ts",
+    "worker-configuration.d.ts",
+    ".react-router/types/**/*"
+  ],
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "types": ["@cloudflare/workers-types", "vite/client"],
@@ -17,6 +23,7 @@
     "baseUrl": ".",
     "paths": {
       "~/*": ["./app/*"]
-    }
+    },
+    "noEmit": true
   }
 }
