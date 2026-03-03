@@ -1,0 +1,13 @@
+{
+  "app_name": "GDGoC Japan Wiki",
+  "nav": {
+    "home": "Home",
+    "search": "Search",
+    "new_page": "New Page",
+    "admin": "Admin"
+  },
+  "language": {
+    "ja": "日本語",
+    "en": "English"
+  }
+}

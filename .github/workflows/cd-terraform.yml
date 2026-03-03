@@ -1,0 +1,48 @@
+name: CD — Deploy Terraform
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "terraform/**"
+      - ".github/workflows/cd-terraform.yml"
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: terraform
+
+# Prevent concurrent Terraform applies
+concurrency:
+  group: deploy-terraform
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    name: Apply to Production
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.9"
+      - name: Write backend config
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.TF_STATE_R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_R2_SECRET_ACCESS_KEY }}
+        run: |
+          cat > backend.hcl <<EOF
+          endpoint   = "https://${CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          access_key = "${R2_ACCESS_KEY_ID}"
+          secret_key = "${R2_SECRET_ACCESS_KEY}"
+          EOF
+      - run: terraform init -backend-config=backend.hcl
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - run: terraform apply -auto-approve
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TF_VAR_cloudflare_account_id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          TF_VAR_environment: production
