@@ -1,0 +1,44 @@
+{
+  "skill_name": "codex-review",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Run a codex review on my uncommitted changes in /Users/hari/proj/gdgoc-wiki and apply any P0/P1 fixes you find.",
+      "expected_output": "The skill runs `codex review --uncommitted` from the project directory, reads the output, parses any P0/P1/P2 items, applies P0+P1 fixes if any, runs project tests (pnpm check && pnpm test), and outputs a structured summary with scope, issues found, fixes applied, and test results.",
+      "files": [],
+      "expectations": [
+        "A codex review command was run via Bash (codex review or codex exec review)",
+        "The output contains a structured summary section with P0/P1/P2 categorization",
+        "The summary includes a 'Test results' line",
+        "The summary includes a 'Scope' line mentioning uncommitted changes",
+        "If P0 or P1 fixes were applied, each fix references a specific file path"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Hey, I've been working on the initial-setup branch of /Users/hari/proj/gdgoc-wiki. Can you run a codex review against main and give me a prioritized fix list? Apply any critical fixes.",
+      "expected_output": "The skill detects 'vs main' intent and runs `codex review --base main` from the project directory. It reads the review output, categorizes findings as P0/P1/P2, applies P0+P1 fixes using Edit/Write tools, runs the test suite, and produces the structured summary.",
+      "files": [],
+      "expectations": [
+        "A codex review command with --base main flag was executed",
+        "The output contains a structured '## Codex Review Summary' section",
+        "P0, P1, and P2 items are enumerated (even if counts are 0)",
+        "Test results are included in the summary",
+        "The scope mentions 'main' or 'branch vs'"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Use codex to review the latest commit in /Users/hari/proj/gdgoc-wiki (the one that added skip_requesting_account_id to versions.tf). Fix anything P0 or P1.",
+      "expected_output": "The skill runs `git log` to find the commit SHA for the described commit, then runs `codex review --commit <sha>`. It reads the review, applies any P0/P1 fixes, runs tests, and summarizes.",
+      "files": [],
+      "expectations": [
+        "A git command was run to find the relevant commit SHA",
+        "A codex review command with --commit flag was executed",
+        "The output contains a structured '## Codex Review Summary' section",
+        "The scope in the summary mentions 'commit' or the specific file terraform/versions.tf",
+        "Test results are reported"
+      ]
+    }
+  ]
+}

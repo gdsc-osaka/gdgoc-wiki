@@ -12,4 +12,14 @@ export default {
       cloudflare: { env, ctx },
     })
   },
+
+  // Queue consumer for background translation jobs.
+  // Messages are enqueued by the TRANSLATION_QUEUE producer binding.
+  // TODO: implement translation processing logic here.
+  async queue(batch: MessageBatch<unknown>, _env: Env, _ctx: ExecutionContext): Promise<void> {
+    for (const message of batch.messages) {
+      console.log("translation-jobs: received message", message.id)
+      message.ack()
+    }
+  },
 } satisfies ExportedHandler<Env>

@@ -32,7 +32,7 @@ resource "cloudflare_pages_project" "app" {
   production_branch = "main"
 
   build_config {
-    build_command   = "npm run build"
+    build_command   = "pnpm run build"
     destination_dir = "build/client"
     root_dir        = "/web"
     build_caching   = true
