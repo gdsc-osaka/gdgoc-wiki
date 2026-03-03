@@ -18,8 +18,14 @@ export default {
   // TODO: implement translation processing logic here.
   async queue(batch: MessageBatch<unknown>, _env: Env, _ctx: ExecutionContext): Promise<void> {
     for (const message of batch.messages) {
-      console.log("translation-jobs: received message", message.id)
-      message.ack()
+      try {
+        console.log("translation-jobs: received message", message.id)
+        // TODO: process translation job (read page from D1, call Gemini, write result)
+        message.ack()
+      } catch (err) {
+        console.error("translation-jobs: failed to process message", message.id, err)
+        message.retry()
+      }
     }
   },
 } satisfies ExportedHandler<Env>
