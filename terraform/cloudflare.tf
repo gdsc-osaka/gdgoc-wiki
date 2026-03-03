@@ -37,19 +37,4 @@ resource "cloudflare_pages_project" "app" {
     root_dir        = "/web"
     build_caching   = true
   }
-
-  source {
-    type = "github"
-    config {
-      owner                         = "gdgoc-jp"
-      repo_name                     = "wiki"
-      production_branch             = "main"
-      pr_comments_enabled           = true
-      deployments_enabled           = true
-      production_deployment_enabled = true
-      preview_deployment_setting    = "custom"
-      preview_branch_includes       = ["*"]
-      preview_branch_excludes       = ["main"]
-    }
-  }
 }

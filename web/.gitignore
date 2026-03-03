@@ -4,6 +4,7 @@ build/
 .wrangler/
 .env.local
 .env.*.local
+.dev.vars
 coverage/
 playwright-report/
 test-results/
