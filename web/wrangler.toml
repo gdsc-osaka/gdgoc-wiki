@@ -17,7 +17,7 @@ ENVIRONMENT = "development"
 # ---------------------------------------------------------------------------
 [[d1_databases]]
 binding = "DB"
-database_name = "gdgoc-wiki"
+database_name = "gdgoc-wiki-production-db"
 database_id = "placeholder-replace-with-actual-id"
 
 # ---------------------------------------------------------------------------
@@ -25,16 +25,16 @@ database_id = "placeholder-replace-with-actual-id"
 # ---------------------------------------------------------------------------
 [[r2_buckets]]
 binding = "BUCKET"
-bucket_name = "gdgoc-wiki"
+bucket_name = "gdgoc-wiki-production-storage"
 
 # ---------------------------------------------------------------------------
 # Cloudflare Queues — background translation jobs
 # ---------------------------------------------------------------------------
 [[queues.producers]]
 binding = "TRANSLATION_QUEUE"
-queue = "translation-jobs"
+queue = "gdgoc-wiki-production-translation-jobs"
 
 [[queues.consumers]]
-queue = "translation-jobs"
+queue = "gdgoc-wiki-production-translation-jobs"
 max_batch_size = 10
 max_batch_timeout = 30
