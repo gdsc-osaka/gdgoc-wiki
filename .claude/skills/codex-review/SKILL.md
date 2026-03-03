@@ -63,7 +63,7 @@ commands are equivalent.
 
 Read `/tmp/codex-review-output.txt`. Extract all P0, P1, and P2 items. Structure them mentally as:
 
-```
+```text
 P0: [critical — must fix now]
 P1: [important — fix in this session]
 P2: [nice-to-have — report but skip]
@@ -113,7 +113,7 @@ failure and move on. If the failure is pre-existing (unrelated to the diff), not
 
 Always end with this exact structure:
 
-```
+```markdown
 ## Codex Review Summary
 
 **Scope**: <what was reviewed, e.g. "uncommitted changes" or "branch vs main (3 commits)">

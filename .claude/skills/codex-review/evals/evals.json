@@ -3,7 +3,7 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "Run a codex review on my uncommitted changes in /Users/hari/proj/gdgoc-wiki and apply any P0/P1 fixes you find.",
+      "prompt": "Run a codex review on my uncommitted changes in . and apply any P0/P1 fixes you find.",
       "expected_output": "The skill runs `codex review --uncommitted` from the project directory, reads the output, parses any P0/P1/P2 items, applies P0+P1 fixes if any, runs project tests (pnpm check && pnpm test), and outputs a structured summary with scope, issues found, fixes applied, and test results.",
       "files": [],
       "expectations": [
@@ -16,7 +16,7 @@
     },
     {
       "id": 2,
-      "prompt": "Hey, I've been working on the initial-setup branch of /Users/hari/proj/gdgoc-wiki. Can you run a codex review against main and give me a prioritized fix list? Apply any critical fixes.",
+      "prompt": "Hey, I've been working on the initial-setup branch. Can you run a codex review against main and give me a prioritized fix list? Apply any critical fixes.",
       "expected_output": "The skill detects 'vs main' intent and runs `codex review --base main` from the project directory. It reads the review output, categorizes findings as P0/P1/P2, applies P0+P1 fixes using Edit/Write tools, runs the test suite, and produces the structured summary.",
       "files": [],
       "expectations": [
@@ -29,7 +29,7 @@
     },
     {
       "id": 3,
-      "prompt": "Use codex to review the latest commit in /Users/hari/proj/gdgoc-wiki (the one that added skip_requesting_account_id to versions.tf). Fix anything P0 or P1.",
+      "prompt": "Use codex to review the latest commit (the one that added skip_requesting_account_id to versions.tf). Fix anything P0 or P1.",
       "expected_output": "The skill runs `git log` to find the commit SHA for the described commit, then runs `codex review --commit <sha>`. It reads the review, applies any P0/P1 fixes, runs tests, and summarizes.",
       "files": [],
       "expectations": [

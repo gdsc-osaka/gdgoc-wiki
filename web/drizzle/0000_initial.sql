@@ -114,12 +114,12 @@ CREATE TABLE IF NOT EXISTS "pages" (
   "translation_status_en" TEXT NOT NULL DEFAULT 'missing',
   "summary_ja"            TEXT NOT NULL DEFAULT '',
   "summary_en"            TEXT NOT NULL DEFAULT '',
-  "parent_id"             TEXT REFERENCES "pages"("id"),
+  "parent_id"             TEXT REFERENCES "pages"("id") ON DELETE SET NULL,
   "sort_order"            INTEGER NOT NULL DEFAULT 0,
   "status"                TEXT NOT NULL DEFAULT 'draft',
   "page_type"             TEXT,
   "page_metadata"         TEXT,
-  "ingestion_session_id"  TEXT REFERENCES "ingestion_sessions"("id"),
+  "ingestion_session_id"  TEXT REFERENCES "ingestion_sessions"("id") ON DELETE SET NULL,
   "actionability_score"   INTEGER,
   "author_id"             TEXT NOT NULL,
   "last_edited_by"        TEXT NOT NULL,
@@ -129,7 +129,7 @@ CREATE TABLE IF NOT EXISTS "pages" (
 
 CREATE TABLE IF NOT EXISTS "page_tags" (
   "page_id"   TEXT NOT NULL REFERENCES "pages"("id") ON DELETE CASCADE,
-  "tag_slug"  TEXT NOT NULL REFERENCES "tags"("slug"),
+  "tag_slug"  TEXT NOT NULL REFERENCES "tags"("slug") ON DELETE CASCADE,
   PRIMARY KEY ("page_id", "tag_slug")
 );
 
@@ -183,6 +183,30 @@ END;
 
 CREATE TRIGGER IF NOT EXISTS pages_fts_delete AFTER DELETE ON pages BEGIN
   DELETE FROM pages_fts WHERE page_id = old.id;
+END;
+
+-- Keep tags_text in sync when page_tags rows are added or removed.
+-- GROUP_CONCATs both JA and EN label strings so both languages are searchable.
+CREATE TRIGGER IF NOT EXISTS page_tags_fts_insert AFTER INSERT ON page_tags BEGIN
+  UPDATE pages_fts
+  SET tags_text = (
+    SELECT COALESCE(GROUP_CONCAT(t.label_ja || ' ' || t.label_en, ' '), '')
+    FROM page_tags pt
+    JOIN tags t ON t.slug = pt.tag_slug
+    WHERE pt.page_id = new.page_id
+  )
+  WHERE page_id = new.page_id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS page_tags_fts_delete AFTER DELETE ON page_tags BEGIN
+  UPDATE pages_fts
+  SET tags_text = (
+    SELECT COALESCE(GROUP_CONCAT(t.label_ja || ' ' || t.label_en, ' '), '')
+    FROM page_tags pt
+    JOIN tags t ON t.slug = pt.tag_slug
+    WHERE pt.page_id = old.page_id
+  )
+  WHERE page_id = old.page_id;
 END;
 
 -- ---------------------------------------------------------------------------
