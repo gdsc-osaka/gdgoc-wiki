@@ -100,7 +100,7 @@ export default function WikiRightSidebar({
                 key={l}
                 to={l === "ja" ? jaUrl : enUrl}
                 aria-disabled={isPending}
-                title={isPending ? "Translation pending" : undefined}
+                title={isPending ? t("wiki.translation_pending") : undefined}
                 className={[
                   "flex-1 rounded px-2 py-1 text-center text-sm font-medium transition-colors",
                   isActive

@@ -30,7 +30,8 @@ const extensions = [
 // ---------------------------------------------------------------------------
 
 interface TipTapEditorProps {
-  initialMarkdown: string
+  initialMarkdown?: string
+  initialJson?: string
   onChange: (json: string) => void
   readOnly?: boolean
 }
@@ -40,7 +41,8 @@ interface TipTapEditorProps {
 // ---------------------------------------------------------------------------
 
 export default function TipTapEditor({
-  initialMarkdown,
+  initialMarkdown = "",
+  initialJson,
   onChange,
   readOnly = false,
 }: TipTapEditorProps) {
@@ -53,10 +55,21 @@ export default function TipTapEditor({
     },
   })
 
+  // Load from TipTap JSON directly when initialJson is provided.
+  useEffect(() => {
+    if (!editor || !initialJson) return
+    try {
+      editor.commands.setContent(JSON.parse(initialJson), { emitUpdate: false })
+    } catch {
+      /* ignore malformed JSON */
+    }
+  }, [editor, initialJson])
+
   // Convert markdown → TipTap JSON on mount / when initialMarkdown changes.
   // emitUpdate: false prevents setContent from triggering the onUpdate/onChange handler.
+  // Only runs when initialJson is not provided.
   useEffect(() => {
-    if (!editor) return
+    if (!editor || initialJson) return
     void Promise.resolve(marked.parse(initialMarkdown)).then((html) => {
       try {
         const clean = DOMPurify.sanitize(html)
@@ -67,7 +80,7 @@ export default function TipTapEditor({
       }
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editor, initialMarkdown])
+  }, [editor, initialMarkdown, initialJson])
 
   return (
     <div

@@ -100,8 +100,10 @@ export default function WikiPage() {
   const contentLangFetcher = useFetcher()
   const submitRef = contentLangFetcher.submit
 
-  // Persist content lang selection
+  // Persist content lang selection only when it differs from the stored value.
   useEffect(() => {
+    const stored = localStorage.getItem("content_lang")
+    if (stored === lang) return
     localStorage.setItem("content_lang", lang)
     submitRef({ lang }, { method: "post", action: "/api/set-content-lang" })
   }, [lang, submitRef])

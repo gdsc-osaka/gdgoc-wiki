@@ -97,7 +97,7 @@ export default function Index() {
         <h2 className="mb-4 text-lg font-semibold text-gray-900">{t("home.recently_updated")}</h2>
 
         {recentPages.length === 0 ? (
-          <p className="text-sm text-gray-400">No published pages yet.</p>
+          <p className="text-sm text-gray-400">{t("home.no_pages_yet")}</p>
         ) : (
           <div className="grid grid-cols-3 gap-4">
             {recentPages.map((page) => (
@@ -142,7 +142,7 @@ export default function Index() {
         <h2 className="mb-4 text-lg font-semibold text-gray-900">{t("home.browse_by_tag")}</h2>
 
         {allTags.length === 0 ? (
-          <p className="text-sm text-gray-400">No tags yet.</p>
+          <p className="text-sm text-gray-400">{t("home.no_tags_yet")}</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {allTags.map((tag) => (

@@ -19,14 +19,26 @@
     "on_this_page": "On this page",
     "read_in": "Read in",
     "translation_fallback_en": "Translation pending — showing Japanese content instead.",
-    "translation_fallback_ja": "翻訳準備中 — 英語コンテンツを表示しています。"
+    "translation_fallback_ja": "Translation pending — showing English content instead."
   },
   "home": {
     "recently_updated": "Recently Updated",
-    "browse_by_tag": "Browse by Tag"
+    "browse_by_tag": "Browse by Tag",
+    "no_pages_yet": "No published pages yet.",
+    "no_tags_yet": "No tags yet."
   },
   "auth": {
     "sign_in": "Sign in",
     "sign_out": "Sign out"
+  },
+  "editor": {
+    "back_to_page": "Back to page",
+    "save_draft": "Save Draft",
+    "publish": "Publish",
+    "saving": "Saving...",
+    "saved_at": "Saved {{time}}",
+    "autosave_failed": "Auto-save failed",
+    "title_ja": "Title (Japanese)",
+    "title_en": "Title (English)"
   }
 }
