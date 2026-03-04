@@ -61,9 +61,9 @@ export default function TipTapEditor({
       try {
         const clean = DOMPurify.sanitize(html)
         const json = generateJSON(clean, extensions)
-        editor.commands.setContent(json, false)
+        editor.commands.setContent(json)
       } catch {
-        editor.commands.setContent(initialMarkdown, false)
+        editor.commands.setContent(initialMarkdown)
       }
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
