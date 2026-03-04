@@ -1,0 +1,81 @@
+import { useState } from "react"
+import { Link } from "react-router"
+import type { PageNode } from "~/lib/page-tree"
+
+export type { PageNode }
+
+interface PageTreeProps {
+  pages: PageNode[]
+  currentSlug?: string
+}
+
+interface TreeNodeProps {
+  node: PageNode
+  currentSlug?: string
+  depth: number
+}
+
+function TreeNode({ node, currentSlug, depth }: TreeNodeProps) {
+  const [expanded, setExpanded] = useState(true)
+  const hasChildren = node.children.length > 0
+  const isCurrent = node.slug === currentSlug
+
+  return (
+    <li>
+      <div
+        className={`flex items-center gap-1 rounded px-2 py-1 text-sm ${
+          isCurrent
+            ? "bg-[#4285F4]/10 font-medium text-[#4285F4]"
+            : "text-gray-700 hover:bg-gray-100"
+        }`}
+      >
+        {hasChildren ? (
+          <button
+            type="button"
+            onClick={() => setExpanded(!expanded)}
+            className="flex h-4 w-4 flex-shrink-0 items-center justify-center text-[10px] text-gray-400 hover:text-gray-600"
+            aria-label={expanded ? "Collapse" : "Expand"}
+          >
+            {expanded ? "▼" : "▶"}
+          </button>
+        ) : (
+          <span className="h-4 w-4 flex-shrink-0" />
+        )}
+        <Link to={`/wiki/${node.slug}`} className="flex-1 truncate">
+          {node.titleEn || node.titleJa}
+        </Link>
+      </div>
+
+      {hasChildren && expanded && depth < 2 && (
+        <ul className="ml-4">
+          {node.children.map((child) => (
+            <TreeNode key={child.id} node={child} currentSlug={currentSlug} depth={depth + 1} />
+          ))}
+        </ul>
+      )}
+    </li>
+  )
+}
+
+export default function PageTree({ pages, currentSlug }: PageTreeProps) {
+  return (
+    <nav aria-label="Page tree" className="flex h-full flex-col py-4">
+      <ul className="flex-1 space-y-0.5 overflow-y-auto px-2">
+        {pages.map((node) => (
+          <TreeNode key={node.id} node={node} currentSlug={currentSlug} depth={0} />
+        ))}
+        {pages.length === 0 && <li className="px-2 py-1 text-xs text-gray-400">No pages yet</li>}
+      </ul>
+
+      <div className="border-t border-gray-100 px-4 pt-3">
+        <Link
+          to="/ingest"
+          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#4285F4]"
+        >
+          <span className="text-base leading-none">+</span>
+          <span>New Page</span>
+        </Link>
+      </div>
+    </nav>
+  )
+}
