@@ -13,6 +13,10 @@ compatibility_flags = ["nodejs_compat"]
 directory = "./build/client"
 binding = "ASSETS"
 
+[[routes]]
+pattern = "wiki.gdgoc-osaka.jp/*"
+zone_name = "gdgoc-osaka.jp"
+
 [vars]
 ENVIRONMENT = "development"
 
