@@ -1,7 +1,7 @@
 /**
  * Gemini API client for the AI ingestion pipeline.
  *
- * All generation uses gemini-2.0-flash.
+ * All generation uses gemini-3-flash-preview.
  * Context caching is used within a single ingestion session to avoid re-sending
  * the shared system prompt + user input across Phase 1 and all Phase 2 calls.
  */
@@ -284,7 +284,7 @@ export async function runPhase1Planner(
 ): Promise<OperationPlan> {
   const ai = new GoogleGenerativeAI(apiKey)
   const model = ai.getGenerativeModel({
-    model: "gemini-2.0-flash",
+    model: "gemini-3-flash-preview",
     systemInstruction: PHASE1_SYSTEM_PROMPT,
     generationConfig: { responseMimeType: "application/json" },
   })
@@ -317,7 +317,7 @@ export async function runPhase2Creator(
 ): Promise<PageDraft> {
   const ai = new GoogleGenerativeAI(apiKey)
   const model = ai.getGenerativeModel({
-    model: "gemini-2.0-flash",
+    model: "gemini-3-flash-preview",
     systemInstruction: PHASE2_SYSTEM_PROMPT,
     generationConfig: { responseMimeType: "application/json" },
   })
@@ -350,7 +350,7 @@ export async function runPhase2Patcher(
 ): Promise<SectionPatchResponse> {
   const ai = new GoogleGenerativeAI(apiKey)
   const model = ai.getGenerativeModel({
-    model: "gemini-2.0-flash",
+    model: "gemini-3-flash-preview",
     systemInstruction: PHASE2_SYSTEM_PROMPT,
     generationConfig: { responseMimeType: "application/json" },
   })
@@ -383,7 +383,7 @@ export async function runTranslation(
 ): Promise<{ contentEn: string; titleEn: string }> {
   const ai = new GoogleGenerativeAI(apiKey)
   const model = ai.getGenerativeModel({
-    model: "gemini-2.0-flash",
+    model: "gemini-3-flash-preview",
     generationConfig: { responseMimeType: "application/json" },
   })
 
