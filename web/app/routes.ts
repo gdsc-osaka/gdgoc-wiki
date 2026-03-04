@@ -7,16 +7,28 @@ export default [
   route("/logout", "routes/logout.tsx"),
 
   // API routes (no app shell)
+  route("/api/set-ui-lang", "routes/api.set-ui-lang.tsx"),
+  route("/api/set-content-lang", "routes/api.set-content-lang.tsx"),
   route("/api/ingest/:sessionId/status", "routes/api.ingest.$sessionId.status.ts"),
   route("/api/ingest/:sessionId/commit", "routes/api.ingest.$sessionId.commit.ts"),
   route("/api/ingest/:sessionId/regenerate", "routes/api.ingest.$sessionId.regenerate.ts"),
   route("/api/google-drive/auth", "routes/api.google-drive.auth.ts"),
   route("/api/google-drive/callback", "routes/api.google-drive.callback.ts"),
 
+  // Admin routes — separate layout with admin sidebar
+  route("admin", "routes/admin.tsx", [
+    index("routes/admin._index.tsx"),
+    route("users", "routes/admin.users.tsx"),
+    route("pages", "routes/admin.pages.tsx"),
+    route("tags", "routes/admin.tags.tsx"),
+    route("stats", "routes/admin.stats.tsx"),
+  ]),
+
   // App routes — wrapped in shared layout (Navbar + PageTree sidebar)
   layout("routes/_app.tsx", [
     index("routes/_index.tsx"),
     route("/wiki/:slug", "routes/wiki.$slug.tsx"),
+    route("/wiki/:slug/edit", "routes/wiki.$slug.edit.tsx"),
     route("/ingest", "routes/ingest.tsx"),
     route("/ingest/:sessionId", "routes/ingest.$sessionId.tsx"),
   ]),

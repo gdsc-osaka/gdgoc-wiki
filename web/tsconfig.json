@@ -4,7 +4,8 @@
     "app/**/*.tsx",
     "workers/**/*.ts",
     "worker-configuration.d.ts",
-    ".react-router/types/**/*"
+    ".react-router/types/**/*",
+    "public/**/*.json"
   ],
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ES2022"],

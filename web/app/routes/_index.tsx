@@ -1,4 +1,5 @@
 import { desc, eq, inArray } from "drizzle-orm"
+import { useTranslation } from "react-i18next"
 import { Link, useLoaderData } from "react-router"
 import type { LoaderFunctionArgs, MetaFunction } from "react-router"
 import * as schema from "~/db/schema"
@@ -87,15 +88,16 @@ function timeAgo(date: Date): string {
 
 export default function Index() {
   const { recentPages, allTags } = useLoaderData<typeof loader>()
+  const { t } = useTranslation()
 
   return (
     <div className="max-w-5xl px-8 py-8">
       {/* Recently Updated */}
       <section className="mb-10">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">Recently Updated</h2>
+        <h2 className="mb-4 text-lg font-semibold text-gray-900">{t("home.recently_updated")}</h2>
 
         {recentPages.length === 0 ? (
-          <p className="text-sm text-gray-400">No published pages yet.</p>
+          <p className="text-sm text-gray-400">{t("home.no_pages_yet")}</p>
         ) : (
           <div className="grid grid-cols-3 gap-4">
             {recentPages.map((page) => (
@@ -137,10 +139,10 @@ export default function Index() {
 
       {/* Browse by Tag */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">Browse by Tag</h2>
+        <h2 className="mb-4 text-lg font-semibold text-gray-900">{t("home.browse_by_tag")}</h2>
 
         {allTags.length === 0 ? (
-          <p className="text-sm text-gray-400">No tags yet.</p>
+          <p className="text-sm text-gray-400">{t("home.no_tags_yet")}</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {allTags.map((tag) => (

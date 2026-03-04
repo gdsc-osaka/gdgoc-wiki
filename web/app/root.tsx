@@ -1,5 +1,7 @@
-import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router"
-import type { LinksFunction } from "react-router"
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from "react-router"
+import type { LinksFunction, LoaderFunctionArgs } from "react-router"
+import { type SupportedLng, supportedLngs } from "./i18n"
+import { i18nextServer } from "./i18n.server"
 
 import appStylesHref from "./app.css?url"
 
@@ -21,9 +23,28 @@ export const links: LinksFunction = () => [
   { rel: "stylesheet", href: appStylesHref },
 ]
 
+export async function loader({ request }: LoaderFunctionArgs) {
+  // Prefer the persisted ui_lang cookie so SSR language matches the user's
+  // saved preference, falling back to Accept-Language detection.
+  const cookieHeader = request.headers.get("Cookie") ?? ""
+  const cookieLang = cookieHeader
+    .split(";")
+    .map((c) => c.trim())
+    .find((c) => c.startsWith("ui_lang="))
+    ?.split("=")[1]
+  const detected = await i18nextServer.getLocale(request)
+  const locale: SupportedLng =
+    cookieLang && (supportedLngs as readonly string[]).includes(cookieLang)
+      ? (cookieLang as SupportedLng)
+      : (detected as SupportedLng)
+  return { locale }
+}
+
 export default function App() {
+  const { locale } = useLoaderData<typeof loader>()
+
   return (
-    <html lang="ja">
+    <html lang={locale}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
