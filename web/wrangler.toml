@@ -19,6 +19,7 @@ ENVIRONMENT = "development"
 binding = "DB"
 database_name = "gdgoc-wiki-production-db"
 database_id = "48e8a415-9f80-4556-98c6-8aa283a0b7ab"
+migrations_dir = "drizzle"
 
 # ---------------------------------------------------------------------------
 # Cloudflare R2 — object storage for page attachments / ingestion uploads
