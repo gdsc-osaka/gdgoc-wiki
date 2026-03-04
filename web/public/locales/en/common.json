@@ -9,5 +9,13 @@
   "language": {
     "ja": "日本語",
     "en": "English"
+  },
+  "wiki": {
+    "auto_translated": "Auto-translated",
+    "translation_pending": "Translation pending",
+    "last_edited_by": "Last edited by",
+    "edit_page": "Edit page",
+    "on_this_page": "On this page",
+    "read_in": "Read in"
   }
 }

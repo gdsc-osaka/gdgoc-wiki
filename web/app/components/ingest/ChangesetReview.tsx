@@ -180,7 +180,11 @@ export default function ChangesetReview({ draft, sessionId, userRole }: Changese
         const state = opStates[idx]
         const score = op.draft?.actionabilityScore ?? op.patch?.actionabilityScore
         const notes = op.draft?.actionabilityNotes ?? op.patch?.actionabilityNotes
-        const draftMarkdown = op.draft ? buildMarkdownFromDraft(op.draft) : ""
+        const draftMarkdown = op.draft
+          ? buildMarkdownFromDraft(op.draft)
+          : op.patch
+            ? buildMarkdownFromPatch(op.patch)
+            : ""
         const opKey = op.tempId ?? op.pageId ?? String(idx)
 
         return (
@@ -378,4 +382,13 @@ function initOpState(op: ChangesetOperation): OperationState {
 
 function buildMarkdownFromDraft(draft: import("~/lib/gemini.server").PageDraft): string {
   return draft.sections.map((section) => `## ${section.heading}\n\n${section.body}`).join("\n\n")
+}
+
+function buildMarkdownFromPatch(patch: import("~/lib/gemini.server").SectionPatchResponse): string {
+  return patch.sectionPatches
+    .map((p) => {
+      const heading = p.newHeading ?? p.headingMatch ?? "New Section"
+      return `## ${heading}\n\n${p.content}`
+    })
+    .join("\n\n")
 }

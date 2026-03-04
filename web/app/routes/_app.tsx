@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm"
-import { Outlet, useLoaderData } from "react-router"
+import { Outlet, useLoaderData, useParams } from "react-router"
 import type { LoaderFunctionArgs } from "react-router"
 import Navbar from "~/components/Navbar"
 import PageTree from "~/components/PageTree"
@@ -40,6 +40,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
 
 export default function AppLayout() {
   const { user, pageTree } = useLoaderData<typeof loader>()
+  const { slug } = useParams()
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -48,7 +49,7 @@ export default function AppLayout() {
       <div className="flex flex-1 pt-14">
         {/* Left sidebar */}
         <aside className="fixed bottom-0 left-0 top-14 w-60 overflow-hidden border-r border-gray-200 bg-white">
-          <PageTree pages={pageTree} />
+          <PageTree pages={pageTree} currentSlug={slug} />
         </aside>
 
         {/* Main content */}

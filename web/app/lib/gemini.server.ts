@@ -556,11 +556,12 @@ export async function runTranslation(
   })
 
   const prompt = `Translate the following Japanese wiki page content to English.
-Preserve all Markdown formatting exactly. Do not add or remove sections.
+The content is in TipTap/ProseMirror JSON format. Translate ONLY the values of "text" properties within the JSON nodes, preserving the complete JSON structure — all "type", "attrs", "marks", and "content" fields must remain exactly as-is.
+Return the complete TipTap JSON with Japanese text replaced by English translations. Do not add or remove nodes.
 
 Title (Japanese): ${titleJa}
 
-Content (Japanese Markdown):
+Content (TipTap JSON):
 ${contentJa}`
 
   const response = await ai.models.generateContent({
