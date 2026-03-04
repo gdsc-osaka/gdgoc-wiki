@@ -49,6 +49,7 @@ export default function TipTapEditor({
   const editor = useEditor({
     extensions,
     editable: !readOnly,
+    immediatelyRender: false,
     onUpdate: ({ editor: e }) => {
       onChange(JSON.stringify(e.getJSON()))
     },
