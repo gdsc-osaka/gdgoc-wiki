@@ -23,7 +23,7 @@ ENVIRONMENT = "development"
 [[d1_databases]]
 binding = "DB"
 database_name = "gdgoc-wiki-production-db"
-database_id = "48e8a415-9f80-4556-98c6-8aa283a0b7ab"
+database_id = "c5d3514d-7a55-42ec-a1e4-a13c77ac1329"
 migrations_dir = "drizzle"
 
 # ---------------------------------------------------------------------------
