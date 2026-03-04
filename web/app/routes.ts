@@ -7,6 +7,8 @@ export default [
   route("/logout", "routes/logout.tsx"),
 
   // API routes (no app shell)
+  route("/api/set-ui-lang", "routes/api.set-ui-lang.tsx"),
+  route("/api/set-content-lang", "routes/api.set-content-lang.tsx"),
   route("/api/ingest/:sessionId/status", "routes/api.ingest.$sessionId.status.ts"),
   route("/api/ingest/:sessionId/commit", "routes/api.ingest.$sessionId.commit.ts"),
   route("/api/ingest/:sessionId/regenerate", "routes/api.ingest.$sessionId.regenerate.ts"),

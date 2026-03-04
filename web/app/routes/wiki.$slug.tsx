@@ -1,6 +1,8 @@
 import { eq } from "drizzle-orm"
+import { useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import type { LoaderFunctionArgs, MetaFunction } from "react-router"
-import { useLoaderData } from "react-router"
+import { useFetcher, useLoaderData } from "react-router"
 import { TipTapRenderer, extractTocItems } from "~/components/TipTapRenderer"
 import type { TipTapDoc } from "~/components/TipTapRenderer"
 import WikiRightSidebar from "~/components/WikiRightSidebar"
@@ -94,6 +96,15 @@ function parseDoc(json: string): TipTapDoc | null {
 
 export default function WikiPage() {
   const { page, tags, author, editor, lang, userRole } = useLoaderData<typeof loader>()
+  const { t } = useTranslation()
+  const contentLangFetcher = useFetcher()
+  const submitRef = contentLangFetcher.submit
+
+  // Persist content lang selection
+  useEffect(() => {
+    localStorage.setItem("content_lang", lang)
+    submitRef({ lang }, { method: "post", action: "/api/set-content-lang" })
+  }, [lang, submitRef])
 
   const primaryContent = lang === "en" ? page.contentEn : page.contentJa
   const fallbackContent = lang === "en" ? page.contentJa : page.contentEn
@@ -130,9 +141,7 @@ export default function WikiPage() {
 
         {usingFallback && doc && (
           <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-            {lang === "en"
-              ? "Translation pending — showing Japanese content instead."
-              : "翻訳準備中 — 英語コンテンツを表示しています。"}
+            {lang === "en" ? t("wiki.translation_fallback_en") : t("wiki.translation_fallback_ja")}
           </div>
         )}
 

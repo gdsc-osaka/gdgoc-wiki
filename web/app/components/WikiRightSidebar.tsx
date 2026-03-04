@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Link, useLocation } from "react-router"
 import type { TocItem } from "~/components/TipTapRenderer"
 
@@ -57,6 +58,7 @@ export default function WikiRightSidebar({
   canEdit,
 }: WikiRightSidebarProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
+  const { t } = useTranslation()
   const location = useLocation()
   const jaUrl = `${location.pathname}?lang=ja`
   const enUrl = `${location.pathname}?lang=en`
@@ -85,7 +87,9 @@ export default function WikiRightSidebar({
     <aside className="sticky top-14 w-56 flex-shrink-0 self-start overflow-y-auto px-4 py-8">
       {/* Language Toggle */}
       <div className="mb-6">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Language</p>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+          {t("wiki.read_in")}
+        </p>
         <div className="flex gap-1">
           {(["ja", "en"] as const).map((l) => {
             const status = l === "ja" ? translationStatusJa : translationStatusEn
@@ -117,7 +121,7 @@ export default function WikiRightSidebar({
       {tocItems.length > 0 && (
         <div className="mb-6">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
-            On This Page
+            {t("wiki.on_this_page")}
           </p>
           <nav aria-label="Table of contents">
             <ul className="space-y-1">
@@ -170,7 +174,7 @@ export default function WikiRightSidebar({
         {updatedAt && (
           <div>
             <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
-              Last Edited
+              {t("wiki.last_edited_by")}
             </p>
             <p className="text-xs text-gray-500">
               {editor ? `${editor.name}, ` : ""}
@@ -182,7 +186,7 @@ export default function WikiRightSidebar({
         {/* Translation status */}
         {translationStatus === "ai" && (
           <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-            {lang === "ja" ? "自動翻訳" : "Auto-translated"}
+            {t("wiki.auto_translated")}
           </span>
         )}
 
@@ -214,7 +218,7 @@ export default function WikiRightSidebar({
               className="flex items-center gap-1 text-sm text-gray-500 hover:text-blue-500"
             >
               <span>✎</span>
-              <span>Edit page</span>
+              <span>{t("wiki.edit_page")}</span>
             </Link>
           </div>
         )}

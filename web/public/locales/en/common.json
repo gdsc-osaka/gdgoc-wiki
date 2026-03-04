@@ -8,7 +8,8 @@
   },
   "language": {
     "ja": "日本語",
-    "en": "English"
+    "en": "English",
+    "switch_ui": "Display language"
   },
   "wiki": {
     "auto_translated": "Auto-translated",
@@ -16,6 +17,16 @@
     "last_edited_by": "Last edited by",
     "edit_page": "Edit page",
     "on_this_page": "On this page",
-    "read_in": "Read in"
+    "read_in": "Read in",
+    "translation_fallback_en": "Translation pending — showing Japanese content instead.",
+    "translation_fallback_ja": "翻訳準備中 — 英語コンテンツを表示しています。"
+  },
+  "home": {
+    "recently_updated": "Recently Updated",
+    "browse_by_tag": "Browse by Tag"
+  },
+  "auth": {
+    "sign_in": "Sign in",
+    "sign_out": "Sign out"
   }
 }
