@@ -31,6 +31,9 @@
     "sign_in": "サインイン",
     "sign_out": "サインアウト"
   },
+  "ingest": {
+    "complete_toast": "AIによる取り込みが完了しました！下書きを確認してください。"
+  },
   "editor": {
     "back_to_page": "ページに戻る",
     "save_draft": "下書き保存",

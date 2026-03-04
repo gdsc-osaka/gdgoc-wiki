@@ -59,7 +59,7 @@
     "vite": "^6.0.0",
     "vite-tsconfig-paths": "^5.0.0",
     "vitest": "^3.0.0",
-    "wrangler": "^3.109.0"
+    "wrangler": "^4.70.0"
   },
   "engines": {
     "node": ">=20",
