@@ -1,8 +1,10 @@
 import { eq } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/d1"
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { useLoaderData } from "react-router"
 import type { LoaderFunctionArgs } from "react-router"
+import Toast from "~/components/Toast"
 import ChangesetReview from "~/components/ingest/ChangesetReview"
 import SensitiveReviewModal from "~/components/ingest/SensitiveReviewModal"
 import type { ResolvedItem } from "~/components/ingest/SensitiveReviewModal"
@@ -51,11 +53,13 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
 
 export default function IngestSessionPage() {
   const loaderData = useLoaderData<typeof loader>()
+  const { t } = useTranslation()
   const [status, setStatus] = useState(loaderData.status)
   const [draft, setDraft] = useState(loaderData.draft)
   const [errorMessage, setErrorMessage] = useState(loaderData.errorMessage)
   const [sensitiveResolved, setSensitiveResolved] = useState(false)
   const [resolvedDraft, setResolvedDraft] = useState<AiDraftJson | null>(null)
+  const [showToast, setShowToast] = useState(false)
 
   // Poll status every 2s while processing
   useEffect(() => {
@@ -68,6 +72,7 @@ export default function IngestSessionPage() {
         setStatus(data.status)
         if (data.errorMessage) setErrorMessage(data.errorMessage)
         if (data.status === "done") {
+          sessionStorage.setItem(`ingest-done-${loaderData.sessionId}`, "1")
           window.location.reload()
         }
       } catch {
@@ -76,6 +81,15 @@ export default function IngestSessionPage() {
     }, 2000)
     return () => clearInterval(interval)
   }, [status, loaderData.sessionId])
+
+  // Show toast after reload when ingestion completes
+  useEffect(() => {
+    const key = `ingest-done-${loaderData.sessionId}`
+    if (sessionStorage.getItem(key)) {
+      sessionStorage.removeItem(key)
+      setShowToast(true)
+    }
+  }, [loaderData.sessionId])
 
   // Processing state
   if (status === "processing") {
@@ -131,6 +145,9 @@ export default function IngestSessionPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
+      {showToast && (
+        <Toast message={t("ingest.complete_toast")} onDismiss={() => setShowToast(false)} />
+      )}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">下書きを確認する</h1>
         <p className="mt-1 text-sm text-gray-500">
