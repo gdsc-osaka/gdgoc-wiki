@@ -1,7 +1,12 @@
 name = "gdgoc-wiki"
-main = "build/server/index.js"
+main = "workers/app.ts"
 compatibility_date = "2025-03-01"
 compatibility_flags = ["nodejs_compat"]
+
+# Resolve Vite's virtual module to the React Router server build output so
+# wrangler can bundle workers/app.ts without needing Vite's dev server.
+[alias]
+"virtual:react-router/server-build" = "./build/server/index.js"
 
 # Static assets are served alongside the Worker
 [assets]

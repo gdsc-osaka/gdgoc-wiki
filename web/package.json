@@ -59,7 +59,7 @@
     "vite": "^6.0.0",
     "vite-tsconfig-paths": "^5.0.0",
     "vitest": "^3.0.0",
-    "wrangler": "^3.109.0"
+    "wrangler": "^4.70.0"
   },
   "engines": {
     "node": ">=20",
@@ -68,9 +68,20 @@
   "packageManager": "pnpm@10.0.0",
   "pnpm": {
     "supportedArchitectures": {
-      "cpu": ["x64", "arm64"],
-      "os": ["darwin", "linux"]
+      "cpu": [
+        "x64",
+        "arm64"
+      ],
+      "os": [
+        "darwin",
+        "linux"
+      ]
     },
-    "onlyBuiltDependencies": ["@biomejs/biome", "esbuild", "sharp", "workerd"]
+    "onlyBuiltDependencies": [
+      "@biomejs/biome",
+      "esbuild",
+      "sharp",
+      "workerd"
+    ]
   }
 }
