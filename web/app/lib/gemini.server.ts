@@ -182,13 +182,7 @@ const PAGE_DRAFT_RESPONSE_SCHEMA = {
   properties: {
     suggestedPageType: {
       type: "string",
-      enum: [
-        "event-report",
-        "speaker-profile",
-        "project-log",
-        "how-to-guide",
-        "onboarding-guide",
-      ],
+      enum: ["event-report", "speaker-profile", "project-log", "how-to-guide", "onboarding-guide"],
     },
     pageTypeConfidence: { type: "string", enum: ["high", "medium", "low"] },
     title: { type: "object", properties: { ja: { type: "string" } }, required: ["ja"] },
@@ -276,7 +270,13 @@ const SECTION_PATCH_RESPONSE_SCHEMA = {
     actionabilityScore: { type: "integer", enum: [1, 2, 3] },
     actionabilityNotes: { type: "string" },
   },
-  required: ["pageId", "sectionPatches", "sensitiveItems", "actionabilityScore", "actionabilityNotes"],
+  required: [
+    "pageId",
+    "sectionPatches",
+    "sensitiveItems",
+    "actionabilityScore",
+    "actionabilityNotes",
+  ],
 }
 
 const TRANSLATION_RESPONSE_SCHEMA = {
