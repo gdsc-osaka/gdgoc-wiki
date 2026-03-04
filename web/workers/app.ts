@@ -7,7 +7,7 @@ import { runTranslation } from "../app/lib/gemini.server"
 // The server build is a virtual module provided by @react-router/dev/vite at build time.
 const requestHandler = createRequestHandler(
   () => import("virtual:react-router/server-build"),
-  import.meta.env.MODE,
+  import.meta.env?.MODE ?? "production",
 )
 
 export default {
