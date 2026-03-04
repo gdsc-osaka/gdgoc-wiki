@@ -33,10 +33,10 @@ const TYPE_LABELS: Record<string, string> = {
 
 const TYPE_COLORS: Record<string, string> = {
   email: "bg-blue-100 text-blue-700",
-  phone: "bg-purple-100 text-purple-700",
-  "sns-handle": "bg-indigo-100 text-indigo-700",
+  phone: "bg-green-100 text-green-700",
+  "sns-handle": "bg-blue-100 text-blue-500",
   financial: "bg-yellow-100 text-yellow-700",
-  "personal-opinion": "bg-orange-100 text-orange-700",
+  "personal-opinion": "bg-yellow-100 text-yellow-600",
   credential: "bg-red-100 text-red-700",
   other: "bg-gray-100 text-gray-700",
 }
@@ -133,7 +133,7 @@ export default function SensitiveReviewModal({ items, onProceed }: SensitiveRevi
                         value={res}
                         checked={resolutions[item.id] === res}
                         onChange={() => setResolution(item.id, res)}
-                        className="h-3.5 w-3.5 text-blue-600"
+                        className="h-3.5 w-3.5 text-blue-500"
                       />
                       <span className="text-sm text-gray-700">
                         {res === "keep" && "そのまま含める"}

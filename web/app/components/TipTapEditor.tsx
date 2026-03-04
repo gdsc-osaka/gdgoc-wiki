@@ -1,5 +1,3 @@
-"use client"
-
 import { generateJSON } from "@tiptap/core"
 import Image from "@tiptap/extension-image"
 import Link from "@tiptap/extension-link"
@@ -55,16 +53,19 @@ export default function TipTapEditor({
     },
   })
 
-  // Convert markdown → TipTap JSON on mount / when initialMarkdown changes
+  // Convert markdown → TipTap JSON on mount / when initialMarkdown changes.
+  // emitUpdate: false prevents setContent from triggering the onUpdate/onChange handler.
   useEffect(() => {
     if (!editor) return
-    try {
-      const html = DOMPurify.sanitize(marked.parse(initialMarkdown) as string)
-      const json = generateJSON(html, extensions)
-      editor.commands.setContent(json)
-    } catch {
-      editor.commands.setContent(initialMarkdown)
-    }
+    void Promise.resolve(marked.parse(initialMarkdown)).then((html) => {
+      try {
+        const clean = DOMPurify.sanitize(html)
+        const json = generateJSON(clean, extensions)
+        editor.commands.setContent(json)
+      } catch {
+        editor.commands.setContent(initialMarkdown)
+      }
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, initialMarkdown])
 

@@ -157,10 +157,18 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
       // Apply patch
       statements.push(
         env.DB.prepare(
-          `UPDATE pages SET content_ja = ?, title_ja = ?, summary_ja = ?, ingestion_session_id = ?,
-            last_edited_by = ?, updated_at = unixepoch()
+          `UPDATE pages SET content_ja = ?, title_ja = ?, summary_ja = ?, status = ?,
+            ingestion_session_id = ?, last_edited_by = ?, updated_at = unixepoch()
            WHERE id = ?`,
-        ).bind(op.tiptapJson, op.title, op.summaryJa, params.sessionId, user.id, op.pageId),
+        ).bind(
+          op.tiptapJson,
+          op.title,
+          op.summaryJa,
+          publishStatus,
+          params.sessionId,
+          user.id,
+          op.pageId,
+        ),
       )
 
       if (publishStatus === "published") {

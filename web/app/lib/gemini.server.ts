@@ -458,7 +458,8 @@ export async function runPhase1Planner(
     },
   })
 
-  const json = JSON.parse(response.text ?? "")
+  if (!response.text) throw new Error("Empty response from model in runPhase1Planner")
+  const json = JSON.parse(response.text)
   return OperationPlanSchema.parse(json)
 }
 
@@ -494,7 +495,8 @@ export async function runPhase2Creator(
     },
   })
 
-  const json = JSON.parse(response.text ?? "")
+  if (!response.text) throw new Error("Empty response from model in runPhase2Creator")
+  const json = JSON.parse(response.text)
   return PageDraftSchema.parse(json)
 }
 
@@ -530,8 +532,10 @@ export async function runPhase2Patcher(
     },
   })
 
-  const json = JSON.parse(response.text ?? "")
-  // Ensure pageId is set from op
+  if (!response.text) throw new Error("Empty response from model in runPhase2Patcher")
+  const json = JSON.parse(response.text)
+  // Set pageId before schema parse: SectionPatchResponseSchema requires it, but
+  // Gemini may omit it since it already appears in the system context.
   json.pageId = json.pageId ?? op.pageId
   return SectionPatchResponseSchema.parse(json)
 }
@@ -552,11 +556,12 @@ export async function runTranslation(
   })
 
   const prompt = `Translate the following Japanese wiki page content to English.
-Preserve all Markdown formatting exactly. Do not add or remove sections.
+The content is in TipTap/ProseMirror JSON format. Translate ONLY the values of "text" properties within the JSON nodes, preserving the complete JSON structure — all "type", "attrs", "marks", and "content" fields must remain exactly as-is.
+Return the complete TipTap JSON with Japanese text replaced by English translations. Do not add or remove nodes.
 
 Title (Japanese): ${titleJa}
 
-Content (Japanese Markdown):
+Content (TipTap JSON):
 ${contentJa}`
 
   const response = await ai.models.generateContent({
@@ -568,7 +573,8 @@ ${contentJa}`
     },
   })
 
-  const json = JSON.parse(response.text ?? "")
+  if (!response.text) throw new Error("Empty response from model in runTranslation")
+  const json = JSON.parse(response.text)
   const parsed = TranslationSchema.safeParse(json)
   if (!parsed.success) {
     console.error("Translation schema validation failed:", parsed.error)
