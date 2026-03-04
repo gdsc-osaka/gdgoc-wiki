@@ -18,4 +18,81 @@
 
 @theme {
   --font-sans: "Google Sans", "Noto Sans JP", ui-sans-serif, system-ui, sans-serif;
+
+  /* ── Blue scale (anchored: blue-500=#4285f4, blue-100=pastel-blue, blue-300=halftone-blue) ── */
+  --color-blue-50: #e8f0fe;
+  --color-blue-100: #c3ecf6;
+  --color-blue-200: #a8d8f0;
+  --color-blue-300: #57caff;
+  --color-blue-400: #4f9ef8;
+  --color-blue-500: #4285f4;
+  --color-blue-600: #1a73e8;
+  --color-blue-700: #1765cc;
+  --color-blue-800: #174ea6;
+  --color-blue-900: #0d3880;
+  --color-blue-950: #082566;
+
+  /* ── Green scale (anchored: green-500=#34a853, green-100=pastel-green, green-300=halftone-green) ── */
+  --color-green-50: #ccf6c5;
+  --color-green-100: #ccf6c5;
+  --color-green-200: #a8eaa0;
+  --color-green-300: #5cdb6d;
+  --color-green-400: #45c05a;
+  --color-green-500: #34a853;
+  --color-green-600: #1e8e3e;
+  --color-green-700: #188038;
+  --color-green-800: #0d652a;
+  --color-green-900: #09501f;
+  --color-green-950: #063a16;
+
+  /* ── Yellow scale (anchored: yellow-600=#f9ab00, yellow-100=pastel-yellow, yellow-300=halftone-yellow) ── */
+  --color-yellow-50: #ffe7a5;
+  --color-yellow-100: #ffe7a5;
+  --color-yellow-200: #ffd880;
+  --color-yellow-300: #ffd427;
+  --color-yellow-400: #ffbc00;
+  --color-yellow-500: #f9b300;
+  --color-yellow-600: #f9ab00;
+  --color-yellow-700: #e37400;
+  --color-yellow-800: #c56200;
+  --color-yellow-900: #9a4d00;
+  --color-yellow-950: #6e3700;
+
+  /* ── Red scale (anchored: red-500=#ea4335, red-100=pastel-red) ── */
+  --color-red-50: #f8d8d8;
+  --color-red-100: #f8d8d8;
+  --color-red-200: #f0b8b8;
+  --color-red-300: #f07070;
+  --color-red-400: #f05c50;
+  --color-red-500: #ea4335;
+  --color-red-600: #d33828;
+  --color-red-700: #b52c1e;
+  --color-red-800: #8c1f14;
+  --color-red-900: #63150d;
+  --color-red-950: #3d0d08;
+
+  /* ── Gray scale (anchored: gray-100=off-white=#f0f0f0, gray-900=black-02=#1e1e1e) ── */
+  --color-gray-50: #f9f9f9;
+  --color-gray-100: #f0f0f0;
+  --color-gray-200: #e4e4e4;
+  --color-gray-300: #cccccc;
+  --color-gray-400: #aaaaaa;
+  --color-gray-500: #888888;
+  --color-gray-600: #636363;
+  --color-gray-700: #444444;
+  --color-gray-800: #2a2a2a;
+  --color-gray-900: #1e1e1e;
+  --color-gray-950: #141414;
+
+  /* ── Named palette tokens (for direct use when needed) ── */
+  --color-halftone-blue: #57caff;
+  --color-halftone-green: #5cdb6d;
+  --color-halftone-yellow: #ffd427;
+  --color-halftone-red: #ff7daf;
+  --color-pastel-blue: #c3ecf6;
+  --color-pastel-green: #ccf6c5;
+  --color-pastel-yellow: #ffe7a5;
+  --color-pastel-red: #f8d8d8;
+  --color-off-white: #f0f0f0;
+  --color-black-02: #1e1e1e;
 }

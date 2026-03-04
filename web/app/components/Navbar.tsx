@@ -21,7 +21,7 @@ export default function Navbar({ user }: NavbarProps) {
           name="q"
           type="search"
           placeholder="Search pages…"
-          className="w-full max-w-[400px] rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#4285F4] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#4285F4]"
+          className="w-full max-w-[400px] rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
       </Form>
 
@@ -30,7 +30,7 @@ export default function Navbar({ user }: NavbarProps) {
         {user && (
           <Link
             to="/ingest"
-            className="rounded-md bg-[#4285F4] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#3574e2]"
+            className="rounded-md bg-blue-500 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-600"
           >
             + New Page
           </Link>
@@ -39,7 +39,7 @@ export default function Navbar({ user }: NavbarProps) {
         {user ? (
           <>
             <div
-              className="flex h-8 w-8 select-none items-center justify-center overflow-hidden rounded-full bg-[#4285F4] text-sm font-medium text-white"
+              className="flex h-8 w-8 select-none items-center justify-center overflow-hidden rounded-full bg-blue-500 text-sm font-medium text-white"
               title={user.name}
             >
               {user.image ? (
@@ -55,7 +55,7 @@ export default function Navbar({ user }: NavbarProps) {
             </logoutFetcher.Form>
           </>
         ) : (
-          <Link to="/login" className="text-sm font-medium text-[#4285F4] hover:underline">
+          <Link to="/login" className="text-sm font-medium text-blue-500 hover:underline">
             Sign in
           </Link>
         )}

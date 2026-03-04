@@ -24,9 +24,7 @@ function TreeNode({ node, currentSlug, depth }: TreeNodeProps) {
     <li>
       <div
         className={`flex items-center gap-1 rounded px-2 py-1 text-sm ${
-          isCurrent
-            ? "bg-[#4285F4]/10 font-medium text-[#4285F4]"
-            : "text-gray-700 hover:bg-gray-100"
+          isCurrent ? "bg-blue-500/10 font-medium text-blue-500" : "text-gray-700 hover:bg-gray-100"
         }`}
       >
         {hasChildren ? (
@@ -70,7 +68,7 @@ export default function PageTree({ pages, currentSlug }: PageTreeProps) {
       <div className="border-t border-gray-100 px-4 pt-3">
         <Link
           to="/ingest"
-          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#4285F4]"
+          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-blue-500"
         >
           <span className="text-base leading-none">+</span>
           <span>New Page</span>
