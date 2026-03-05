@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Form, Link, useBlocker, useFetcher } from "react-router"
+import { Link, useBlocker, useFetcher } from "react-router"
 import TipTapEditor from "~/components/TipTapEditor"
 
 // ---------------------------------------------------------------------------
@@ -139,7 +139,7 @@ export default function PageEditor({ page, canPublish }: PageEditorProps) {
         </div>
       )}
 
-      <Form method="post">
+      <fetcher.Form method="post">
         {/* Hidden content fields — always kept in sync */}
         <input type="hidden" name="contentJa" value={contentJa} />
         <input type="hidden" name="contentEn" value={contentEn} />
@@ -230,7 +230,7 @@ export default function PageEditor({ page, canPublish }: PageEditorProps) {
             </button>
           )}
         </div>
-      </Form>
+      </fetcher.Form>
     </div>
   )
 }

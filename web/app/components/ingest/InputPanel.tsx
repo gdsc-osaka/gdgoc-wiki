@@ -1,14 +1,17 @@
 import { useEffect, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 
 interface InputPanelProps {
   driveConnected: boolean
+  serverError?: string
 }
 
 const MAX_IMAGES = 5
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024 // 10 MB
 const MIN_TEXT_LENGTH = 50
 
-export default function InputPanel({ driveConnected }: InputPanelProps) {
+export default function InputPanel({ driveConnected, serverError }: InputPanelProps) {
+  const { t } = useTranslation()
   const [text, setText] = useState("")
   const [images, setImages] = useState<File[]>([])
   const [docUrl, setDocUrl] = useState("")
@@ -18,8 +21,8 @@ export default function InputPanel({ driveConnected }: InputPanelProps) {
 
   function validate(): string[] {
     const errs: string[] = []
-    if (text.trim().length < MIN_TEXT_LENGTH) {
-      errs.push(`入力が少なすぎます。最低${MIN_TEXT_LENGTH}文字以上入力してください。`)
+    if (!docUrl.trim() && text.trim().length < MIN_TEXT_LENGTH) {
+      errs.push(t("ingest.errors.text_too_short", { min: MIN_TEXT_LENGTH }))
     }
     return errs
   }
@@ -32,15 +35,15 @@ export default function InputPanel({ driveConnected }: InputPanelProps) {
     const valid: File[] = []
     for (const f of arr) {
       if (current + valid.length >= MAX_IMAGES) {
-        errs.push(`画像は最大${MAX_IMAGES}枚までです。`)
+        errs.push(t("ingest.errors.too_many_images", { max: MAX_IMAGES }))
         break
       }
       if (f.size > MAX_IMAGE_SIZE) {
-        errs.push(`${f.name} は10MB を超えています。`)
+        errs.push(t("ingest.errors.image_too_large", { name: f.name }))
         continue
       }
       if (!f.type.startsWith("image/")) {
-        errs.push(`${f.name} は画像ファイルではありません。`)
+        errs.push(t("ingest.errors.not_an_image", { name: f.name }))
         continue
       }
       valid.push(f)
@@ -66,13 +69,15 @@ export default function InputPanel({ driveConnected }: InputPanelProps) {
     }
   }
 
+  const allErrors = serverError ? [serverError, ...errors] : errors
+
   return (
     <form method="post" encType="multipart/form-data" onSubmit={handleSubmit} className="space-y-6">
       {/* Errors */}
-      {errors.length > 0 && (
+      {allErrors.length > 0 && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-4">
           <ul className="list-disc pl-4 text-sm text-red-700">
-            {errors.map((e) => (
+            {allErrors.map((e) => (
               <li key={e}>{e}</li>
             ))}
           </ul>
@@ -82,7 +87,7 @@ export default function InputPanel({ driveConnected }: InputPanelProps) {
       {/* Text input */}
       <div>
         <label htmlFor="ingest-text" className="mb-1.5 block text-sm font-medium text-gray-700">
-          テキスト入力 <span className="text-red-500">*</span>
+          {t("ingest.form.text_label")} <span className="text-red-500">*</span>
         </label>
         <textarea
           id="ingest-text"
@@ -90,16 +95,18 @@ export default function InputPanel({ driveConnected }: InputPanelProps) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={8}
-          placeholder="イベントや活動について自由に書いてください（最低50文字）&#10;例: 先日のTech Talkは参加者45名で盛況でした。スピーカーの田中さんは..."
+          placeholder={t("ingest.form.text_placeholder")}
           className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
-        <p className="mt-1 text-right text-xs text-gray-400">{text.length} 文字</p>
+        <p className="mt-1 text-right text-xs text-gray-400">
+          {t("ingest.form.char_count", { count: text.length })}
+        </p>
       </div>
 
       {/* Image upload */}
       <div>
         <p className="mb-1.5 text-sm font-medium text-gray-700">
-          画像添付（最大{MAX_IMAGES}枚・各10MB以下）
+          {t("ingest.form.images_label", { max: MAX_IMAGES })}
         </p>
         <button
           type="button"
@@ -116,7 +123,7 @@ export default function InputPanel({ driveConnected }: InputPanelProps) {
               : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
           }`}
         >
-          <p className="text-sm text-gray-500">クリックまたはドラッグ&ドロップで画像を追加</p>
+          <p className="text-sm text-gray-500">{t("ingest.form.drop_hint")}</p>
           <input
             ref={fileInputRef}
             type="file"
@@ -145,7 +152,7 @@ export default function InputPanel({ driveConnected }: InputPanelProps) {
       {/* Google Doc URL */}
       <div>
         <label htmlFor="ingest-doc-url" className="mb-1.5 block text-sm font-medium text-gray-700">
-          Googleドキュメント URL
+          {t("ingest.form.doc_url_label")}
         </label>
         <div className="flex gap-2">
           <input
@@ -166,7 +173,7 @@ export default function InputPanel({ driveConnected }: InputPanelProps) {
                   clipRule="evenodd"
                 />
               </svg>
-              接続済み
+              {t("ingest.form.drive_connected")}
             </span>
           ) : (
             <a
@@ -174,7 +181,7 @@ export default function InputPanel({ driveConnected }: InputPanelProps) {
               className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50"
             >
               <GoogleDriveIcon />
-              Driveを接続
+              {t("ingest.form.drive_connect")}
             </a>
           )}
         </div>
@@ -186,7 +193,7 @@ export default function InputPanel({ driveConnected }: InputPanelProps) {
           type="submit"
           className="rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         >
-          AI で整理する →
+          {t("ingest.form.submit")}
         </button>
       </div>
     </form>

@@ -16,7 +16,9 @@ import {
   type ChangesetOperation,
   buildPageIndex,
 } from "~/lib/ingestion-pipeline.server"
-import { tiptapToMarkdown } from "~/lib/tiptap-convert.server"
+import { tiptapToMarkdown } from "~/lib/tiptap-convert"
+
+type ResultDraft = Extract<AiDraftJson, { planRationale: string }>
 
 export async function action({ request, context, params }: ActionFunctionArgs) {
   if (request.method !== "POST") {
@@ -52,8 +54,8 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
   }
   const { operationIndex, feedback } = parseResult.data
 
-  const draft = JSON.parse(session.aiDraftJson ?? "null") as AiDraftJson | null
-  if (!draft) return new Response("No draft found", { status: 404 })
+  const draft = JSON.parse(session.aiDraftJson ?? "null") as ResultDraft | null
+  if (!draft || !draft.operations) return new Response("No draft found", { status: 404 })
 
   const op = draft.operations[operationIndex]
   if (!op) return new Response("Operation not found", { status: 404 })
@@ -84,6 +86,7 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
       fileUris,
       createOp,
       pageIndex,
+      [],
     )
     updatedOp = { ...op, draft: newDraft }
   } else if (op.type === "update" && op.patch) {
@@ -109,7 +112,7 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
   // Update the draft in DB
   const updatedOps = [...draft.operations]
   updatedOps[operationIndex] = updatedOp
-  const updatedDraft: AiDraftJson = { ...draft, operations: updatedOps }
+  const updatedDraft: ResultDraft = { ...draft, operations: updatedOps }
 
   await db
     .update(schema.ingestionSessions)

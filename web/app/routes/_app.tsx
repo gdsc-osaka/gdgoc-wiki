@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm"
 import { Outlet, useLoaderData, useParams } from "react-router"
 import type { LoaderFunctionArgs } from "react-router"
 import Navbar from "~/components/Navbar"
-import PageTree from "~/components/PageTree"
+import Sidebar from "~/components/Sidebar"
 import * as schema from "~/db/schema"
 import { requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
@@ -47,13 +47,10 @@ export default function AppLayout() {
       <Navbar user={user} />
 
       <div className="flex flex-1 pt-14">
-        {/* Left sidebar */}
-        <aside className="fixed bottom-0 left-0 top-14 w-60 overflow-hidden border-r border-gray-200 bg-white">
-          <PageTree pages={pageTree} currentSlug={slug} />
-        </aside>
+        <Sidebar pages={pageTree} currentSlug={slug} userRole={user.role} />
 
         {/* Main content */}
-        <main className="ml-60 min-w-0 flex-1">
+        <main className="min-w-0 flex-1">
           <Outlet />
         </main>
       </div>

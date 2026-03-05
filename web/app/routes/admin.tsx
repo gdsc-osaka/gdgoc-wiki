@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { NavLink, Outlet, useLoaderData } from "react-router"
 import type { LoaderFunctionArgs } from "react-router"
 import Navbar from "~/components/Navbar"
@@ -18,10 +19,10 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
 // ---------------------------------------------------------------------------
 
 const NAV_ITEMS = [
-  { to: "/admin/users", label: "Users" },
-  { to: "/admin/pages", label: "Pages" },
-  { to: "/admin/tags", label: "Tags" },
-  { to: "/admin/stats", label: "Stats" },
+  { to: "/admin/users", labelKey: "admin.nav.users" },
+  { to: "/admin/pages", labelKey: "admin.nav.pages" },
+  { to: "/admin/tags", labelKey: "admin.nav.tags" },
+  { to: "/admin/stats", labelKey: "admin.nav.stats" },
 ] as const
 
 // ---------------------------------------------------------------------------
@@ -30,6 +31,7 @@ const NAV_ITEMS = [
 
 export default function AdminLayout() {
   const { user } = useLoaderData<typeof loader>()
+  const { t } = useTranslation()
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -40,10 +42,10 @@ export default function AdminLayout() {
         <aside className="fixed bottom-0 left-0 top-14 w-60 overflow-hidden border-r border-gray-200 bg-white">
           <nav className="p-4">
             <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
-              Admin
+              {t("admin.label")}
             </p>
             <ul className="space-y-0.5">
-              {NAV_ITEMS.map(({ to, label }) => (
+              {NAV_ITEMS.map(({ to, labelKey }) => (
                 <li key={to}>
                   <NavLink
                     to={to}
@@ -54,7 +56,7 @@ export default function AdminLayout() {
                       ].join(" ")
                     }
                   >
-                    {label}
+                    {t(labelKey)}
                   </NavLink>
                 </li>
               ))}

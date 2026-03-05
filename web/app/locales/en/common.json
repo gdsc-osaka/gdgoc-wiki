@@ -1,0 +1,176 @@
+{
+  "app_name": "GDGoC Japan Wiki",
+  "nav": {
+    "home": "Home",
+    "search": "Search",
+    "new_page": "New Page",
+    "admin": "Admin",
+    "github": "GitHub",
+    "recent": "Recent",
+    "starred": "Starred"
+  },
+  "language": {
+    "ja": "日本語",
+    "en": "English",
+    "switch_ui": "Display language"
+  },
+  "wiki": {
+    "auto_translated": "Auto-translated",
+    "translation_pending": "Translation pending",
+    "last_edited_by": "Last edited by",
+    "edit_page": "Edit page",
+    "on_this_page": "On this page",
+    "read_in": "Read in",
+    "translation_fallback_en": "Translation pending — showing Japanese content instead.",
+    "translation_fallback_ja": "Translation pending — showing English content instead."
+  },
+  "home": {
+    "recently_updated": "Recently Updated",
+    "browse_by_tag": "Browse by Tag",
+    "no_pages_yet": "No published pages yet.",
+    "no_tags_yet": "No tags yet."
+  },
+  "auth": {
+    "sign_in": "Sign in",
+    "sign_out": "Sign out"
+  },
+  "login": {
+    "title": "GDGoC Japan Wiki",
+    "subtitle": "Sign in to continue",
+    "google_signin": "Sign in with Google",
+    "access_restricted": "Access is restricted to GDGoC Japan members."
+  },
+  "admin": {
+    "label": "Admin",
+    "nav": {
+      "users": "Users",
+      "pages": "Pages",
+      "tags": "Tags",
+      "stats": "Stats"
+    },
+    "pages": {
+      "heading": "Pages",
+      "col_title": "Title",
+      "col_status": "Status",
+      "col_author": "Author",
+      "col_updated": "Updated",
+      "edit": "Edit",
+      "delete": "Delete",
+      "delete_confirm": "Delete \"{{title}}\"? This cannot be undone.",
+      "empty": "No pages found."
+    },
+    "users": {
+      "heading": "Users",
+      "col_user": "User",
+      "col_email": "Email",
+      "col_role": "Role",
+      "col_chapter": "Chapter",
+      "you": "(you)",
+      "empty": "No users found.",
+      "error_own_role": "You cannot change your own role",
+      "error_invalid_role": "Invalid role"
+    },
+    "tags": {
+      "heading": "Tags",
+      "col_color": "Color",
+      "col_slug": "Slug",
+      "col_label_ja": "Label (JA)",
+      "col_label_en": "Label (EN)",
+      "col_pages": "Pages",
+      "empty": "No tags found."
+    },
+    "stats": {
+      "heading": "Stats",
+      "total_users": "Total Users",
+      "total_pages": "Total Pages",
+      "pages_sub": "{{published}} published · {{drafts}} drafts",
+      "published": "Published",
+      "bilingual_coverage": "Bilingual Coverage",
+      "bilingual_coverage_sub": "Both JA + EN content"
+    }
+  },
+  "ingest": {
+    "title": "Add Content",
+    "description": "AI will create a draft wiki page from your text, images, and Google Docs.",
+    "complete_toast": "AI ingestion complete! Review your draft below.",
+    "processing_message": "AI is analyzing...",
+    "processing_hint": "Please wait a moment",
+    "phase_step_1": "Processing input",
+    "phase_step_2": "Planning page structure",
+    "phase_step_3": "Generating page content",
+    "phase_step_4": "Complete",
+    "clarification_heading": "Clarification needed",
+    "clarification_summary_label": "What AI understood",
+    "clarification_submit": "Submit and continue",
+    "clarification_hint": "Please provide the following information to generate more accurate wiki pages",
+    "nothing_in_particular": "Nothing in particular",
+    "error_heading": "An error occurred during processing",
+    "retry": "Try again",
+    "draft_not_found": "Draft not found.",
+    "review_heading": "Review Draft",
+    "review_subtitle": "Review and edit the AI-generated draft before saving or publishing.",
+    "form": {
+      "text_label": "Text input",
+      "text_placeholder": "Write freely about an event or activity (min. 50 chars)\nE.g. Our Tech Talk last week had 45 attendees. Speaker Tanaka-san shared...",
+      "char_count": "{{count}} chars",
+      "images_label": "Images (max {{max}}, up to 10MB each)",
+      "drop_hint": "Click or drag & drop to add images",
+      "doc_url_label": "Google Docs URL",
+      "drive_connected": "Connected",
+      "drive_connect": "Connect Drive",
+      "submit": "Organize with AI →"
+    },
+    "errors": {
+      "text_too_short": "Not enough text. Please enter at least {{min}} characters.",
+      "too_many_images": "You can attach up to {{max}} images.",
+      "image_too_large": "{{name}} exceeds 10MB.",
+      "not_an_image": "{{name}} is not an image file."
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your profile and preferences.",
+    "save": "Save",
+    "saving": "Saving...",
+    "saved": "Saved",
+    "save_error": "Failed to save. Please try again.",
+    "name": {
+      "title": "Display Name",
+      "description": "This name is shown to other wiki members.",
+      "label": "Name"
+    },
+    "language": {
+      "title": "Language Preferences",
+      "description": "Choose your interface language and default content language.",
+      "ui_label": "Interface language",
+      "content_label": "Content language"
+    },
+    "chapter": {
+      "title": "Chapter Affiliation",
+      "description": "Select the GDGoC Japan chapter you belong to.",
+      "label": "Chapter",
+      "none": "None"
+    },
+    "errors": {
+      "invalid_name": "Name must be 1–100 characters.",
+      "invalid_lang": "Invalid language selection.",
+      "invalid_chapter": "Selected chapter does not exist."
+    }
+  },
+  "pageTree": {
+    "noPages": "No pages yet",
+    "newPage": "New Page",
+    "collapse": "Collapse",
+    "expand": "Expand"
+  },
+  "editor": {
+    "back_to_page": "Back to page",
+    "save_draft": "Save Draft",
+    "publish": "Publish",
+    "saving": "Saving...",
+    "saved_at": "Saved {{time}}",
+    "autosave_failed": "Auto-save failed",
+    "title_ja": "Title (Japanese)",
+    "title_en": "Title (English)"
+  }
+}

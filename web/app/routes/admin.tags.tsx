@@ -1,4 +1,5 @@
 import { desc } from "drizzle-orm"
+import { useTranslation } from "react-i18next"
 import { useLoaderData } from "react-router"
 import type { LoaderFunctionArgs } from "react-router"
 import * as schema from "~/db/schema"
@@ -23,20 +24,31 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
 
 export default function AdminTags() {
   const { tags } = useLoaderData<typeof loader>()
+  const { t } = useTranslation()
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold text-gray-900">Tags</h1>
+      <h1 className="mb-6 text-2xl font-bold text-gray-900">{t("admin.tags.heading")}</h1>
 
       <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
         <table className="w-full text-sm">
           <thead className="border-b border-gray-200 bg-gray-50">
             <tr>
-              <th className="px-4 py-3 text-left font-medium text-gray-500">Color</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-500">Slug</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-500">Label (JA)</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-500">Label (EN)</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-500">Pages</th>
+              <th className="px-4 py-3 text-left font-medium text-gray-500">
+                {t("admin.tags.col_color")}
+              </th>
+              <th className="px-4 py-3 text-left font-medium text-gray-500">
+                {t("admin.tags.col_slug")}
+              </th>
+              <th className="px-4 py-3 text-left font-medium text-gray-500">
+                {t("admin.tags.col_label_ja")}
+              </th>
+              <th className="px-4 py-3 text-left font-medium text-gray-500">
+                {t("admin.tags.col_label_en")}
+              </th>
+              <th className="px-4 py-3 text-left font-medium text-gray-500">
+                {t("admin.tags.col_pages")}
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -59,7 +71,7 @@ export default function AdminTags() {
         </table>
 
         {tags.length === 0 && (
-          <p className="px-4 py-8 text-center text-sm text-gray-400">No tags found.</p>
+          <p className="px-4 py-8 text-center text-sm text-gray-400">{t("admin.tags.empty")}</p>
         )}
       </div>
     </div>

@@ -1,6 +1,12 @@
 import { useState } from "react"
 import TipTapEditor from "~/components/TipTapEditor"
-import type { AiDraftJson, ChangesetOperation } from "~/lib/ingestion-pipeline.server"
+import type { ChangesetOperation } from "~/lib/ingestion-pipeline.server"
+import { applyPatchesToMarkdown, tiptapToMarkdown } from "~/lib/tiptap-convert"
+
+type ResultDraft = Extract<
+  import("~/lib/ingestion-pipeline.server").AiDraftJson,
+  { planRationale: string }
+>
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -39,7 +45,7 @@ interface OperationState {
 }
 
 interface ChangesetReviewProps {
-  draft: AiDraftJson
+  draft: ResultDraft
   sessionId: string
   userRole: string
 }
@@ -183,7 +189,7 @@ export default function ChangesetReview({ draft, sessionId, userRole }: Changese
         const draftMarkdown = op.draft
           ? buildMarkdownFromDraft(op.draft)
           : op.patch
-            ? buildMarkdownFromPatch(op.patch)
+            ? buildMarkdownFromPatch(op.patch, op.existingTipTapJson)
             : ""
         const opKey = op.tempId ?? op.pageId ?? String(idx)
 
@@ -384,11 +390,10 @@ function buildMarkdownFromDraft(draft: import("~/lib/gemini.server").PageDraft):
   return draft.sections.map((section) => `## ${section.heading}\n\n${section.body}`).join("\n\n")
 }
 
-function buildMarkdownFromPatch(patch: import("~/lib/gemini.server").SectionPatchResponse): string {
-  return patch.sectionPatches
-    .map((p) => {
-      const heading = p.newHeading ?? p.headingMatch ?? "New Section"
-      return `## ${heading}\n\n${p.content}`
-    })
-    .join("\n\n")
+function buildMarkdownFromPatch(
+  patch: import("~/lib/gemini.server").SectionPatchResponse,
+  existingTipTapJson?: string,
+): string {
+  const existingMarkdown = existingTipTapJson ? tiptapToMarkdown(existingTipTapJson) : ""
+  return applyPatchesToMarkdown(existingMarkdown, patch.sectionPatches)
 }

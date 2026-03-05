@@ -1,5 +1,6 @@
 import { and, count, ne } from "drizzle-orm"
 import { sql } from "drizzle-orm"
+import { useTranslation } from "react-i18next"
 import { useLoaderData } from "react-router"
 import type { LoaderFunctionArgs } from "react-router"
 import * as schema from "~/db/schema"
@@ -75,23 +76,24 @@ function StatCard({
 export default function AdminStats() {
   const { totalUsers, totalPages, publishedPages, draftPages, bilingualPct } =
     useLoaderData<typeof loader>()
+  const { t } = useTranslation()
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold text-gray-900">Stats</h1>
+      <h1 className="mb-6 text-2xl font-bold text-gray-900">{t("admin.stats.heading")}</h1>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total Users" value={totalUsers} />
+        <StatCard label={t("admin.stats.total_users")} value={totalUsers} />
         <StatCard
-          label="Total Pages"
+          label={t("admin.stats.total_pages")}
           value={totalPages}
-          sub={`${publishedPages} published · ${draftPages} drafts`}
+          sub={t("admin.stats.pages_sub", { published: publishedPages, drafts: draftPages })}
         />
-        <StatCard label="Published" value={publishedPages} />
+        <StatCard label={t("admin.stats.published")} value={publishedPages} />
         <StatCard
-          label="Bilingual Coverage"
+          label={t("admin.stats.bilingual_coverage")}
           value={`${bilingualPct}%`}
-          sub="Both JA + EN content"
+          sub={t("admin.stats.bilingual_coverage_sub")}
         />
       </div>
     </div>

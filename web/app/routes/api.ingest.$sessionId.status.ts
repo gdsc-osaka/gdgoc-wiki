@@ -13,6 +13,7 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
     .select({
       status: schema.ingestionSessions.status,
       errorMessage: schema.ingestionSessions.errorMessage,
+      phaseMessage: schema.ingestionSessions.phaseMessage,
       userId: schema.ingestionSessions.userId,
     })
     .from(schema.ingestionSessions)
@@ -22,5 +23,9 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
   if (!session) throw new Response("Not found", { status: 404 })
   if (session.userId !== user.id) throw new Response("Forbidden", { status: 403 })
 
-  return Response.json({ status: session.status, errorMessage: session.errorMessage })
+  return Response.json({
+    status: session.status,
+    errorMessage: session.errorMessage,
+    phaseMessage: session.phaseMessage,
+  })
 }

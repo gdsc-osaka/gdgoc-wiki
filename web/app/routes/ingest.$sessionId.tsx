@@ -10,7 +10,7 @@ import SensitiveReviewModal from "~/components/ingest/SensitiveReviewModal"
 import type { ResolvedItem } from "~/components/ingest/SensitiveReviewModal"
 import * as schema from "~/db/schema"
 import { requireRole } from "~/lib/auth-utils.server"
-import type { AiDraftJson } from "~/lib/ingestion-pipeline.server"
+import type { AiDraftJson, ClarificationQuestion } from "~/lib/ingestion-pipeline.server"
 
 // ---------------------------------------------------------------------------
 // Loader
@@ -34,6 +34,7 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
     sessionId: session.id,
     status: session.status,
     errorMessage: session.errorMessage,
+    phaseMessage: session.phaseMessage,
     draft: (() => {
       if (!session.aiDraftJson) return null
       try {
@@ -51,27 +52,253 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
 // Component
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Type helpers for AiDraftJson union
+// ---------------------------------------------------------------------------
+
+type ResultDraft = Extract<AiDraftJson, { planRationale: string }>
+
+function isClarification(
+  draft: AiDraftJson | null,
+): draft is Extract<AiDraftJson, { phase: "clarification" }> {
+  return draft !== null && (draft as { phase?: string }).phase === "clarification"
+}
+
+// ---------------------------------------------------------------------------
+// Processing UI with step-list progress
+// ---------------------------------------------------------------------------
+
+const PHASE_STEPS = [
+  { key: "step1", codes: ["parsing", "clarifying"] },
+  { key: "step2", codes: ["planning", "merging"] },
+  { key: "step3", codes: ["generating"] },
+  { key: "step4", codes: ["saving"] },
+]
+
+function getActiveStep(phaseMessage: string | null): number {
+  if (!phaseMessage) return 0
+  const code = phaseMessage.split(":")[0]
+  for (let i = 0; i < PHASE_STEPS.length; i++) {
+    if (PHASE_STEPS[i].codes.includes(code)) return i
+  }
+  return 0
+}
+
+function ProcessingScreen({
+  phaseMessage,
+  t,
+}: { phaseMessage: string | null; t: (k: string) => string }) {
+  const activeStep = getActiveStep(phaseMessage)
+  const stepLabels = [
+    t("ingest.phase_step_1"),
+    t("ingest.phase_step_2"),
+    t("ingest.phase_step_3"),
+    t("ingest.phase_step_4"),
+  ]
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-gray-50">
+      <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600" />
+      <div className="text-center">
+        <p className="text-lg font-medium text-gray-800">{t("ingest.processing_message")}</p>
+      </div>
+      <div className="w-72 space-y-2">
+        {PHASE_STEPS.map((step, i) => {
+          const label = stepLabels[i]
+          const isDone = i < activeStep
+          const isActive = i === activeStep
+          return (
+            <div key={step.key} className="flex items-center gap-3">
+              <span className="w-5 text-center text-sm">
+                {isDone ? (
+                  "✓"
+                ) : isActive ? (
+                  <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-blue-600" />
+                ) : (
+                  "○"
+                )}
+              </span>
+              <span
+                className={
+                  isDone
+                    ? "text-sm text-green-600"
+                    : isActive
+                      ? "text-sm font-medium text-gray-900"
+                      : "text-sm text-gray-400"
+                }
+              >
+                {label}
+                {isActive && phaseMessage?.includes(":")
+                  ? ` — ${phaseMessage.split(":").slice(1).join(":")}`
+                  : ""}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+      <p className="text-sm text-gray-500">{t("ingest.processing_hint")}</p>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Clarification UI
+// ---------------------------------------------------------------------------
+
+function ClarificationScreen({
+  sessionId,
+  questions,
+  summary,
+  onSubmitted,
+  t,
+}: {
+  sessionId: string
+  questions: ClarificationQuestion[]
+  summary: string
+  onSubmitted: () => void
+  t: (k: string) => string
+}) {
+  const [answers, setAnswers] = useState<Record<string, string>>(() =>
+    Object.fromEntries(questions.map((q) => [q.id, ""])),
+  )
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+
+  async function handleSubmit() {
+    setSubmitting(true)
+    setSubmitError(null)
+    try {
+      const res = await fetch(`/api/ingest/${sessionId}/clarify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          answers: questions.map((q) => ({
+            id: q.id,
+            question: q.question,
+            answer: answers[q.id] ?? "",
+          })),
+        }),
+      })
+      if (res.ok) {
+        onSubmitted()
+      } else {
+        const text = await res.text().catch(() => "")
+        setSubmitError(text || `Error ${res.status}`)
+      }
+    } catch {
+      setSubmitError(t("ingest.error_heading"))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-2xl px-4 py-12">
+      <h1 className="mb-2 text-2xl font-bold text-gray-900">{t("ingest.clarification_heading")}</h1>
+      <p className="mb-6 text-sm text-gray-500">{t("ingest.clarification_hint")}</p>
+
+      {summary && (
+        <div className="mb-8 rounded-lg border border-blue-100 bg-blue-50 p-4">
+          <p className="mb-1 text-xs font-medium uppercase tracking-wide text-blue-700">
+            {t("ingest.clarification_summary_label")}
+          </p>
+          <p className="text-sm text-gray-700">{summary}</p>
+        </div>
+      )}
+
+      <div className="space-y-6">
+        {questions.map((q) => (
+          <div key={q.id}>
+            <label htmlFor={`q-${q.id}`} className="mb-1 block text-sm font-medium text-gray-800">
+              {q.question}
+            </label>
+            {q.context && <p className="mb-2 text-xs text-gray-500">{q.context}</p>}
+            <div className="mb-2 flex flex-wrap gap-2">
+              {(q.suggestions ?? []).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setAnswers((prev) => ({ ...prev, [q.id]: s }))}
+                  className="rounded-full border border-gray-300 bg-white px-3 py-1 text-xs text-gray-600 hover:border-blue-400 hover:text-blue-600"
+                >
+                  {s}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() =>
+                  setAnswers((prev) => ({
+                    ...prev,
+                    [q.id]: t("ingest.nothing_in_particular"),
+                  }))
+                }
+                className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-400 hover:border-gray-400 hover:text-gray-600"
+              >
+                {t("ingest.nothing_in_particular")}
+              </button>
+            </div>
+            <textarea
+              id={`q-${q.id}`}
+              rows={3}
+              value={answers[q.id] ?? ""}
+              onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
+              className="w-full rounded-lg border border-gray-300 p-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+        ))}
+      </div>
+
+      {submitError && (
+        <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+          {submitError}
+        </p>
+      )}
+
+      <button
+        type="button"
+        disabled={submitting}
+        onClick={handleSubmit}
+        className="mt-8 rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+      >
+        {submitting ? "..." : t("ingest.clarification_submit")}
+      </button>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
+
 export default function IngestSessionPage() {
   const loaderData = useLoaderData<typeof loader>()
   const { t } = useTranslation()
   const [status, setStatus] = useState(loaderData.status)
   const [draft, setDraft] = useState(loaderData.draft)
+  const [phaseMessage, setPhaseMessage] = useState(loaderData.phaseMessage)
   const [errorMessage, setErrorMessage] = useState(loaderData.errorMessage)
   const [sensitiveResolved, setSensitiveResolved] = useState(false)
-  const [resolvedDraft, setResolvedDraft] = useState<AiDraftJson | null>(null)
+  const [resolvedDraft, setResolvedDraft] = useState<ResultDraft | null>(null)
   const [showToast, setShowToast] = useState(false)
+
+  const isPolling = status === "processing"
 
   // Poll status every 2s while processing
   useEffect(() => {
-    if (status !== "processing") return
+    if (!isPolling) return
     const interval = setInterval(async () => {
       try {
         const res = await fetch(`/api/ingest/${loaderData.sessionId}/status`)
         if (!res.ok) return
-        const data = (await res.json()) as { status: string; errorMessage: string | null }
+        const data = (await res.json()) as {
+          status: string
+          errorMessage: string | null
+          phaseMessage: string | null
+        }
         setStatus(data.status)
+        if (data.phaseMessage !== undefined) setPhaseMessage(data.phaseMessage)
         if (data.errorMessage) setErrorMessage(data.errorMessage)
-        if (data.status === "done") {
+        if (data.status === "done" || data.status === "awaiting_clarification") {
           sessionStorage.setItem(`ingest-done-${loaderData.sessionId}`, "1")
           window.location.reload()
         }
@@ -80,7 +307,7 @@ export default function IngestSessionPage() {
       }
     }, 2000)
     return () => clearInterval(interval)
-  }, [status, loaderData.sessionId])
+  }, [isPolling, loaderData.sessionId])
 
   // Show toast after reload when ingestion completes
   useEffect(() => {
@@ -93,16 +320,19 @@ export default function IngestSessionPage() {
 
   // Processing state
   if (status === "processing") {
+    return <ProcessingScreen phaseMessage={phaseMessage ?? null} t={t} />
+  }
+
+  // Clarification state
+  if (status === "awaiting_clarification" && isClarification(draft)) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-gray-50">
-        <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600" />
-        <div className="text-center">
-          <p className="text-lg font-medium text-gray-800">AIが分析中です...</p>
-          <p className="mt-1 text-sm text-gray-500">
-            しばらくお待ちください。自動的に更新されます。
-          </p>
-        </div>
-      </div>
+      <ClarificationScreen
+        sessionId={loaderData.sessionId}
+        questions={draft.questions}
+        summary={draft.summary}
+        onSubmitted={() => setStatus("processing")}
+        t={t}
+      />
     )
   }
 
@@ -111,37 +341,38 @@ export default function IngestSessionPage() {
     return (
       <div className="mx-auto max-w-xl px-4 py-16 text-center">
         <div className="mb-4 text-4xl">⚠️</div>
-        <h1 className="text-lg font-semibold text-gray-900">処理中にエラーが発生しました</h1>
+        <h1 className="text-lg font-semibold text-gray-900">{t("ingest.error_heading")}</h1>
         {errorMessage && <p className="mt-2 text-sm text-gray-500">{errorMessage}</p>}
         <a
           href="/ingest"
           className="mt-6 inline-block rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
         >
-          もう一度試す
+          {t("ingest.retry")}
         </a>
       </div>
     )
   }
 
-  // Done — show review
-  if (!draft) {
+  // Done — show review (draft must be the result variant)
+  if (!draft || isClarification(draft)) {
     return (
       <div className="mx-auto max-w-xl px-4 py-16 text-center">
-        <p className="text-gray-500">下書きが見つかりません。</p>
+        <p className="text-gray-500">{t("ingest.draft_not_found")}</p>
       </div>
     )
   }
 
+  const resultDraft = draft
+
   // Apply sensitive item resolutions and proceed to changeset review
   function handleSensitiveResolved(resolutions: ResolvedItem[]) {
-    if (!draft) return
-    const updatedDraft = applySensitiveResolutions(draft, resolutions)
+    const updatedDraft = applySensitiveResolutions(resultDraft, resolutions)
     setResolvedDraft(updatedDraft)
     setSensitiveResolved(true)
   }
 
-  const currentDraft = resolvedDraft ?? draft
-  const hasSensitive = draft.sensitiveItems.length > 0
+  const currentDraft = resolvedDraft ?? resultDraft
+  const hasSensitive = resultDraft.sensitiveItems.length > 0
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
@@ -149,14 +380,15 @@ export default function IngestSessionPage() {
         <Toast message={t("ingest.complete_toast")} onDismiss={() => setShowToast(false)} />
       )}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">下書きを確認する</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          AIが作成した下書きを確認・編集してから保存または公開してください。
-        </p>
+        <h1 className="text-2xl font-bold text-gray-900">{t("ingest.review_heading")}</h1>
+        <p className="mt-1 text-sm text-gray-500">{t("ingest.review_subtitle")}</p>
       </div>
 
       {hasSensitive && !sensitiveResolved && (
-        <SensitiveReviewModal items={draft.sensitiveItems} onProceed={handleSensitiveResolved} />
+        <SensitiveReviewModal
+          items={resultDraft.sensitiveItems}
+          onProceed={handleSensitiveResolved}
+        />
       )}
 
       <ChangesetReview
@@ -186,7 +418,7 @@ function walkStrings(value: unknown, from: string, to: string): unknown {
   return value
 }
 
-function applySensitiveResolutions(draft: AiDraftJson, resolutions: ResolvedItem[]): AiDraftJson {
+function applySensitiveResolutions(draft: ResultDraft, resolutions: ResolvedItem[]): ResultDraft {
   let result: unknown = draft
   for (const { item, resolution } of resolutions) {
     if (resolution === "delete") {
@@ -196,5 +428,5 @@ function applySensitiveResolutions(draft: AiDraftJson, resolutions: ResolvedItem
     }
     // "keep" — do nothing
   }
-  return result as AiDraftJson
+  return result as ResultDraft
 }
