@@ -1,10 +1,12 @@
 import { and, eq, isNull, sql } from "drizzle-orm"
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Outlet, useLoaderData, useParams } from "react-router"
 import type { LoaderFunctionArgs } from "react-router"
 import Footer from "~/components/Footer"
 import Navbar from "~/components/Navbar"
 import Sidebar from "~/components/Sidebar"
+import StarredDialog from "~/components/StarredDialog"
 import * as schema from "~/db/schema"
 import { requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
@@ -53,8 +55,12 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
 export default function AppLayout() {
   const { user, pageTree, unreadNotificationCount } = useLoaderData<typeof loader>()
   const { slug } = useParams()
+  const { i18n } = useTranslation()
 
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [starredDialogOpen, setStarredDialogOpen] = useState(false)
+
+  const lang: "ja" | "en" = i18n.language === "en" ? "en" : "ja"
 
   useEffect(() => {
     try {
@@ -87,7 +93,13 @@ export default function AppLayout() {
       />
 
       <div className="flex flex-1 pt-14">
-        <Sidebar pages={pageTree} currentSlug={slug} userRole={user.role} isOpen={sidebarOpen} />
+        <Sidebar
+          pages={pageTree}
+          currentSlug={slug}
+          userRole={user.role}
+          isOpen={sidebarOpen}
+          onStarredClick={() => setStarredDialogOpen(true)}
+        />
 
         {/* Main content */}
         <div className="flex min-w-0 flex-1 flex-col">
@@ -97,6 +109,11 @@ export default function AppLayout() {
           <Footer />
         </div>
       </div>
+      <StarredDialog
+        open={starredDialogOpen}
+        onClose={() => setStarredDialogOpen(false)}
+        lang={lang}
+      />
     </div>
   )
 }

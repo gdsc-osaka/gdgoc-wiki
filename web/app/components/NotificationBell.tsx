@@ -26,7 +26,9 @@ function typeIcon(type: string) {
 }
 
 function relativeTime(t: (key: string, opts?: Record<string, unknown>) => string, iso: string) {
-  const diff = Date.now() - new Date(iso).getTime()
+  const timestamp = new Date(iso).getTime()
+  if (Number.isNaN(timestamp)) return t("time.just_now")
+  const diff = Date.now() - timestamp
   const mins = Math.floor(diff / 60_000)
   if (mins < 1) return t("time.just_now")
   if (mins < 60) return t("time.minutes_ago", { count: mins })
@@ -66,8 +68,9 @@ export default function NotificationBell({ initialCount }: { initialCount: numbe
     return () => document.removeEventListener("mousedown", handleClick)
   }, [])
 
-  // Polling: 30s background, 5s when open
+  // Polling: 30s background, 5s when open; also fetch immediately on each interval reset
   useEffect(() => {
+    fetchNotifications()
     const interval = open ? 5_000 : 30_000
     if (intervalRef.current) clearInterval(intervalRef.current)
     intervalRef.current = setInterval(fetchNotifications, interval)

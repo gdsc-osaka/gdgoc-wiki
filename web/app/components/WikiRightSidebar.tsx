@@ -36,7 +36,6 @@ interface WikiRightSidebarProps {
   translationStatusJa: string
   translationStatusEn: string
   slug: string
-  canEdit?: boolean
   visibility: string
   canChangeVisibility: boolean
 }

@@ -82,6 +82,14 @@ export type AiDraftJson =
     }
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function buildUserText(baseUserText: string, docTexts: string[]): string {
+  return [baseUserText, ...docTexts].filter((t) => t.trim().length > 0).join("\n\n---\n\n")
+}
+
+// ---------------------------------------------------------------------------
 // Phase progress helper
 // ---------------------------------------------------------------------------
 
@@ -172,20 +180,27 @@ export async function runIngestionPipeline(
         let accessToken = tokenRow.accessToken
         const now = new Date()
         if (tokenRow.expiresAt < now && tokenRow.refreshToken) {
-          const refreshed = await refreshAccessToken(
-            tokenRow.refreshToken,
-            env.GOOGLE_DOCS_CLIENT_ID,
-            env.GOOGLE_DOCS_CLIENT_SECRET,
-          )
-          accessToken = refreshed.accessToken
-          await db
-            .update(schema.googleDriveTokens)
-            .set({
-              accessToken: refreshed.accessToken,
-              expiresAt: refreshed.expiresAt,
-              updatedAt: now,
-            })
-            .where(eq(schema.googleDriveTokens.userId, userId))
+          try {
+            const refreshed = await refreshAccessToken(
+              tokenRow.refreshToken,
+              env.GOOGLE_DOCS_CLIENT_ID,
+              env.GOOGLE_DOCS_CLIENT_SECRET,
+            )
+            accessToken = refreshed.accessToken
+            await db
+              .update(schema.googleDriveTokens)
+              .set({
+                accessToken: refreshed.accessToken,
+                expiresAt: refreshed.expiresAt,
+                updatedAt: now,
+              })
+              .where(eq(schema.googleDriveTokens.userId, userId))
+          } catch (refreshErr) {
+            const msg = refreshErr instanceof Error ? refreshErr.message : String(refreshErr)
+            throw new Error(
+              `Google Driveのアクセスが無効になりました。設定画面からGoogle Driveを再接続してください。(${msg})`,
+            )
+          }
         }
 
         // Primary: extract plain text (must succeed)
@@ -284,8 +299,7 @@ export async function runIngestionPipeline(
     // Phase 0: Clarifier (runs on first run OR after URL selection)
     // ------------------------------------------------------------------
     if (!isPostClarification) {
-      const combinedTexts = [baseUserText, ...docTexts].filter((t) => t.trim().length > 0)
-      const userText = combinedTexts.join("\n\n---\n\n")
+      const userText = buildUserText(baseUserText, docTexts)
       let clarifierText = userText
       if (fetchedUrlContent) {
         clarifierText += `\n\n---\n## 参考URL（ユーザーが選択した外部ページ）\n${fetchedUrlContent}`
@@ -316,8 +330,7 @@ export async function runIngestionPipeline(
     }
 
     // Build final user text (prepend clarification answers if resuming)
-    const combinedTexts = [baseUserText, ...docTexts].filter((t) => t.trim().length > 0)
-    const userText = combinedTexts.join("\n\n---\n\n")
+    const userText = buildUserText(baseUserText, docTexts)
 
     let effectiveUserText = isPostClarification
       ? `${resumeContext?.clarificationAnswers}\n\n${userText}`

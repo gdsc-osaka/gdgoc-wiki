@@ -6,7 +6,6 @@ import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react-router"
 import { Link, useFetcher, useLoaderData } from "react-router"
-import StarredDialog from "~/components/StarredDialog"
 import type { TocItem } from "~/components/WikiRightSidebar"
 import WikiRightSidebar from "~/components/WikiRightSidebar"
 import * as schema from "~/db/schema"
@@ -247,26 +246,22 @@ export default function WikiPage() {
   const canEdit = userRole === "admin" || userRole === "lead"
 
   // Stable callback — avoids re-render loop when MdPreview fires onGetCatalog every render
-  const handleGetCatalog = useCallback(
-    (list: Array<{ text: string; level: number }>) => {
-      setTocItems((prev) => {
-        const next = list
-          .filter((h) => h.level === 2 || h.level === 3)
-          .map((h) => ({ id: h.text, text: h.text, level: h.level }))
-        if (
-          prev.length === next.length &&
-          prev.every((item, i) => item.id === next[i].id && item.level === next[i].level)
-        ) {
-          return prev // same data → same reference → no re-render
-        }
-        return next
-      })
-    },
-    [],
-  )
+  const handleGetCatalog = useCallback((list: Array<{ text: string; level: number }>) => {
+    setTocItems((prev) => {
+      const next = list
+        .filter((h) => h.level === 2 || h.level === 3)
+        .map((h) => ({ id: h.text, text: h.text, level: h.level }))
+      if (
+        prev.length === next.length &&
+        prev.every((item, i) => item.id === next[i].id && item.level === next[i].level)
+      ) {
+        return prev // same data → same reference → no re-render
+      }
+      return next
+    })
+  }, [])
 
   const favFetcher = useFetcher<{ ok: boolean; starred: boolean }>()
-  const [starredDialogOpen, setStarredDialogOpen] = useState(false)
   const [currentStarred, setCurrentStarred] = useState(isStarred)
   const [copied, setCopied] = useState(false)
 
@@ -349,7 +344,7 @@ export default function WikiPage() {
           {displayContent ? (
             <MdPreview
               modelValue={displayContent}
-              autoFoldThreshold={Infinity}
+              autoFoldThreshold={Number.POSITIVE_INFINITY}
               onGetCatalog={handleGetCatalog}
             />
           ) : (
@@ -367,21 +362,10 @@ export default function WikiPage() {
           translationStatusJa={page.translationStatusJa}
           translationStatusEn={page.translationStatusEn}
           slug={page.slug}
-          canEdit={canEdit}
           visibility={visibility}
           canChangeVisibility={canChangeVisibility}
         />
       </div>
-
-      <StarredDialog
-        open={starredDialogOpen}
-        onClose={() => setStarredDialogOpen(false)}
-        currentPageId={page.id}
-        currentPageTitle={title}
-        lang={lang}
-        isStarred={currentStarred}
-        onStarChange={setCurrentStarred}
-      />
     </div>
   )
 }

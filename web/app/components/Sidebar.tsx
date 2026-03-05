@@ -39,9 +39,16 @@ interface SidebarProps {
   currentSlug?: string
   userRole?: string
   isOpen?: boolean
+  onStarredClick?: () => void
 }
 
-export default function Sidebar({ pages, currentSlug, userRole, isOpen = true }: SidebarProps) {
+export default function Sidebar({
+  pages,
+  currentSlug,
+  userRole,
+  isOpen = true,
+  onStarredClick,
+}: SidebarProps) {
   const { t } = useTranslation()
   const location = useLocation()
 
@@ -128,13 +135,27 @@ export default function Sidebar({ pages, currentSlug, userRole, isOpen = true }:
               isCollapsed={isCollapsed}
               isActive={location.pathname === "/recent"}
             />
-            <NavItem
-              to="/starred"
-              icon={<Star size={16} />}
-              label={t("nav.starred")}
-              isCollapsed={isCollapsed}
-              isActive={location.pathname === "/starred"}
-            />
+            {onStarredClick ? (
+              <button
+                type="button"
+                title={isCollapsed ? t("nav.starred") : undefined}
+                onClick={onStarredClick}
+                className="flex min-h-8 w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
+              >
+                <span className="flex-shrink-0">
+                  <Star size={16} />
+                </span>
+                {!isCollapsed && <span className="truncate">{t("nav.starred")}</span>}
+              </button>
+            ) : (
+              <NavItem
+                to="/starred"
+                icon={<Star size={16} />}
+                label={t("nav.starred")}
+                isCollapsed={isCollapsed}
+                isActive={location.pathname === "/starred"}
+              />
+            )}
             {userRole === "admin" && (
               <NavItem
                 to="/admin"
