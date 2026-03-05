@@ -98,6 +98,7 @@ export type AiDraftJson =
       sensitiveItems: import("./gemini.server").SensitiveItem[]
       warnings: string[]
       sources: SourceUrl[]
+      imageKeys: string[]
     }
 
 export type IngestionResumePostClarificationDraft = Extract<
@@ -150,6 +151,18 @@ export async function runIngestionPipeline(
     fetchedUrlContent?: string
   },
 ): Promise<void> {
+  console.log("[ingestion-pipeline] runIngestionPipeline start", {
+    sessionId,
+    userId,
+    hasResumeContext: !!resumeContext,
+    resumeMode:
+      resumeContext?.clarificationAnswers !== undefined
+        ? resumeContext.selectedUrls
+          ? "post_url_selection"
+          : "post_clarification"
+        : "fresh",
+  })
+
   const db = drizzle(env.DB, { schema })
 
   const currentDatetime = `${new Date().toLocaleString("ja-JP", {
@@ -488,6 +501,12 @@ export async function runIngestionPipeline(
 
     await updatePhase(db, sessionId, `generating:0/${total}`)
 
+    // Derive image file names for AI hints
+    const imageNames: string[] =
+      inputs.imageFiles && inputs.imageFiles.length > 0
+        ? inputs.imageFiles.map((f) => f.name)
+        : inputs.imageKeys.map((k) => k.split("/").at(-1) ?? k)
+
     const creatorResults = await Promise.all(
       createOps.map(async (op) => {
         const result = await runPhase2Creator(
@@ -498,6 +517,7 @@ export async function runIngestionPipeline(
           pageIndex,
           createOps.filter((o) => o.tempId !== op.tempId),
           currentDatetime,
+          imageNames,
         )
         done++
         await updatePhase(db, sessionId, `generating:${done}/${total}`)
@@ -516,6 +536,7 @@ export async function runIngestionPipeline(
           op,
           markdown,
           currentDatetime,
+          imageNames,
         )
         done++
         await updatePhase(db, sessionId, `generating:${done}/${total}`)
@@ -561,11 +582,13 @@ export async function runIngestionPipeline(
       sensitiveItems: allSensitiveItems,
       warnings,
       sources,
+      imageKeys: inputs.imageKeys,
     }
 
     // ------------------------------------------------------------------
     // Step 8: Save to DB
     // ------------------------------------------------------------------
+    console.log("[ingestion-pipeline] reached step 8 (saving) for session", sessionId)
     await updatePhase(db, sessionId, "saving")
     await db
       .update(schema.ingestionSessions)
@@ -623,6 +646,10 @@ export async function runIngestionPipeline(
         notifErr,
       )
     }
+    console.log(
+      "[ingestion-pipeline] runIngestionPipeline completed successfully for session",
+      sessionId,
+    )
   } catch (err) {
     console.error(`[ingestion-pipeline] session=${sessionId} error:`, err)
     const rawMessage = err instanceof Error ? err.message : String(err)

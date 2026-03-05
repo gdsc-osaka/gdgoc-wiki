@@ -1,7 +1,8 @@
-import { and, eq, inArray, sql } from "drizzle-orm"
+import { and, desc, eq, inArray, sql } from "drizzle-orm"
 import { useTranslation } from "react-i18next"
-import { Link, useLoaderData } from "react-router"
+import { Link, useLoaderData, useNavigate } from "react-router"
 import type { LoaderFunctionArgs, MetaFunction } from "react-router"
+import TagChip from "~/components/TagChip"
 import * as schema from "~/db/schema"
 import { requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
@@ -23,17 +24,82 @@ function sanitizeFtsQuery(raw: string): string {
 export async function loader({ request, context }: LoaderFunctionArgs) {
   const url = new URL(request.url)
   const q = url.searchParams.get("q")?.trim() ?? ""
-
-  if (!q) return { q: "", results: [] }
-
-  const sanitized = sanitizeFtsQuery(q)
-  if (!sanitized) return { q, results: [] }
+  const tag = url.searchParams.get("tag")?.trim() ?? ""
 
   const { env } = context.cloudflare
   const user = await requireRole(request, env, "viewer")
   const db = getDb(env)
 
-  // Trigram tokenizer supports direct substring MATCH with quoted strings
+  const visFilter = buildVisibilityFilter(user)
+
+  const allTags = await db.select().from(schema.tags).orderBy(desc(schema.tags.pageCount)).all()
+
+  type PageTag = {
+    pageId: string
+    tagSlug: string
+    labelJa: string
+    labelEn: string
+    color: string
+  }
+
+  async function fetchTagsForPages(pageIds: string[]): Promise<PageTag[]> {
+    if (pageIds.length === 0) return []
+    return db
+      .select({
+        pageId: schema.pageTags.pageId,
+        tagSlug: schema.pageTags.tagSlug,
+        labelJa: schema.tags.labelJa,
+        labelEn: schema.tags.labelEn,
+        color: schema.tags.color,
+      })
+      .from(schema.pageTags)
+      .innerJoin(schema.tags, eq(schema.pageTags.tagSlug, schema.tags.slug))
+      .where(inArray(schema.pageTags.pageId, pageIds))
+      .all()
+  }
+
+  // Case A: tag only (no text query)
+  if (!q && tag) {
+    const pages = await db
+      .select({
+        id: schema.pages.id,
+        slug: schema.pages.slug,
+        titleJa: schema.pages.titleJa,
+        titleEn: schema.pages.titleEn,
+        summaryJa: schema.pages.summaryJa,
+        summaryEn: schema.pages.summaryEn,
+        updatedAt: schema.pages.updatedAt,
+      })
+      .from(schema.pages)
+      .innerJoin(schema.pageTags, eq(schema.pageTags.pageId, schema.pages.id))
+      .where(and(eq(schema.pageTags.tagSlug, tag), eq(schema.pages.status, "published"), visFilter))
+      .orderBy(desc(schema.pages.updatedAt))
+      .limit(50)
+      .all()
+
+    const pageTags = await fetchTagsForPages(pages.map((p) => p.id))
+    const tagsByPage = new Map<string, PageTag[]>()
+    for (const pt of pageTags) {
+      const arr = tagsByPage.get(pt.pageId) ?? []
+      arr.push(pt)
+      tagsByPage.set(pt.pageId, arr)
+    }
+
+    return {
+      q,
+      tag,
+      allTags,
+      results: pages.map((p) => ({ ...p, tags: tagsByPage.get(p.id) ?? [] })),
+    }
+  }
+
+  // Case B: no query at all
+  if (!q && !tag) return { q: "", tag: "", allTags, results: [] }
+
+  // Case B/C: text query (with or without tag)
+  const sanitized = sanitizeFtsQuery(q)
+  if (!sanitized) return { q, tag, allTags, results: [] }
+
   const ftsQuery = `"${sanitized}"`
 
   const matched = await db.all<{
@@ -47,11 +113,22 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
         LIMIT 50`,
   )
 
-  if (matched.length === 0) return { q, results: [] }
+  if (matched.length === 0) return { q, tag, allTags, results: [] }
 
-  const pageIds = matched.map((r) => r.page_id)
+  let pageIds = matched.map((r) => r.page_id)
 
-  const visFilter = buildVisibilityFilter(user)
+  // Case C: intersect with tag filter
+  if (tag) {
+    const taggedRows = await db
+      .select({ pageId: schema.pageTags.pageId })
+      .from(schema.pageTags)
+      .where(eq(schema.pageTags.tagSlug, tag))
+      .all()
+    const taggedIds = new Set(taggedRows.map((r) => r.pageId))
+    pageIds = pageIds.filter((id) => taggedIds.has(id))
+  }
+
+  if (pageIds.length === 0) return { q, tag, allTags, results: [] }
 
   // Fetch full page data for matched IDs, filtered to published + visibility
   const pages = await db
@@ -72,31 +149,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
   const pageById = new Map(pages.map((p) => [p.id, p]))
   const orderedPages = pageIds.map((id) => pageById.get(id)).filter(Boolean) as typeof pages
 
-  // Fetch tags for result pages
-  type PageTag = {
-    pageId: string
-    tagSlug: string
-    labelJa: string
-    labelEn: string
-    color: string
-  }
-  let pageTags: PageTag[] = []
-  const resultIds = orderedPages.map((p) => p.id)
-  if (resultIds.length > 0) {
-    pageTags = await db
-      .select({
-        pageId: schema.pageTags.pageId,
-        tagSlug: schema.pageTags.tagSlug,
-        labelJa: schema.tags.labelJa,
-        labelEn: schema.tags.labelEn,
-        color: schema.tags.color,
-      })
-      .from(schema.pageTags)
-      .innerJoin(schema.tags, eq(schema.pageTags.tagSlug, schema.tags.slug))
-      .where(inArray(schema.pageTags.pageId, resultIds))
-      .all()
-  }
-
+  const pageTags = await fetchTagsForPages(orderedPages.map((p) => p.id))
   const tagsByPage = new Map<string, PageTag[]>()
   for (const pt of pageTags) {
     const arr = tagsByPage.get(pt.pageId) ?? []
@@ -106,6 +159,8 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
 
   return {
     q,
+    tag,
+    allTags,
     results: orderedPages.map((p) => ({ ...p, tags: tagsByPage.get(p.id) ?? [] })),
   }
 }
@@ -130,18 +185,69 @@ function timeAgo(date: Date, t: (key: string, opts?: Record<string, unknown>) =>
 // ---------------------------------------------------------------------------
 
 export default function SearchPage() {
-  const { q, results } = useLoaderData<typeof loader>()
+  const { q, tag, allTags, results } = useLoaderData<typeof loader>()
   const { t, i18n } = useTranslation()
   const isJa = i18n.language === "ja"
+  const navigate = useNavigate()
+
+  const activeTagLabel = allTags.find((tg) => tg.slug === tag)
+  const activeTagName = activeTagLabel
+    ? isJa
+      ? activeTagLabel.labelJa
+      : activeTagLabel.labelEn
+    : tag
+
+  function handleTagSelect(e: React.ChangeEvent<HTMLSelectElement>) {
+    const value = e.target.value
+    const params = new URLSearchParams()
+    if (q) params.set("q", q)
+    if (value) params.set("tag", value)
+    navigate(`/search${params.size > 0 ? `?${params}` : ""}`)
+  }
 
   return (
     <div className="max-w-3xl px-4 py-6 md:px-8 md:py-8">
-      <h1 className="mb-1 text-lg font-semibold text-gray-900">{t("search.title")}</h1>
+      <h1 className="mb-4 text-lg font-semibold text-gray-900">{t("search.title")}</h1>
 
-      {!q ? (
-        <p className="mt-4 text-sm text-gray-500">{t("search.empty_query")}</p>
+      {/* Tag filter dropdown */}
+      <div className="mb-6 flex items-center gap-2">
+        <label htmlFor="tag-filter" className="text-sm font-medium text-gray-600 whitespace-nowrap">
+          {t("search.filter_by_tag")}
+        </label>
+        <select
+          id="tag-filter"
+          value={tag}
+          onChange={handleTagSelect}
+          className="rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-sm text-gray-700 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+        >
+          <option value="">{t("search.all_tags")}</option>
+          {allTags.map((tg) => (
+            <option key={tg.slug} value={tg.slug}>
+              {isJa ? tg.labelJa : tg.labelEn}
+            </option>
+          ))}
+        </select>
+
+        {/* Active filter badge with clear button */}
+        {tag && (
+          <Link
+            to={q ? `/search?q=${encodeURIComponent(q)}` : "/search"}
+            className="text-xs text-gray-400 hover:text-gray-600"
+            aria-label={t("search.clear_tag")}
+          >
+            ✕
+          </Link>
+        )}
+      </div>
+
+      {!q && !tag ? (
+        <p className="text-sm text-gray-500">{t("search.empty_query")}</p>
       ) : results.length === 0 ? (
-        <p className="mt-4 text-sm text-gray-500">{t("search.no_results", { query: q })}</p>
+        <p className="text-sm text-gray-500">
+          {tag && !q
+            ? t("search.no_results_tag", { tag: activeTagName })
+            : t("search.no_results", { query: q })}
+        </p>
       ) : (
         <>
           <p className="mb-6 text-sm text-gray-500">
@@ -157,25 +263,36 @@ export default function SearchPage() {
 
               return (
                 <li key={page.id}>
-                  <Link
-                    to={`/wiki/${page.slug}`}
-                    className="block rounded-lg border border-gray-200 bg-white p-4 transition-all hover:border-blue-500/40 hover:shadow-sm"
+                  <div
+                    className="block cursor-pointer rounded-lg border border-gray-200 bg-white p-4 transition-all hover:border-blue-500/40 hover:shadow-sm"
+                    onClick={() => navigate(`/wiki/${page.slug}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") navigate(`/wiki/${page.slug}`)
+                    }}
                   >
-                    <h2 className="font-medium text-gray-900">{title}</h2>
+                    <Link
+                      to={`/wiki/${page.slug}`}
+                      className="font-medium text-gray-900 hover:text-blue-600"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {title}
+                    </Link>
 
                     {summary && (
                       <p className="mt-1 line-clamp-2 text-sm text-gray-500">{summary}</p>
                     )}
 
                     <div className="mt-2 flex flex-wrap items-center gap-2">
-                      {page.tags.map((tag) => (
-                        <span
-                          key={tag.tagSlug}
-                          className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium text-white"
-                          style={{ backgroundColor: tag.color }}
-                        >
-                          {isJa ? tag.labelJa : tag.labelEn}
-                        </span>
+                      {page.tags.map((pageTag) => (
+                        <TagChip
+                          key={pageTag.tagSlug}
+                          tagSlug={pageTag.tagSlug}
+                          labelJa={pageTag.labelJa}
+                          labelEn={pageTag.labelEn}
+                          color={pageTag.color}
+                          q={q}
+                          onClick={(e) => e.stopPropagation()}
+                        />
                       ))}
 
                       {page.updatedAt && (
@@ -184,7 +301,7 @@ export default function SearchPage() {
                         </time>
                       )}
                     </div>
-                  </Link>
+                  </div>
                 </li>
               )
             })}

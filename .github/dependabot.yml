@@ -12,6 +12,18 @@ updates:
         patterns:
           - "*"
 
+  # discord-bot/ — pnpm packages
+  - package-ecosystem: npm
+    directory: /discord-bot
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+
   # terraform/ — Terraform provider versions
   - package-ecosystem: terraform
     directory: /terraform

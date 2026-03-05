@@ -119,6 +119,84 @@ describe("admin.pages action", () => {
     expect(result).toEqual({})
   })
 
+  it("archivePage intent calls db.update with archived status", async () => {
+    vi.mocked(requireRole).mockResolvedValueOnce({ id: "admin1" } as ReturnType<
+      typeof requireRole
+    > extends Promise<infer T>
+      ? T
+      : never)
+
+    const whereSpy = vi.fn().mockResolvedValue(undefined)
+    const setSpy = vi.fn().mockReturnValue({ where: whereSpy })
+    const updateSpy = vi.fn().mockReturnValue({ set: setSpy })
+    function makeDbWithUpdate(): ReturnType<typeof getDb> {
+      const handler: ProxyHandler<object> = {
+        get(_, key) {
+          if (key === "update") return updateSpy
+          if (key === "then") return undefined
+          return () => new Proxy({}, handler)
+        },
+      }
+      return new Proxy({}, handler) as ReturnType<typeof getDb>
+    }
+    vi.mocked(getDb).mockReturnValueOnce(makeDbWithUpdate())
+
+    const form = new FormData()
+    form.set("intent", "archivePage")
+    form.set("pageId", "page-123")
+
+    const request = new Request("http://localhost/admin/pages", { method: "POST", body: form })
+    const result = await action({
+      request,
+      context: mockContext,
+      params: {},
+      unstable_pattern: "/admin/pages",
+    })
+
+    expect(updateSpy).toHaveBeenCalledOnce()
+    expect(setSpy).toHaveBeenCalledWith(expect.objectContaining({ status: "archived" }))
+    expect(result).toEqual({})
+  })
+
+  it("restorePage intent calls db.update with draft status", async () => {
+    vi.mocked(requireRole).mockResolvedValueOnce({ id: "admin1" } as ReturnType<
+      typeof requireRole
+    > extends Promise<infer T>
+      ? T
+      : never)
+
+    const whereSpy = vi.fn().mockResolvedValue(undefined)
+    const setSpy = vi.fn().mockReturnValue({ where: whereSpy })
+    const updateSpy = vi.fn().mockReturnValue({ set: setSpy })
+    function makeDbWithUpdate(): ReturnType<typeof getDb> {
+      const handler: ProxyHandler<object> = {
+        get(_, key) {
+          if (key === "update") return updateSpy
+          if (key === "then") return undefined
+          return () => new Proxy({}, handler)
+        },
+      }
+      return new Proxy({}, handler) as ReturnType<typeof getDb>
+    }
+    vi.mocked(getDb).mockReturnValueOnce(makeDbWithUpdate())
+
+    const form = new FormData()
+    form.set("intent", "restorePage")
+    form.set("pageId", "page-123")
+
+    const request = new Request("http://localhost/admin/pages", { method: "POST", body: form })
+    const result = await action({
+      request,
+      context: mockContext,
+      params: {},
+      unstable_pattern: "/admin/pages",
+    })
+
+    expect(updateSpy).toHaveBeenCalledOnce()
+    expect(setSpy).toHaveBeenCalledWith(expect.objectContaining({ status: "draft" }))
+    expect(result).toEqual({})
+  })
+
   it("returns empty object for unknown intent", async () => {
     vi.mocked(requireRole).mockResolvedValueOnce({ id: "admin1" } as ReturnType<
       typeof requireRole

@@ -31,6 +31,15 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
   if (!session) throw new Response("Not found", { status: 404 })
   if (session.userId !== user.id) throw new Response("Forbidden", { status: 403 })
 
+  const imageKeys = (() => {
+    try {
+      const parsed = JSON.parse(session.inputsJson) as { imageKeys?: string[] }
+      return parsed.imageKeys ?? []
+    } catch {
+      return []
+    }
+  })()
+
   return {
     sessionId: session.id,
     status: session.status,
@@ -46,6 +55,7 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
       }
     })(),
     userRole: user.role as string,
+    imageKeys,
   }
 }
 
@@ -155,6 +165,7 @@ function ProcessingScreen({
         })}
       </div>
       <p className="text-sm text-gray-500">{t("ingest.processing_hint")}</p>
+      <p className="text-xs text-gray-400">{t("ingest.processing_leave_hint")}</p>
     </div>
   )
 }
@@ -404,6 +415,7 @@ function UrlSelectionScreen({
 export default function IngestSessionPage() {
   const loaderData = useLoaderData<typeof loader>()
   const { t } = useTranslation()
+  const imageKeys = loaderData.imageKeys
   const [status, setStatus] = useState(loaderData.status)
   const [draft, setDraft] = useState(loaderData.draft)
   const [phaseMessage, setPhaseMessage] = useState(loaderData.phaseMessage)
@@ -542,6 +554,7 @@ export default function IngestSessionPage() {
         draft={currentDraft}
         sessionId={loaderData.sessionId}
         userRole={loaderData.userRole}
+        imageKeys={imageKeys}
       />
     </div>
   )

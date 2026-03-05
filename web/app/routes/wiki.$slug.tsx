@@ -1,11 +1,13 @@
 import { and, eq } from "drizzle-orm"
 import { MdPreview } from "md-editor-rt"
 import "md-editor-rt/lib/preview.css"
-import { History, List, Pencil, Share2, Star, X } from "lucide-react"
+import { Archive, History, List, Pencil, Share2, Star, X } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react-router"
-import { Link, useFetcher, useLoaderData, useLocation } from "react-router"
+import { Link, redirect, useFetcher, useLoaderData, useLocation } from "react-router"
+import ConfirmDialog from "~/components/ConfirmDialog"
+import TagChip from "~/components/TagChip"
 import type { TocItem } from "~/components/WikiRightSidebar"
 import WikiRightSidebar from "~/components/WikiRightSidebar"
 import * as schema from "~/db/schema"
@@ -59,7 +61,7 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
     throw new Response("Not Found", { status: 404 })
   }
 
-  const [pageTags, authorRow, editorRow, fav, sources] = await Promise.all([
+  const [pageTags, authorRow, editorRow, fav, sources, attachments] = await Promise.all([
     db
       .select({
         tagSlug: schema.pageTags.tagSlug,
@@ -96,11 +98,32 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
       .from(schema.pageSources)
       .where(eq(schema.pageSources.pageId, page.id))
       .all(),
+    db
+      .select({
+        r2Key: schema.pageAttachments.r2Key,
+        fileName: schema.pageAttachments.fileName,
+        mimeType: schema.pageAttachments.mimeType,
+      })
+      .from(schema.pageAttachments)
+      .where(eq(schema.pageAttachments.pageId, page.id))
+      .all(),
   ])
 
   const url = new URL(request.url)
   const langParam = url.searchParams.get("lang")
   const lang: "ja" | "en" = langParam === "ja" || langParam === "en" ? langParam : "ja"
+
+  // Fire-and-forget view tracking
+  context.cloudflare.ctx.waitUntil(
+    db
+      .insert(schema.pageViews)
+      .values({ userId: sessionUser.id, pageId: page.id, viewedAt: new Date() })
+      .onConflictDoUpdate({
+        target: [schema.pageViews.userId, schema.pageViews.pageId],
+        set: { viewedAt: new Date() },
+      })
+      .run(),
+  )
 
   return {
     page: {
@@ -113,10 +136,12 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
     editor: editorRow ?? null,
     lang,
     userRole: sessionUser.role,
+    isAuthor: sessionUser.id === page.authorId,
     visibility: page.visibility,
     canChangeVisibility: canUserChangeVisibility(sessionUser, page),
     isStarred: !!fav,
     sources,
+    attachments,
   }
 }
 
@@ -208,6 +233,22 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
     return { ok: true, starred: true }
   }
 
+  if (intent === "archivePage") {
+    const page = await db
+      .select({ id: schema.pages.id, authorId: schema.pages.authorId })
+      .from(schema.pages)
+      .where(eq(schema.pages.slug, params.slug ?? ""))
+      .get()
+    if (!page) throw new Response("Not Found", { status: 404 })
+    const isAuthor = sessionUser.id === page.authorId
+    if (!isAuthor && sessionUser.role !== "admin") throw new Response("Forbidden", { status: 403 })
+    await db
+      .update(schema.pages)
+      .set({ status: "archived", updatedAt: new Date() })
+      .where(eq(schema.pages.id, page.id))
+    return redirect("/")
+  }
+
   return new Response("Unknown intent", { status: 400 })
 }
 
@@ -228,7 +269,7 @@ function parseMdHeadings(md: string): TocItem[] {
 }
 
 export default function WikiPage() {
-  const { page, tags, author, editor, lang, userRole, isStarred, sources } =
+  const { page, tags, author, editor, lang, userRole, isAuthor, isStarred, sources, attachments } =
     useLoaderData<typeof loader>()
   const { t } = useTranslation("common")
   const theme = useThemeMode()
@@ -272,6 +313,9 @@ export default function WikiPage() {
   }, [])
 
   const favFetcher = useFetcher<{ ok: boolean; starred: boolean }>()
+  const archiveFetcher = useFetcher()
+  const canArchive = isAuthor || userRole === "admin"
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false)
   const [currentStarred, setCurrentStarred] = useState(isStarred)
   const [copied, setCopied] = useState(false)
   const [mobileContentsOpen, setMobileContentsOpen] = useState(false)
@@ -413,6 +457,12 @@ export default function WikiPage() {
             <Share2 size={14} />
             {copied ? t("wiki.share_copied") : t("wiki.share")}
           </button>
+          {canArchive && (
+            <button type="button" onClick={() => setArchiveDialogOpen(true)} className={btnBase}>
+              <Archive size={14} />
+              {t("wiki.archive")}
+            </button>
+          )}
         </div>
       </div>
 
@@ -435,13 +485,14 @@ export default function WikiPage() {
           {tags.length > 0 && (
             <div className="mb-6 flex flex-wrap gap-2">
               {tags.map((tag) => (
-                <span
+                <TagChip
                   key={tag.tagSlug}
-                  className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium text-white"
-                  style={{ backgroundColor: tag.color }}
-                >
-                  {lang === "en" ? tag.labelEn : tag.labelJa}
-                </span>
+                  tagSlug={tag.tagSlug}
+                  labelJa={tag.labelJa}
+                  labelEn={tag.labelEn}
+                  color={tag.color}
+                  size="md"
+                />
               ))}
             </div>
           )}
@@ -473,14 +524,27 @@ export default function WikiPage() {
             author={author}
             editor={editor}
             updatedAt={page.updatedAt}
-            tags={tags}
             lang={lang}
             translationStatusJa={page.translationStatusJa}
             translationStatusEn={page.translationStatusEn}
             sources={sources}
+            attachments={attachments}
           />
         )}
       </div>
+
+      <ConfirmDialog
+        open={archiveDialogOpen}
+        title={t("wiki.archive")}
+        message={t("wiki.archive_confirm", { title })}
+        confirmLabel={t("wiki.archive")}
+        cancelLabel={t("cancel")}
+        onConfirm={() => {
+          archiveFetcher.submit({ intent: "archivePage" }, { method: "post" })
+          setArchiveDialogOpen(false)
+        }}
+        onCancel={() => setArchiveDialogOpen(false)}
+      />
 
       {/* Mobile contents bottom sheet */}
       {mobileContentsOpen && (
@@ -544,13 +608,15 @@ export default function WikiPage() {
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {tags.map((tag) => (
-                      <span
+                      <TagChip
                         key={tag.tagSlug}
-                        className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium text-white"
-                        style={{ backgroundColor: tag.color }}
-                      >
-                        {lang === "en" ? tag.labelEn : tag.labelJa}
-                      </span>
+                        tagSlug={tag.tagSlug}
+                        labelJa={tag.labelJa}
+                        labelEn={tag.labelEn}
+                        color={tag.color}
+                        size="md"
+                        onClick={closeMobileContents}
+                      />
                     ))}
                   </div>
                 </div>

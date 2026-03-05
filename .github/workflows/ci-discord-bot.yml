@@ -1,0 +1,51 @@
+name: CI — Discord Bot
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "discord-bot/**"
+      - ".github/workflows/ci-discord-bot.yml"
+  pull_request:
+    paths:
+      - "discord-bot/**"
+      - ".github/workflows/ci-discord-bot.yml"
+
+jobs:
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: discord-bot
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: discord-bot/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: discord-bot
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: discord-bot/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck

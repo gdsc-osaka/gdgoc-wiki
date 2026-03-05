@@ -646,6 +646,7 @@ export async function runPhase2Creator(
   pageIndex: PageIndexEntry[],
   siblingOps: CreateOperation[],
   currentDatetime: string,
+  imageNames?: string[],
 ): Promise<PageDraft> {
   const ai = new GoogleGenAI({ apiKey })
 
@@ -655,6 +656,11 @@ export async function runPhase2Creator(
     },
   ]
   pushFilePartsWithHint(parts, fileUris)
+  if (imageNames && imageNames.length > 0) {
+    parts.push({
+      text: `\n\n## 添付画像（参照可能）\n以下の画像が添付されています。本文の内容と関連がある場合のみ、Markdown画像記法で挿入してください:\n${imageNames.map((n) => `- img:${n}`).join("\n")}\n挿入形式: ![説明文](img:filename.ext)\n関連がない場合は画像を含めなくて構いません。`,
+    })
+  }
   const siblingContext =
     siblingOps.length > 0
       ? `\n\n## 同時に生成される他のページ（内容の重複を避けてください）\n${JSON.stringify(siblingOps.map((s) => ({ tempId: s.tempId, title: s.suggestedTitle.ja, pageType: s.pageType })))}\n\nあなたが担当するページ: "${op.suggestedTitle.ja}"\n上記の他ページと内容が重複しないようにしてください。`
@@ -689,6 +695,7 @@ export async function runPhase2Patcher(
   op: UpdateOperation,
   existingMarkdown: string,
   currentDatetime: string,
+  imageNames?: string[],
 ): Promise<SectionPatchResponse> {
   const ai = new GoogleGenAI({ apiKey })
 
@@ -698,6 +705,11 @@ export async function runPhase2Patcher(
     },
   ]
   pushFilePartsWithHint(parts, fileUris)
+  if (imageNames && imageNames.length > 0) {
+    parts.push({
+      text: `\n\n## 添付画像（参照可能）\n以下の画像が添付されています。本文の内容と関連がある場合のみ、Markdown画像記法で挿入してください:\n${imageNames.map((n) => `- img:${n}`).join("\n")}\n挿入形式: ![説明文](img:filename.ext)\n関連がない場合は画像を含めなくて構いません。`,
+    })
+  }
   parts.push({
     text: `\n\n## 更新対象ページの現在の内容（Markdown変換済み）\n# ${op.pageTitle}\n${existingMarkdown}\n\n## 操作計画\n${JSON.stringify(op)}\n\n---\n既存ページの構造・文体・見出しレベルに従い、SectionPatch JSONを出力してください。\n既存のコンテンツは削除・置換せず、追記のみ行ってください。`,
   })

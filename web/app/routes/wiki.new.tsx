@@ -1,156 +1,119 @@
+import { eq } from "drizzle-orm"
 import { MdEditor } from "md-editor-rt"
 import "md-editor-rt/lib/style.css"
 import { ArrowLeft } from "lucide-react"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { nanoid } from "nanoid"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Link, useBlocker, useFetcher } from "react-router"
+import { Form, Link, redirect, useLoaderData } from "react-router"
+import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react-router"
+import * as schema from "~/db/schema"
 import { useThemeMode } from "~/hooks/useThemeMode"
+import { hasRole, requireRole } from "~/lib/auth-utils.server"
+import { getDb } from "~/lib/db.server"
+import { generateSlug } from "~/lib/ingestion-pipeline.server"
 
 // ---------------------------------------------------------------------------
-// Types
+// Meta
 // ---------------------------------------------------------------------------
 
-interface Page {
-  id: string
-  titleJa: string
-  titleEn: string
-  slug: string
-  status: string
-  contentJa: string
-  contentEn: string
-  visibility: string
-}
-
-interface PageEditorProps {
-  page: Page
-  canPublish: boolean
-  canChangeVisibility: boolean
-}
+export const meta: MetaFunction = () => [{ title: "New Page — GDGoC Japan Wiki" }]
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Loader
 // ---------------------------------------------------------------------------
 
-function formatRelativeTime(
-  isoString: string,
-  t: (key: string, opts?: Record<string, unknown>) => string,
-): string {
-  const diff = Date.now() - new Date(isoString).getTime()
-  const minutes = Math.floor(diff / 60_000)
-  if (minutes < 1) return t("time.just_now")
-  if (minutes < 60) return t("time.minutes_ago", { count: minutes })
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return t("time.hours_ago", { count: hours })
-  const days = Math.floor(hours / 24)
-  return t("time.days_ago", { count: days })
+export async function loader({ request, context }: LoaderFunctionArgs) {
+  const { env } = context.cloudflare
+  const user = await requireRole(request, env, "member")
+  const canLead = hasRole(user.role as string, "lead")
+  return {
+    canPublish: canLead,
+    canChangeVisibility: canLead,
+  }
 }
 
 // ---------------------------------------------------------------------------
-// Component
+// Action
 // ---------------------------------------------------------------------------
 
-export default function PageEditor({ page, canPublish, canChangeVisibility }: PageEditorProps) {
+export async function action({ request, context }: ActionFunctionArgs) {
+  const { env } = context.cloudflare
+  const user = await requireRole(request, env, "member")
+  const db = getDb(env)
+
+  const formData = await request.formData()
+  const intent = formData.get("intent") as "save" | "publish"
+  const titleJa = (formData.get("titleJa") as string) ?? ""
+  const titleEn = (formData.get("titleEn") as string) ?? ""
+  const contentJa = (formData.get("contentJa") as string) ?? ""
+  const contentEn = (formData.get("contentEn") as string) ?? ""
+  const visibility = (formData.get("visibility") as string) || "public"
+
+  const canLead = hasRole(user.role as string, "lead")
+  const isPublish = intent === "publish" && canLead
+
+  // Generate unique slug
+  const baseSlug = generateSlug(titleJa || titleEn)
+  let slug = baseSlug
+  const existing = await db
+    .select({ id: schema.pages.id })
+    .from(schema.pages)
+    .where(eq(schema.pages.slug, slug))
+    .get()
+  if (existing) {
+    slug = `${baseSlug}-${nanoid(6)}`
+  }
+
+  const pageId = nanoid()
+
+  await db.insert(schema.pages).values({
+    id: pageId,
+    titleJa,
+    titleEn,
+    slug,
+    contentJa,
+    contentEn,
+    status: isPublish ? "published" : "draft",
+    visibility,
+    chapterId: user.chapterId ?? null,
+    authorId: user.id,
+    lastEditedBy: user.id,
+  })
+
+  if (isPublish) {
+    await env.TRANSLATION_QUEUE.send({ pageId })
+    return redirect(`/wiki/${slug}`)
+  }
+
+  return redirect(`/wiki/${slug}/edit`)
+}
+
+// ---------------------------------------------------------------------------
+// Route component
+// ---------------------------------------------------------------------------
+
+export default function NewPage() {
+  const { canPublish, canChangeVisibility } = useLoaderData<typeof loader>()
   const { t } = useTranslation()
-  const fetcher = useFetcher<{ ok: boolean; savedAt: string }>()
-  const visibilityFetcher = useFetcher()
   const theme = useThemeMode()
 
-  const [titleJa, setTitleJa] = useState(page.titleJa)
-  const [titleEn, setTitleEn] = useState(page.titleEn)
-  const [contentJa, setContentJa] = useState(page.contentJa)
-  const [contentEn, setContentEn] = useState(page.contentEn)
+  const [titleJa, setTitleJa] = useState("")
+  const [titleEn, setTitleEn] = useState("")
+  const [contentJa, setContentJa] = useState("")
+  const [contentEn, setContentEn] = useState("")
   const [activeLang, setActiveLang] = useState<"ja" | "en">("ja")
-  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null)
-  const [visibility, setVisibility] = useState(page.visibility)
+  const [visibility, setVisibility] = useState("public")
+
   const isJaActive = activeLang === "ja"
   const isEnActive = activeLang === "en"
 
-  // Track last saved content to detect dirty state
-  const lastSavedRef = useRef({
-    titleJa: page.titleJa,
-    titleEn: page.titleEn,
-    contentJa: page.contentJa,
-    contentEn: page.contentEn,
-  })
-
-  // Snapshot of the payload that was actually submitted — updated at submit time,
-  // not at response time, so concurrent edits don't incorrectly clear dirty state.
-  const pendingSaveRef = useRef<typeof lastSavedRef.current | null>(null)
-
-  const isDirty =
-    titleJa !== lastSavedRef.current.titleJa ||
-    titleEn !== lastSavedRef.current.titleEn ||
-    contentJa !== lastSavedRef.current.contentJa ||
-    contentEn !== lastSavedRef.current.contentEn
-
-  // Update lastSavedAt when autosave succeeds — use the submitted snapshot
-  useEffect(() => {
-    if (fetcher.data?.ok && fetcher.data.savedAt && pendingSaveRef.current) {
-      setLastSavedAt(fetcher.data.savedAt)
-      lastSavedRef.current = pendingSaveRef.current
-      pendingSaveRef.current = null
-    }
-  }, [fetcher.data])
-
-  // Auto-save every 30s when dirty
-  const submitAutosave = useCallback(() => {
-    if (!isDirty) return
-    const snapshot = { titleJa, titleEn, contentJa, contentEn }
-    pendingSaveRef.current = snapshot
-    const fd = new FormData()
-    fd.set("intent", "autosave")
-    fd.set("titleJa", titleJa)
-    fd.set("titleEn", titleEn)
-    fd.set("contentJa", contentJa)
-    fd.set("contentEn", contentEn)
-    fetcher.submit(fd, { method: "post" })
-  }, [isDirty, titleJa, titleEn, contentJa, contentEn, fetcher])
-
-  useEffect(() => {
-    const id = setInterval(submitAutosave, 30_000)
-    return () => clearInterval(id)
-  }, [submitAutosave])
-
-  // Navigation guard when dirty
-  useBlocker(() => isDirty && fetcher.state === "idle")
-
-  // Image upload callback for the markdown editor
-  const handleUploadImg = useCallback(
-    async (files: File[], callback: (urls: string[]) => void) => {
-      const urls: string[] = []
-      for (const file of files) {
-        const fd = new FormData()
-        fd.set("image", file)
-        const res = await fetch(`/api/wiki/${page.slug}/upload-image`, { method: "post", body: fd })
-        if (res.ok) {
-          const data = (await res.json()) as { url: string }
-          urls.push(data.url)
-        }
-      }
-      callback(urls)
-    },
-    [page.slug],
-  )
-
-  // Autosave status text
-  let statusText: string | null = null
-  if (fetcher.state !== "idle") {
-    statusText = t("editor.saving")
-  } else if (fetcher.data && !fetcher.data.ok) {
-    statusText = t("editor.autosave_failed")
-  } else if (lastSavedAt) {
-    statusText = t("editor.saved_at", { time: formatRelativeTime(lastSavedAt, t) })
-  }
-
   return (
-    <fetcher.Form
-      method="post"
-      className="flex flex-col"
-      style={{ height: "calc(100dvh - 3.5rem)" }}
-    >
+    <Form method="post" className="flex flex-col" style={{ height: "calc(100dvh - 3.5rem)" }}>
       {/* Hidden content fields — always kept in sync */}
       <input type="hidden" name="contentJa" value={contentJa} />
       <input type="hidden" name="contentEn" value={contentEn} />
+      {canChangeVisibility && <input type="hidden" name="visibility" value={visibility} />}
 
       {/* ------------------------------------------------------------------ */}
       {/* Mini-header                                                          */}
@@ -159,7 +122,7 @@ export default function PageEditor({ page, canPublish, canChangeVisibility }: Pa
         {/* Row 1 col 1 (mobile) / inline (desktop): back + title */}
         <div className="flex min-w-0 items-center gap-1 sm:flex-1">
           <Link
-            to={`/wiki/${page.slug}`}
+            to="/"
             className="shrink-0 rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
             aria-label={t("editor.back_to_page")}
           >
@@ -188,22 +151,6 @@ export default function PageEditor({ page, canPublish, canChangeVisibility }: Pa
 
         {/* Row 1 col 2 (mobile) / inline (desktop): lang switcher + actions */}
         <div className="flex shrink-0 items-center justify-end gap-2 sm:ml-auto">
-          {/* Autosave status */}
-          {statusText && (
-            <span
-              className={`hidden shrink-0 text-xs sm:inline ${fetcher.data && !fetcher.data.ok ? "text-red-500" : "text-gray-400"}`}
-            >
-              {statusText}
-            </span>
-          )}
-
-          {/* Draft badge */}
-          {page.status === "draft" && (
-            <span className="hidden shrink-0 rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800 sm:inline">
-              {t("draft")}
-            </span>
-          )}
-
           {/* Language switcher */}
           <div className="flex shrink-0 overflow-hidden rounded-md border border-gray-200">
             {(["ja", "en"] as const).map((lang) => (
@@ -222,19 +169,12 @@ export default function PageEditor({ page, canPublish, canChangeVisibility }: Pa
             ))}
           </div>
 
-          {/* Visibility + actions */}
+          {/* Visibility select */}
           {canChangeVisibility && (
             <select
               aria-label={t("wiki.visibility")}
               value={visibility}
-              onChange={(e) => {
-                const next = e.target.value
-                setVisibility(next)
-                visibilityFetcher.submit(
-                  { intent: "setVisibility", visibility: next },
-                  { method: "post", action: `/wiki/${page.slug}` },
-                )
-              }}
+              onChange={(e) => setVisibility(e.target.value)}
               className="max-w-36 shrink-0 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-sm text-gray-700"
             >
               <option value="public">{t("wiki.visibility_public")}</option>
@@ -242,6 +182,7 @@ export default function PageEditor({ page, canPublish, canChangeVisibility }: Pa
               <option value="private_to_lead">{t("wiki.visibility_lead")}</option>
             </select>
           )}
+
           <button
             type="submit"
             name="intent"
@@ -273,7 +214,6 @@ export default function PageEditor({ page, canPublish, canChangeVisibility }: Pa
           onChange={setContentJa}
           language="en-US"
           theme={theme}
-          onUploadImg={handleUploadImg}
           style={{ height: "100%" }}
         />
       </div>
@@ -283,10 +223,9 @@ export default function PageEditor({ page, canPublish, canChangeVisibility }: Pa
           onChange={setContentEn}
           language="en-US"
           theme={theme}
-          onUploadImg={handleUploadImg}
           style={{ height: "100%" }}
         />
       </div>
-    </fetcher.Form>
+    </Form>
   )
 }

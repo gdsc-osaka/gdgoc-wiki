@@ -1,6 +1,7 @@
 {
   "app_name": "GDGoC Japan Wiki",
   "close": "閉じる",
+  "cancel": "キャンセル",
   "draft": "下書き",
   "tableOfContents": "目次",
   "nav": {
@@ -11,6 +12,8 @@
     "github": "GitHub",
     "recent": "最近の更新",
     "starred": "スター付き",
+    "archived": "アーカイブ済み",
+    "chapter": "チャプター",
     "close_sidebar": "サイドバーを閉じる",
     "open_sidebar": "サイドバーを開く"
   },
@@ -51,15 +54,34 @@
     "unstar": "お気に入りを外す",
     "contents": "目次",
     "sources": "ソース",
+    "attached_images": "添付画像 / Attached Images",
     "history": "編集履歴",
     "history_empty": "編集履歴はまだありません",
-    "history_current": "現在"
+    "history_current": "現在",
+    "archive": "アーカイブ",
+    "archive_confirm": "「{{title}}」をアーカイブしますか？後から復元できます。"
+  },
+  "archived": {
+    "title": "アーカイブ済みページ",
+    "empty": "アーカイブ済みのページはありません。",
+    "own_pages_note": "自分がアーカイブしたページのみ表示しています。",
+    "all_pages_note": "すべてのアーカイブ済みページを表示しています。",
+    "restore": "復元",
+    "delete": "削除",
+    "delete_confirm": "「{{title}}」を完全に削除しますか？この操作は元に戻せません。"
   },
   "home": {
     "recently_updated": "最近の更新",
     "browse_by_tag": "タグで探す",
     "no_pages_yet": "公開済みのページはまだありません。",
     "no_tags_yet": "タグはまだありません。"
+  },
+  "recent": {
+    "title": "最近",
+    "recently_updated": "最近の更新",
+    "recently_viewed": "最近見たページ",
+    "no_updated": "まだ公開ページはありません。",
+    "no_viewed": "まだページを閲覧していません。"
   },
   "auth": {
     "sign_in": "サインイン",
@@ -110,6 +132,11 @@
       "edit": "編集",
       "delete": "削除",
       "delete_confirm": "「{{title}}」を削除しますか？この操作は元に戻せません。",
+      "archive": "アーカイブ",
+      "archive_confirm": "「{{title}}」をアーカイブしますか？後から復元できます。",
+      "restore": "復元",
+      "status_archived": "アーカイブ済み",
+      "delete_archived_confirm": "「{{title}}」を完全に削除しますか？この操作は元に戻せません。",
       "empty": "ページが見つかりません。"
     },
     "users": {
@@ -148,6 +175,7 @@
     "complete_toast": "AIによる取り込みが完了しました！下書きを確認してください。",
     "processing_message": "AIが分析中...",
     "processing_hint": "少々お待ちください",
+    "processing_leave_hint": "このページを離れても大丈夫です — 処理はバックグラウンドで続きます。",
     "phase_step_1": "入力を処理中",
     "phase_step_2": "ページ構成を計画中",
     "phase_step_3": "ページ内容を生成中",
@@ -271,11 +299,47 @@
       "label": "チャプター",
       "none": "なし"
     },
+    "discord": {
+      "title": "Discord",
+      "description": "Discord アカウントを連携して、チャプターサーバーから /wiki-ingest を使えるようにします。",
+      "idLabel": "Discord ユーザーID",
+      "idHint": "Discord の開発者モードを有効化 → ユーザー名を右クリック → ユーザーIDをコピー"
+    },
     "errors": {
       "invalid_name": "名前は1〜100文字で入力してください。",
       "invalid_lang": "無効な言語が選択されています。",
-      "invalid_chapter": "選択されたチャプターは存在しません。"
+      "invalid_chapter": "選択されたチャプターは存在しません。",
+      "invalid_discord_id": "有効な Discord ユーザーID（17〜20桁の数字）を入力してください。",
+      "discord_id_taken": "この Discord ID はすでに別のアカウントに連携されています。"
     }
+  },
+  "chapter": {
+    "heading": "チャプター",
+    "section_info": "チャプター情報",
+    "form": {
+      "name_ja": "名前（日本語）",
+      "name_en": "名前（英語）",
+      "abbreviation": "略称",
+      "university": "大学",
+      "region": "地域",
+      "save": "変更を保存"
+    },
+    "update_success": "チャプター情報を更新しました。",
+    "update_error": "チャプター情報の更新に失敗しました。",
+    "section_members": "メンバー",
+    "col_user": "ユーザー",
+    "col_email": "メールアドレス",
+    "col_role": "役割",
+    "col_joined": "参加日",
+    "members_empty": "メンバーがいません。",
+    "section_pending": "招待待ち",
+    "col_invited_at": "招待日",
+    "col_expires_at": "有効期限",
+    "add_member": "メンバーを招待",
+    "email_placeholder": "member@example.com",
+    "invite_sent": "{{email}} に招待メールを送信しました。",
+    "form_submit_invite": "招待を送信",
+    "no_chapter": "チャプターに割り当てられていません。"
   },
   "manage": {
     "label": "管理",
@@ -309,7 +373,12 @@
     "title": "検索結果",
     "results_count": "{{count}} 件の結果",
     "no_results": "「{{query}}」に一致するページは見つかりませんでした。",
-    "empty_query": "検索キーワードを入力してページを探しましょう。"
+    "no_results_tag": "タグ「{{tag}}」のページは見つかりませんでした。",
+    "empty_query": "検索キーワードを入力してページを探しましょう。",
+    "tagged": "タグ: {{tag}}",
+    "clear_tag": "タグフィルターをクリア",
+    "filter_by_tag": "タグ:",
+    "all_tags": "すべてのタグ"
   },
   "notifications": {
     "title": "通知",
@@ -325,6 +394,8 @@
   "pageTree": {
     "noPages": "ページはまだありません",
     "newPage": "新規ページ",
+    "newPage_ai": "AIで整理",
+    "newPage_manual": "手動で作成",
     "collapse": "折りたたむ",
     "expand": "展開する",
     "dragHandle": "ドラッグして並び替え"
@@ -351,7 +422,13 @@
     "how_step3_desc": "下書きを確認・編集してチャプターのナレッジベースに公開します。",
     "signin_modal_title": "GDGoC Japan Wikiにサインイン",
     "signin_modal_subtitle": "アクセスはGDGoC Japanチャプターメンバー限定です。",
-    "go_home": "ホームへ戻る"
+    "go_home": "ホームへ戻る",
+    "badge": "GDGoC Japan向け",
+    "features_title": "チャプターに必要なすべてが揃う",
+    "features_subtitle": "GDGoC Japan チャプター専用のwikiプラットフォーム。",
+    "how_subtitle": "生のメモからバイリンガルwikiページの完成まで、わずか数分。",
+    "cta_title": "さっそく始めましょう",
+    "cta_subtitle": "GDGoC Japanの共有ナレッジベースに参加して、チャプターのノウハウを整理しましょう。"
   },
   "footer": {
     "privacy": "プライバシー",
@@ -366,7 +443,8 @@
     "autosave_failed": "自動保存に失敗しました",
     "title_ja": "タイトル（日本語）",
     "title_en": "タイトル（英語）",
-    "save": "保存"
+    "save": "保存",
+    "create_page": "新規ページ"
   },
   "privacy": {
     "title": "プライバシーポリシー",

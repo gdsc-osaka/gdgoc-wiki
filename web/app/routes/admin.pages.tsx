@@ -57,6 +57,28 @@ export async function action({ request, context }: ActionFunctionArgs) {
     ])
   }
 
+  if (intent === "archivePage") {
+    const pageId = form.get("pageId")
+    if (!pageId || typeof pageId !== "string")
+      return new Response("Missing pageId", { status: 400 })
+    const db = getDb(env)
+    await db
+      .update(schema.pages)
+      .set({ status: "archived", updatedAt: new Date() })
+      .where(eq(schema.pages.id, pageId))
+  }
+
+  if (intent === "restorePage") {
+    const pageId = form.get("pageId")
+    if (!pageId || typeof pageId !== "string")
+      return new Response("Missing pageId", { status: 400 })
+    const db = getDb(env)
+    await db
+      .update(schema.pages)
+      .set({ status: "draft", updatedAt: new Date() })
+      .where(eq(schema.pages.id, pageId))
+  }
+
   return {}
 }
 
@@ -65,15 +87,22 @@ export async function action({ request, context }: ActionFunctionArgs) {
 // ---------------------------------------------------------------------------
 
 function StatusBadge({ status }: { status: string }) {
-  const isPublished = status === "published"
+  const { t } = useTranslation()
+  const cls =
+    status === "published"
+      ? "bg-green-50 text-green-700"
+      : status === "archived"
+        ? "bg-gray-100 text-gray-500"
+        : "bg-yellow-50 text-yellow-700"
+  const label = status === "archived" ? t("admin.pages.status_archived") : status
   return (
     <span
       className={[
         "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
-        isPublished ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-700",
+        cls,
       ].join(" ")}
     >
-      {status}
+      {label}
     </span>
   )
 }
@@ -138,31 +167,71 @@ export default function AdminPages() {
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex items-center justify-end gap-2">
-                    <Link
-                      to={`/wiki/${p.slug}/edit`}
-                      className="rounded px-2 py-1 text-xs text-blue-600 hover:bg-blue-50"
-                    >
-                      {t("admin.pages.edit")}
-                    </Link>
-                    <Form
-                      method="post"
-                      onSubmit={(e) => {
-                        if (
-                          !window.confirm(t("admin.pages.delete_confirm", { title: p.titleJa }))
-                        ) {
-                          e.preventDefault()
-                        }
-                      }}
-                    >
-                      <input type="hidden" name="intent" value="deletePage" />
-                      <input type="hidden" name="pageId" value={p.id} />
-                      <button
-                        type="submit"
-                        className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50"
-                      >
-                        {t("admin.pages.delete")}
-                      </button>
-                    </Form>
+                    {p.status !== "archived" ? (
+                      <>
+                        <Link
+                          to={`/wiki/${p.slug}/edit`}
+                          className="rounded px-2 py-1 text-xs text-blue-600 hover:bg-blue-50"
+                        >
+                          {t("admin.pages.edit")}
+                        </Link>
+                        <Form
+                          method="post"
+                          onSubmit={(e) => {
+                            if (
+                              !window.confirm(
+                                t("admin.pages.archive_confirm", { title: p.titleJa }),
+                              )
+                            ) {
+                              e.preventDefault()
+                            }
+                          }}
+                        >
+                          <input type="hidden" name="intent" value="archivePage" />
+                          <input type="hidden" name="pageId" value={p.id} />
+                          <button
+                            type="submit"
+                            className="rounded px-2 py-1 text-xs text-gray-600 hover:bg-gray-100"
+                          >
+                            {t("admin.pages.archive")}
+                          </button>
+                        </Form>
+                      </>
+                    ) : (
+                      <>
+                        <Form method="post">
+                          <input type="hidden" name="intent" value="restorePage" />
+                          <input type="hidden" name="pageId" value={p.id} />
+                          <button
+                            type="submit"
+                            className="rounded px-2 py-1 text-xs text-blue-600 hover:bg-blue-50"
+                          >
+                            {t("admin.pages.restore")}
+                          </button>
+                        </Form>
+                        <Form
+                          method="post"
+                          onSubmit={(e) => {
+                            if (
+                              !window.confirm(
+                                t("admin.pages.delete_archived_confirm", { title: p.titleJa }),
+                              )
+                            ) {
+                              e.preventDefault()
+                            }
+                          }}
+                        >
+                          <input type="hidden" name="intent" value="deletePage" />
+                          <input type="hidden" name="pageId" value={p.id} />
+                          <button
+                            type="submit"
+                            className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50"
+                          >
+                            {t("admin.pages.delete")}
+                          </button>
+                        </Form>
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>

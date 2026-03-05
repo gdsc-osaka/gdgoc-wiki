@@ -85,11 +85,25 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
     })
     .where(eq(schema.ingestionSessions.id, session.id))
 
-  await sendOrRunIngestion(
-    env,
-    ctx,
-    buildIngestionQueueMessage(session.id, user.id, "post_clarification"),
-  )
+  try {
+    await sendOrRunIngestion(
+      env,
+      ctx,
+      buildIngestionQueueMessage(session.id, user.id, "post_clarification"),
+    )
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    await db
+      .update(schema.ingestionSessions)
+      .set({
+        status: "awaiting_clarification",
+        aiDraftJson: session.aiDraftJson,
+        phaseMessage: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.ingestionSessions.id, session.id))
+    throw new Response(`Failed to enqueue ingestion job: ${message}`, { status: 500 })
+  }
 
   return Response.json({ ok: true })
 }

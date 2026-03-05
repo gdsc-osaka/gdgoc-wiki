@@ -97,7 +97,7 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
       .set({
         status: "awaiting_url_selection",
         aiDraftJson: JSON.stringify(storedDraft),
-        phaseMessage: `Queue enqueue failed: ${message}`,
+        phaseMessage: null,
         updatedAt: new Date(),
       })
       .where(eq(schema.ingestionSessions.id, session.id))

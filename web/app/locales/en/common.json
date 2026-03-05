@@ -1,6 +1,7 @@
 {
   "app_name": "GDGoC Japan Wiki",
   "close": "Close",
+  "cancel": "Cancel",
   "draft": "Draft",
   "tableOfContents": "Table of contents",
   "nav": {
@@ -11,6 +12,8 @@
     "github": "GitHub",
     "recent": "Recent",
     "starred": "Starred",
+    "archived": "Archived",
+    "chapter": "Chapter",
     "close_sidebar": "Close Sidebar",
     "open_sidebar": "Open Sidebar"
   },
@@ -51,15 +54,34 @@
     "unstar": "Unstar",
     "contents": "Contents",
     "sources": "Sources",
+    "attached_images": "Attached Images",
     "history": "History",
     "history_empty": "No edit history yet",
-    "history_current": "Current"
+    "history_current": "Current",
+    "archive": "Archive",
+    "archive_confirm": "Archive \"{{title}}\"? You can restore it later."
+  },
+  "archived": {
+    "title": "Archived Pages",
+    "empty": "No archived pages.",
+    "own_pages_note": "Showing your archived pages only.",
+    "all_pages_note": "Showing all archived pages.",
+    "restore": "Restore",
+    "delete": "Delete",
+    "delete_confirm": "Permanently delete \"{{title}}\"? This cannot be undone."
   },
   "home": {
     "recently_updated": "Recently Updated",
     "browse_by_tag": "Browse by Tag",
     "no_pages_yet": "No published pages yet.",
     "no_tags_yet": "No tags yet."
+  },
+  "recent": {
+    "title": "Recent",
+    "recently_updated": "Recently Updated",
+    "recently_viewed": "Recently Viewed",
+    "no_updated": "No published pages yet.",
+    "no_viewed": "You haven't viewed any pages yet."
   },
   "auth": {
     "sign_in": "Sign in",
@@ -110,6 +132,11 @@
       "edit": "Edit",
       "delete": "Delete",
       "delete_confirm": "Delete \"{{title}}\"? This cannot be undone.",
+      "archive": "Archive",
+      "archive_confirm": "Archive \"{{title}}\"? You can restore it later.",
+      "restore": "Restore",
+      "status_archived": "Archived",
+      "delete_archived_confirm": "Permanently delete \"{{title}}\"? This cannot be undone.",
       "empty": "No pages found."
     },
     "users": {
@@ -148,6 +175,7 @@
     "complete_toast": "AI ingestion complete! Review your draft below.",
     "processing_message": "AI is analyzing...",
     "processing_hint": "Please wait a moment",
+    "processing_leave_hint": "You can safely leave this page — processing will continue in the background.",
     "phase_step_1": "Processing input",
     "phase_step_2": "Planning page structure",
     "phase_step_3": "Generating page content",
@@ -271,11 +299,47 @@
       "label": "Chapter",
       "none": "None"
     },
+    "discord": {
+      "title": "Discord",
+      "description": "Link your Discord account to use /wiki-ingest from your chapter server.",
+      "idLabel": "Discord User ID",
+      "idHint": "Enable Developer Mode in Discord → right-click your username → Copy User ID"
+    },
     "errors": {
       "invalid_name": "Name must be 1–100 characters.",
       "invalid_lang": "Invalid language selection.",
-      "invalid_chapter": "Selected chapter does not exist."
+      "invalid_chapter": "Selected chapter does not exist.",
+      "invalid_discord_id": "Please enter a valid Discord User ID (17–20 digit number).",
+      "discord_id_taken": "This Discord ID is already linked to another account."
     }
+  },
+  "chapter": {
+    "heading": "Chapter",
+    "section_info": "Chapter Information",
+    "form": {
+      "name_ja": "Name (Japanese)",
+      "name_en": "Name (English)",
+      "abbreviation": "Abbreviation",
+      "university": "University",
+      "region": "Region",
+      "save": "Save Changes"
+    },
+    "update_success": "Chapter information updated.",
+    "update_error": "Failed to update chapter information.",
+    "section_members": "Members",
+    "col_user": "User",
+    "col_email": "Email",
+    "col_role": "Role",
+    "col_joined": "Joined",
+    "members_empty": "No members yet.",
+    "section_pending": "Pending Invitations",
+    "col_invited_at": "Invited",
+    "col_expires_at": "Expires",
+    "add_member": "Invite Member",
+    "email_placeholder": "member@example.com",
+    "invite_sent": "Invitation sent to {{email}}.",
+    "form_submit_invite": "Send Invite",
+    "no_chapter": "You are not assigned to a chapter."
   },
   "manage": {
     "label": "Management",
@@ -309,7 +373,12 @@
     "title": "Search Results",
     "results_count": "{{count}} results",
     "no_results": "No pages found for \"{{query}}\".",
-    "empty_query": "Enter a search term to find pages."
+    "no_results_tag": "No pages found with tag \"{{tag}}\".",
+    "empty_query": "Enter a search term to find pages.",
+    "tagged": "Tagged: {{tag}}",
+    "clear_tag": "Clear tag filter",
+    "filter_by_tag": "Tag:",
+    "all_tags": "All tags"
   },
   "notifications": {
     "title": "Notifications",
@@ -325,6 +394,8 @@
   "pageTree": {
     "noPages": "No pages yet",
     "newPage": "New Page",
+    "newPage_ai": "Organize with AI",
+    "newPage_manual": "Write manually",
     "collapse": "Collapse",
     "expand": "Expand",
     "dragHandle": "Drag to reorder"
@@ -351,7 +422,13 @@
     "how_step3_desc": "Review the draft, make edits, and publish to your chapter's knowledge base.",
     "signin_modal_title": "Sign in to GDGoC Japan Wiki",
     "signin_modal_subtitle": "Access is for GDGoC Japan chapter members only.",
-    "go_home": "Go to Home"
+    "go_home": "Go to Home",
+    "badge": "For GDGoC Japan",
+    "features_title": "Everything your chapter needs",
+    "features_subtitle": "A purpose-built wiki for Google Developer Groups on Campus Japan chapters.",
+    "how_subtitle": "From raw notes to a polished bilingual wiki page in minutes.",
+    "cta_title": "Ready to get started?",
+    "cta_subtitle": "Join GDGoC Japan's shared knowledge base and keep your chapter's know-how organized."
   },
   "footer": {
     "privacy": "Privacy",
@@ -366,7 +443,8 @@
     "autosave_failed": "Auto-save failed",
     "title_ja": "Title (Japanese)",
     "title_en": "Title (English)",
-    "save": "Save"
+    "save": "Save",
+    "create_page": "New Page"
   },
   "privacy": {
     "title": "Privacy Policy",
