@@ -178,13 +178,15 @@ export default function ChapterPage() {
   const { t } = useTranslation()
 
   if (data.noChapter) {
-    return <div className="py-12 text-center text-sm text-gray-500">{t("chapter.no_chapter")}</div>
+    return (
+      <div className="px-8 py-12 text-center text-sm text-gray-500">{t("chapter.no_chapter")}</div>
+    )
   }
 
   const { chapter, members, pendingInvitations } = data
 
   return (
-    <div>
+    <div className="max-w-4xl px-8 py-8">
       <h1 className="mb-6 text-2xl font-bold text-gray-900">
         {chapter?.nameEn}
         {chapter?.nameJa && chapter.nameJa !== chapter.nameEn && (
