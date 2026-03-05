@@ -52,6 +52,7 @@ export default [
   layout("routes/_app.tsx", [
     index("routes/_index.tsx"),
     route("/search", "routes/search.tsx"),
+    route("/wiki/new", "routes/wiki.new.tsx"),
     route("/wiki/:slug", "routes/wiki.$slug.tsx"),
     route("/wiki/:slug/edit", "routes/wiki.$slug.edit.tsx"),
     route("/wiki/:slug/history", "routes/wiki.$slug.history.tsx"),

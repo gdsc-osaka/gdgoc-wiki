@@ -393,6 +393,8 @@
   "pageTree": {
     "noPages": "No pages yet",
     "newPage": "New Page",
+    "newPage_ai": "Organize with AI",
+    "newPage_manual": "Write manually",
     "collapse": "Collapse",
     "expand": "Expand",
     "dragHandle": "Drag to reorder"
@@ -440,7 +442,8 @@
     "autosave_failed": "Auto-save failed",
     "title_ja": "Title (Japanese)",
     "title_en": "Title (English)",
-    "save": "Save"
+    "save": "Save",
+    "create_page": "New Page"
   },
   "privacy": {
     "title": "Privacy Policy",

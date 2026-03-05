@@ -175,6 +175,52 @@ function ThemeSwitcher() {
   )
 }
 
+function NewPageDropdown() {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [])
+
+  return (
+    <div ref={ref} className="relative hidden sm:block">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="whitespace-nowrap rounded-md bg-blue-500 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-600"
+      >
+        + {t("nav.new_page")}
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full z-50 mt-1 w-44 overflow-hidden rounded-md border border-gray-200 bg-white shadow-md">
+          <Link
+            to="/ingest"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+          >
+            <span>✦</span>
+            <span>{t("pageTree.newPage_ai")}</span>
+          </Link>
+          <Link
+            to="/wiki/new"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+          >
+            <span>✎</span>
+            <span>{t("pageTree.newPage_manual")}</span>
+          </Link>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Navbar({
   user,
   sidebarOpen,
@@ -235,14 +281,7 @@ export default function Navbar({
 
       {/* Right actions */}
       <div className="flex flex-shrink-0 items-center gap-3">
-        {user && (
-          <Link
-            to="/ingest"
-            className="hidden whitespace-nowrap rounded-md bg-blue-500 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-600 sm:flex"
-          >
-            + {t("nav.new_page")}
-          </Link>
-        )}
+        {user && <NewPageDropdown />}
 
         {user && <NotificationBell initialCount={unreadNotificationCount ?? 0} />}
 
