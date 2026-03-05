@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/d1"
 import { createRequestHandler } from "react-router"
 import * as schema from "../app/db/schema"
@@ -52,8 +53,8 @@ export default {
     const db = drizzle(env.DB, { schema })
 
     for (const message of batch.messages) {
+      const body = message.body
       try {
-        const body = message.body
         if (isIngestionQueueMessage(body)) {
           await processIngestionMessage(env, db, body)
           message.ack()
@@ -70,6 +71,22 @@ export default {
         message.ack()
       } catch (err) {
         console.error("queue: failed to process message", message.id, err)
+        // Last-resort: try to mark the session as errored so the UI stops spinning
+        if (isIngestionQueueMessage(body)) {
+          try {
+            await db
+              .update(schema.ingestionSessions)
+              .set({
+                status: "error",
+                errorMessage: "Ingestion failed due to an unexpected error.",
+                phaseMessage: null,
+                updatedAt: new Date(),
+              })
+              .where(eq(schema.ingestionSessions.id, body.sessionId))
+          } catch {
+            // nothing we can do; log above is sufficient
+          }
+        }
         message.retry()
       }
     }

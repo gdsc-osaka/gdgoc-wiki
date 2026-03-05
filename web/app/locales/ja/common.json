@@ -204,6 +204,7 @@
       "feedback_placeholder": "改善してほしい点を入力...",
       "regenerating": "生成中...",
       "regenerate": "再生成",
+      "regenerate_error_generic": "再生成に失敗しました。もう一度お試しください。",
       "saving": "保存中...",
       "save_draft": "下書きとして保存",
       "publishing": "公開中...",

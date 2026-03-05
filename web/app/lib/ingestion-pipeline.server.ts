@@ -617,15 +617,22 @@ export async function runIngestionPipeline(
       ? rawMessage
       : "Ingestion failed due to an internal error."
     const errorDb = drizzle(env.DB, { schema })
-    await errorDb
-      .update(schema.ingestionSessions)
-      .set({
-        status: "error",
-        errorMessage,
-        phaseMessage: null,
-        updatedAt: new Date(),
-      })
-      .where(eq(schema.ingestionSessions.id, sessionId))
+    try {
+      await errorDb
+        .update(schema.ingestionSessions)
+        .set({
+          status: "error",
+          errorMessage,
+          phaseMessage: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.ingestionSessions.id, sessionId))
+    } catch (dbErr) {
+      console.error(
+        `[ingestion-pipeline] failed to write error status for session=${sessionId}:`,
+        dbErr,
+      )
+    }
 
     // Create error notification (best-effort)
     try {

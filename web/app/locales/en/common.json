@@ -204,6 +204,7 @@
       "feedback_placeholder": "Enter what you'd like improved...",
       "regenerating": "Generating...",
       "regenerate": "Regenerate",
+      "regenerate_error_generic": "Regeneration failed. Please try again.",
       "saving": "Saving...",
       "save_draft": "Save as Draft",
       "publishing": "Publishing...",

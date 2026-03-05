@@ -70,43 +70,48 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
 
   let updatedOp: ChangesetOperation
 
-  if (op.type === "create" && op.draft) {
-    const createOp: CreateOperation = {
-      type: "create",
-      tempId: op.tempId ?? "",
-      suggestedTitle: { ja: op.draft.title.ja },
-      suggestedParentId: op.draft.suggestedParentId ?? null,
-      pageType: op.draft.suggestedPageType,
-      rationale: op.rationale,
+  try {
+    if (op.type === "create" && op.draft) {
+      const createOp: CreateOperation = {
+        type: "create",
+        tempId: op.tempId ?? "",
+        suggestedTitle: { ja: op.draft.title.ja },
+        suggestedParentId: op.draft.suggestedParentId ?? null,
+        pageType: op.draft.suggestedPageType,
+        rationale: op.rationale,
+      }
+      const pageIndex = await buildPageIndex(db, userTextWithFeedback)
+      const newDraft = await runPhase2Creator(
+        env.GEMINI_API_KEY,
+        userTextWithFeedback,
+        fileUris,
+        createOp,
+        pageIndex,
+        [],
+      )
+      updatedOp = { ...op, draft: newDraft }
+    } else if (op.type === "update" && op.patch) {
+      const updateOp: UpdateOperation = {
+        type: "update",
+        pageId: op.pageId ?? "",
+        pageTitle: op.pageTitle ?? "",
+        rationale: op.rationale,
+      }
+      const existingMarkdown = tiptapToMarkdown(op.existingTipTapJson ?? "")
+      const newPatch = await runPhase2Patcher(
+        env.GEMINI_API_KEY,
+        userTextWithFeedback,
+        fileUris,
+        updateOp,
+        existingMarkdown,
+      )
+      updatedOp = { ...op, patch: newPatch }
+    } else {
+      return new Response("Cannot regenerate this operation type", { status: 400 })
     }
-    const pageIndex = await buildPageIndex(db, userTextWithFeedback)
-    const newDraft = await runPhase2Creator(
-      env.GEMINI_API_KEY,
-      userTextWithFeedback,
-      fileUris,
-      createOp,
-      pageIndex,
-      [],
-    )
-    updatedOp = { ...op, draft: newDraft }
-  } else if (op.type === "update" && op.patch) {
-    const updateOp: UpdateOperation = {
-      type: "update",
-      pageId: op.pageId ?? "",
-      pageTitle: op.pageTitle ?? "",
-      rationale: op.rationale,
-    }
-    const existingMarkdown = tiptapToMarkdown(op.existingTipTapJson ?? "")
-    const newPatch = await runPhase2Patcher(
-      env.GEMINI_API_KEY,
-      userTextWithFeedback,
-      fileUris,
-      updateOp,
-      existingMarkdown,
-    )
-    updatedOp = { ...op, patch: newPatch }
-  } else {
-    return new Response("Cannot regenerate this operation type", { status: 400 })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Regeneration failed"
+    return Response.json({ error: msg }, { status: 500 })
   }
 
   // Update the draft in DB
