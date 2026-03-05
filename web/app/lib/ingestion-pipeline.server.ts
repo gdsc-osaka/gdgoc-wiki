@@ -25,8 +25,8 @@ import {
   uploadFileToGemini,
 } from "./gemini.server"
 import {
-  exportDocAsPdf,
-  exportDocAsText,
+  exportFileAsPdf,
+  exportFileAsText,
   extractFileId,
   refreshAccessToken,
 } from "./google-drive.server"
@@ -137,7 +137,7 @@ export async function runIngestionPipeline(
       }
 
       // ------------------------------------------------------------------
-      // Step 2: If Google Doc URL, export text (required) + PDF (best-effort)
+      // Step 2: If Google Drive URL, export text (required) + PDF (best-effort)
       // ------------------------------------------------------------------
       for (const docUrl of inputs.googleDocUrls) {
         const fileId = extractFileId(docUrl)
@@ -174,24 +174,26 @@ export async function runIngestionPipeline(
         }
 
         // Primary: extract plain text (must succeed)
-        const docText = await exportDocAsText(fileId, accessToken)
+        const docText = await exportFileAsText(fileId, accessToken)
         docTexts.push(docText)
 
         // Best-effort: upload PDF for rich content (images, tables)
         try {
-          const exported = await exportDocAsPdf(fileId, accessToken)
+          const exported = await exportFileAsPdf(fileId, accessToken)
           if (exported.warning) warnings.push(exported.warning)
 
           const uri = await uploadFileToGemini(
             exported.buffer,
             exported.mimeType,
-            `google-doc-${fileId}`,
+            `google-drive-${fileId}`,
             env.GEMINI_API_KEY,
           )
           fileUris.push({ uri, mimeType: exported.mimeType })
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err)
-          warnings.push(`Google DocのPDFアップロードに失敗しました（テキストは取得済み）: ${msg}`)
+          warnings.push(
+            `Google DriveファイルのPDFアップロードに失敗しました（テキストは取得済み）: ${msg}`,
+          )
         }
       }
 
@@ -368,10 +370,10 @@ export async function runIngestionPipeline(
   } catch (err) {
     console.error(`[ingestion-pipeline] session=${sessionId} error:`, err)
     const rawMessage = err instanceof Error ? err.message : String(err)
-    // Surface Google Doc / Drive errors directly to the user
-    const isGoogleDocError =
-      rawMessage.includes("Google Doc") || rawMessage.includes("Google Drive")
-    const errorMessage = isGoogleDocError
+    // Surface Google Drive errors directly to the user
+    const isGoogleDriveError =
+      rawMessage.includes("Google Drive") || rawMessage.includes("Google Doc")
+    const errorMessage = isGoogleDriveError
       ? rawMessage
       : "Ingestion failed due to an internal error."
     await drizzle(env.DB, { schema })

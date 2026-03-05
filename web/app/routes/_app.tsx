@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm"
 import { Outlet, useLoaderData, useParams } from "react-router"
 import type { LoaderFunctionArgs } from "react-router"
+import Footer from "~/components/Footer"
 import Navbar from "~/components/Navbar"
 import Sidebar from "~/components/Sidebar"
 import * as schema from "~/db/schema"
@@ -56,6 +57,7 @@ export default function AppLayout() {
           <Outlet />
         </main>
       </div>
+      <Footer />
     </div>
   )
 }

@@ -119,7 +119,7 @@
   },
   "ingest": {
     "title": "Add Content",
-    "description": "AI will create a draft wiki page from your text, images, and Google Docs.",
+    "description": "AI will create a draft wiki page from your text, images, and Google Drive files.",
     "complete_toast": "AI ingestion complete! Review your draft below.",
     "processing_message": "AI is analyzing...",
     "processing_hint": "Please wait a moment",
@@ -143,7 +143,7 @@
       "char_count": "{{count}} chars",
       "images_label": "Images (max {{max}}, up to 10MB each)",
       "drop_hint": "Click or drag & drop to add images",
-      "doc_url_label": "Google Docs URL",
+      "doc_url_label": "Google Docs / Slides URL",
       "drive_connected": "Connected",
       "drive_connect": "Connect Drive",
       "submit": "Organize with AI →"
@@ -152,7 +152,8 @@
       "text_too_short": "Not enough text. Please enter at least {{min}} characters.",
       "too_many_images": "You can attach up to {{max}} images.",
       "image_too_large": "{{name}} exceeds 10MB.",
-      "not_an_image": "{{name}} is not an image file."
+      "not_an_image": "{{name}} is not an image file.",
+      "invalid_drive_url": "Please enter a valid Google Docs or Google Slides URL."
     },
     "review": {
       "ai_rationale": "AI's Reasoning",
@@ -288,6 +289,10 @@
     "collapse": "Collapse",
     "expand": "Expand",
     "dragHandle": "Drag to reorder"
+  },
+  "footer": {
+    "privacy": "Privacy",
+    "terms": "Terms"
   },
   "editor": {
     "back_to_page": "Back to page",

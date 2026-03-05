@@ -7,6 +7,7 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router"
 import InputPanel from "~/components/ingest/InputPanel"
 import * as schema from "~/db/schema"
 import { requireRole } from "~/lib/auth-utils.server"
+import { isGoogleDriveUrl } from "~/lib/google-drive-utils"
 import { type IngestionInputs, runIngestionPipeline } from "~/lib/ingestion-pipeline.server"
 
 // ---------------------------------------------------------------------------
@@ -54,7 +55,12 @@ export async function action({ request, context }: ActionFunctionArgs) {
   const text = String(formData.get("text") ?? "").trim()
   const googleDocUrl = String(formData.get("googleDocUrl") ?? "").trim()
 
-  // Validate text (skip if a Google Doc URL is provided)
+  // Validate Google Drive URL format if provided
+  if (googleDocUrl && !isGoogleDriveUrl(googleDocUrl)) {
+    return { errorKey: "ingest.errors.invalid_drive_url" }
+  }
+
+  // Validate text (skip if a Google Drive URL is provided)
   if (!googleDocUrl && text.length < MIN_TEXT_LENGTH) {
     return { errorKey: "ingest.errors.text_too_short", errorParams: { min: MIN_TEXT_LENGTH } }
   }

@@ -119,7 +119,7 @@
   },
   "ingest": {
     "title": "コンテンツを追加する",
-    "description": "テキスト・画像・Google ドキュメントをもとに、AIがWikiページの下書きを作成します。",
+    "description": "テキスト・画像・Googleドキュメント/スライドをもとに、AIがWikiページの下書きを作成します。",
     "complete_toast": "AIによる取り込みが完了しました！下書きを確認してください。",
     "processing_message": "AIが分析中...",
     "processing_hint": "少々お待ちください",
@@ -143,7 +143,7 @@
       "char_count": "{{count}} 文字",
       "images_label": "画像添付（最大{{max}}枚・各10MB以下）",
       "drop_hint": "クリックまたはドラッグ&ドロップで画像を追加",
-      "doc_url_label": "Googleドキュメント URL",
+      "doc_url_label": "Googleドキュメント / スライド URL",
       "drive_connected": "接続済み",
       "drive_connect": "Driveを接続",
       "submit": "AI で整理する →"
@@ -152,7 +152,8 @@
       "text_too_short": "入力が少なすぎます。最低{{min}}文字以上入力してください。",
       "too_many_images": "画像は最大{{max}}枚までです。",
       "image_too_large": "{{name}} は10MBを超えています。",
-      "not_an_image": "{{name}} は画像ファイルではありません。"
+      "not_an_image": "{{name}} は画像ファイルではありません。",
+      "invalid_drive_url": "GoogleドキュメントまたはGoogleスライドの有効なURLを入力してください。"
     },
     "review": {
       "ai_rationale": "AIの判断理由",
@@ -288,6 +289,10 @@
     "collapse": "折りたたむ",
     "expand": "展開する",
     "dragHandle": "ドラッグして並び替え"
+  },
+  "footer": {
+    "privacy": "プライバシー",
+    "terms": "利用規約"
   },
   "editor": {
     "back_to_page": "ページに戻る",

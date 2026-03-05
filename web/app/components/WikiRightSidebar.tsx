@@ -37,9 +37,9 @@ interface WikiRightSidebarProps {
 }
 
 const VISIBILITY_OPTIONS = [
-  { value: "public", icon: "🌐" },
-  { value: "private_to_chapter", icon: "👥" },
-  { value: "private_to_lead", icon: "🔒" },
+  { value: "public" },
+  { value: "private_to_chapter" },
+  { value: "private_to_lead" },
 ] as const
 
 const VISIBILITY_KEYS: Record<string, string> = {
@@ -233,33 +233,22 @@ export default function WikiRightSidebar({
             <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
               {t("wiki.visibility")}
             </p>
-            <div className="flex gap-1">
-              {VISIBILITY_OPTIONS.map((opt) => {
-                const optimistic = visibilityFetcher.formData?.get("visibility") as string | null
-                const current = optimistic ?? visibility
-                const isActive = current === opt.value
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    title={t(VISIBILITY_KEYS[opt.value])}
-                    className={[
-                      "flex-1 rounded px-1.5 py-1 text-center text-sm transition-colors",
-                      isActive ? "bg-blue-500 text-white" : "text-gray-600 hover:bg-gray-100",
-                    ].join(" ")}
-                    onClick={() => {
-                      if (opt.value === current) return
-                      visibilityFetcher.submit(
-                        { intent: "setVisibility", visibility: opt.value },
-                        { method: "post", action: `/wiki/${slug}` },
-                      )
-                    }}
-                  >
-                    {opt.icon}
-                  </button>
+            <select
+              value={(visibilityFetcher.formData?.get("visibility") as string) ?? visibility}
+              onChange={(e) => {
+                visibilityFetcher.submit(
+                  { intent: "setVisibility", visibility: e.target.value },
+                  { method: "post", action: `/wiki/${slug}` },
                 )
-              })}
-            </div>
+              }}
+              className="w-full rounded border border-gray-200 bg-white px-2 py-1 text-sm text-gray-700"
+            >
+              {VISIBILITY_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {t(VISIBILITY_KEYS[opt.value])}
+                </option>
+              ))}
+            </select>
           </div>
         )}
 
