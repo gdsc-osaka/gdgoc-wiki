@@ -129,33 +129,37 @@ function PageGrid({ pages, emptyKey }: { pages: PageCard[]; emptyKey: string }) 
   return (
     <div className="overflow-x-auto pb-2">
       <div className="inline-grid grid-rows-2 grid-flow-col auto-cols-[260px] gap-4">
-      {pages.map((page) => (
-        <Link
-          key={page.id}
-          to={`/wiki/${page.slug}`}
-          className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white p-4 transition-all hover:border-blue-500/40 hover:shadow-sm"
-        >
-          <h3 className="line-clamp-2 font-medium text-gray-900">{page.titleEn || page.titleJa}</h3>
+        {pages.map((page) => (
+          <Link
+            key={page.id}
+            to={`/wiki/${page.slug}`}
+            className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white p-4 transition-all hover:border-blue-500/40 hover:shadow-sm"
+          >
+            <h3 className="line-clamp-2 font-medium text-gray-900">
+              {page.titleEn || page.titleJa}
+            </h3>
 
-          {(page.summaryEn || page.summaryJa) && (
-            <p className="line-clamp-2 text-sm text-gray-500">{page.summaryEn || page.summaryJa}</p>
-          )}
+            {(page.summaryEn || page.summaryJa) && (
+              <p className="line-clamp-2 text-sm text-gray-500">
+                {page.summaryEn || page.summaryJa}
+              </p>
+            )}
 
-          <div className="mt-auto flex flex-wrap gap-1 pt-1">
-            {page.tags.map((tag) => (
-              <span
-                key={tag.tagSlug}
-                className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium text-white"
-                style={{ backgroundColor: tag.color }}
-              >
-                {tag.labelEn}
-              </span>
-            ))}
-          </div>
+            <div className="mt-auto flex flex-wrap gap-1 pt-1">
+              {page.tags.map((tag) => (
+                <span
+                  key={tag.tagSlug}
+                  className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium text-white"
+                  style={{ backgroundColor: tag.color }}
+                >
+                  {tag.labelEn}
+                </span>
+              ))}
+            </div>
 
-          {page.timeLabel && <time className="text-xs text-gray-400">{page.timeLabel}</time>}
-        </Link>
-      ))}
+            {page.timeLabel && <time className="text-xs text-gray-400">{page.timeLabel}</time>}
+          </Link>
+        ))}
       </div>
     </div>
   )

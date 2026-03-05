@@ -119,6 +119,52 @@ describe("admin.pages action", () => {
     expect(result).toEqual({})
   })
 
+  it("archivePage intent calls db.update", async () => {
+    vi.mocked(requireRole).mockResolvedValueOnce({ id: "admin1" } as ReturnType<
+      typeof requireRole
+    > extends Promise<infer T>
+      ? T
+      : never)
+    vi.mocked(getDb).mockReturnValueOnce(fluentDb({}))
+
+    const form = new FormData()
+    form.set("intent", "archivePage")
+    form.set("pageId", "page-123")
+
+    const request = new Request("http://localhost/admin/pages", { method: "POST", body: form })
+    const result = await action({
+      request,
+      context: mockContext,
+      params: {},
+      unstable_pattern: "/admin/pages",
+    })
+
+    expect(result).toEqual({})
+  })
+
+  it("restorePage intent calls db.update", async () => {
+    vi.mocked(requireRole).mockResolvedValueOnce({ id: "admin1" } as ReturnType<
+      typeof requireRole
+    > extends Promise<infer T>
+      ? T
+      : never)
+    vi.mocked(getDb).mockReturnValueOnce(fluentDb({}))
+
+    const form = new FormData()
+    form.set("intent", "restorePage")
+    form.set("pageId", "page-123")
+
+    const request = new Request("http://localhost/admin/pages", { method: "POST", body: form })
+    const result = await action({
+      request,
+      context: mockContext,
+      params: {},
+      unstable_pattern: "/admin/pages",
+    })
+
+    expect(result).toEqual({})
+  })
+
   it("returns empty object for unknown intent", async () => {
     vi.mocked(requireRole).mockResolvedValueOnce({ id: "admin1" } as ReturnType<
       typeof requireRole

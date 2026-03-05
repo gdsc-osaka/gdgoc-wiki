@@ -67,6 +67,7 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
     .get()
 
   if (!page) throw new Response("Not Found", { status: 404 })
+  if (page.status === "archived") throw new Response("Not Found", { status: 404 })
 
   const userRole = user.role as string
   const canEditAny = hasRole(userRole, "lead")
