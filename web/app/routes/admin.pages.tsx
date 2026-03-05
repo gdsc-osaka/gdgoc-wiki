@@ -22,6 +22,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
       titleJa: schema.pages.titleJa,
       titleEn: schema.pages.titleEn,
       status: schema.pages.status,
+      visibility: schema.pages.visibility,
       authorId: schema.pages.authorId,
       authorName: schema.user.name,
       createdAt: schema.pages.createdAt,
@@ -77,6 +78,16 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
+function VisibilityBadge({ visibility }: { visibility: string }) {
+  if (visibility === "public") return null
+  const label = visibility === "private_to_chapter" ? "chapter" : "lead"
+  return (
+    <span className="inline-flex items-center rounded-full bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700">
+      {label}
+    </span>
+  )
+}
+
 export default function AdminPages() {
   const { pages } = useLoaderData<typeof loader>()
   const { t } = useTranslation()
@@ -116,7 +127,10 @@ export default function AdminPages() {
                   </Link>
                 </td>
                 <td className="px-4 py-3">
-                  <StatusBadge status={p.status} />
+                  <div className="flex items-center gap-1">
+                    <StatusBadge status={p.status} />
+                    <VisibilityBadge visibility={p.visibility} />
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-gray-600">{p.authorName ?? "—"}</td>
                 <td className="px-4 py-3 text-gray-500">

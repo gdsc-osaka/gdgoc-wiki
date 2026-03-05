@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Link, useLocation } from "react-router"
-import type { TocItem } from "~/components/TipTapRenderer"
+import { Link, useFetcher, useLocation } from "react-router"
+
+export interface TocItem {
+  id: string
+  text: string
+  level: number
+}
 
 interface Tag {
   tagSlug: string
@@ -31,7 +36,20 @@ interface WikiRightSidebarProps {
   translationStatusJa: string
   translationStatusEn: string
   slug: string
-  canEdit: boolean
+  visibility: string
+  canChangeVisibility: boolean
+}
+
+const VISIBILITY_OPTIONS = [
+  { value: "public" },
+  { value: "private_to_chapter" },
+  { value: "private_to_lead" },
+] as const
+
+const VISIBILITY_KEYS: Record<string, string> = {
+  public: "wiki.visibility_public",
+  private_to_chapter: "wiki.visibility_chapter",
+  private_to_lead: "wiki.visibility_lead",
 }
 
 function timeAgo(date: Date, t: (key: string, opts?: Record<string, unknown>) => string): string {
@@ -55,11 +73,13 @@ export default function WikiRightSidebar({
   translationStatusJa,
   translationStatusEn,
   slug,
-  canEdit,
+  visibility,
+  canChangeVisibility,
 }: WikiRightSidebarProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
   const { t } = useTranslation()
   const location = useLocation()
+  const visibilityFetcher = useFetcher()
   const jaUrl = `${location.pathname}?lang=ja`
   const enUrl = `${location.pathname}?lang=en`
   const translationStatus = lang === "en" ? translationStatusEn : translationStatusJa
@@ -210,16 +230,28 @@ export default function WikiRightSidebar({
           </div>
         )}
 
-        {/* Edit button */}
-        {canEdit && (
-          <div className="pt-2">
-            <Link
-              to={`/wiki/${slug}/edit`}
-              className="flex items-center gap-1 text-sm text-gray-500 hover:text-blue-500"
+        {/* Visibility */}
+        {canChangeVisibility && (
+          <div>
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
+              {t("wiki.visibility")}
+            </p>
+            <select
+              value={(visibilityFetcher.formData?.get("visibility") as string) ?? visibility}
+              onChange={(e) => {
+                visibilityFetcher.submit(
+                  { intent: "setVisibility", visibility: e.target.value },
+                  { method: "post", action: `/wiki/${slug}` },
+                )
+              }}
+              className="w-full rounded border border-gray-200 bg-white px-2 py-1 text-sm text-gray-700"
             >
-              <span>✎</span>
-              <span>{t("wiki.edit_page")}</span>
-            </Link>
+              {VISIBILITY_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {t(VISIBILITY_KEYS[opt.value])}
+                </option>
+              ))}
+            </select>
           </div>
         )}
       </div>

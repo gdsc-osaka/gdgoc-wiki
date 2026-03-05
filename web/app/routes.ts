@@ -12,19 +12,33 @@ export default [
   route("/api/ingest/:sessionId/status", "routes/api.ingest.$sessionId.status.ts"),
   route("/api/ingest/:sessionId/commit", "routes/api.ingest.$sessionId.commit.ts"),
   route("/api/ingest/:sessionId/clarify", "routes/api.ingest.$sessionId.clarify.ts"),
+  route("/api/ingest/:sessionId/select-urls", "routes/api.ingest.$sessionId.select-urls.ts"),
   route("/api/ingest/:sessionId/regenerate", "routes/api.ingest.$sessionId.regenerate.ts"),
   route("/api/google-drive/auth", "routes/api.google-drive.auth.ts"),
   route("/api/google-drive/callback", "routes/api.google-drive.callback.ts"),
   route("/api/pages/reorder", "routes/api.pages.reorder.ts"),
+  route("/api/notifications", "routes/api.notifications.ts"),
+  route("/api/favorites", "routes/api.favorites.tsx"),
 
   // Admin routes — separate layout with admin sidebar
   route("admin", "routes/admin.tsx", [
     index("routes/admin._index.tsx"),
     route("users", "routes/admin.users.tsx"),
+    route("chapters", "routes/admin.chapters.tsx"),
     route("pages", "routes/admin.pages.tsx"),
     route("tags", "routes/admin.tags.tsx"),
     route("stats", "routes/admin.stats.tsx"),
   ]),
+
+  // Lead: chapter management
+  route("manage", "routes/manage.tsx", [route("members", "routes/manage.members.tsx")]),
+
+  // Pending access — no auth shell needed
+  route("/pending", "routes/pending.tsx"),
+
+  // Legal pages — public, no auth shell
+  route("/privacy", "routes/privacy.tsx"),
+  route("/terms", "routes/terms.tsx"),
 
   // Catch-all: return 404 for any unmatched URL (suppresses React Router warning)
   route("*", "routes/$.tsx"),
@@ -32,6 +46,7 @@ export default [
   // App routes — wrapped in shared layout (Navbar + PageTree sidebar)
   layout("routes/_app.tsx", [
     index("routes/_index.tsx"),
+    route("/search", "routes/search.tsx"),
     route("/wiki/:slug", "routes/wiki.$slug.tsx"),
     route("/wiki/:slug/edit", "routes/wiki.$slug.edit.tsx"),
     route("/ingest", "routes/ingest.tsx"),

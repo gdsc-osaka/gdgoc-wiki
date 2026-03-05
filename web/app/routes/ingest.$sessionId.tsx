@@ -11,6 +11,7 @@ import type { ResolvedItem } from "~/components/ingest/SensitiveReviewModal"
 import * as schema from "~/db/schema"
 import { requireRole } from "~/lib/auth-utils.server"
 import type { AiDraftJson, ClarificationQuestion } from "~/lib/ingestion-pipeline.server"
+import type { ExtractedUrl } from "~/lib/url-extract"
 
 // ---------------------------------------------------------------------------
 // Loader
@@ -64,12 +65,18 @@ function isClarification(
   return draft !== null && (draft as { phase?: string }).phase === "clarification"
 }
 
+function isUrlSelection(
+  draft: AiDraftJson | null,
+): draft is Extract<AiDraftJson, { phase: "url_selection" }> {
+  return draft !== null && (draft as { phase?: string }).phase === "url_selection"
+}
+
 // ---------------------------------------------------------------------------
 // Processing UI with step-list progress
 // ---------------------------------------------------------------------------
 
 const PHASE_STEPS = [
-  { key: "step1", codes: ["parsing", "clarifying"] },
+  { key: "step1", codes: ["parsing", "clarifying", "fetching_urls"] },
   { key: "step2", codes: ["planning", "merging"] },
   { key: "step3", codes: ["generating"] },
   { key: "step4", codes: ["saving"] },
@@ -267,6 +274,119 @@ function ClarificationScreen({
 }
 
 // ---------------------------------------------------------------------------
+// URL Selection UI
+// ---------------------------------------------------------------------------
+
+function UrlSelectionScreen({
+  sessionId,
+  urls,
+  onSubmitted,
+  t,
+}: {
+  sessionId: string
+  urls: ExtractedUrl[]
+  onSubmitted: () => void
+  t: (k: string) => string
+}) {
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(urls.map((u) => u.url)))
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+
+  function toggleUrl(url: string) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(url)) next.delete(url)
+      else next.add(url)
+      return next
+    })
+  }
+
+  async function postSelectedUrls(selectedUrls: string[]) {
+    setSubmitting(true)
+    setSubmitError(null)
+    try {
+      const res = await fetch(`/api/ingest/${sessionId}/select-urls`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ selectedUrls }),
+      })
+      if (res.ok) {
+        onSubmitted()
+      } else {
+        const text = await res.text().catch(() => "")
+        setSubmitError(text || `Error ${res.status}`)
+      }
+    } catch {
+      setSubmitError(t("ingest.error_heading"))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleSubmit() {
+    await postSelectedUrls([...selected])
+  }
+
+  async function handleSkip() {
+    await postSelectedUrls([])
+  }
+
+  return (
+    <div className="mx-auto max-w-2xl px-4 py-12">
+      <h1 className="mb-2 text-2xl font-bold text-gray-900">{t("ingest.url_selection_heading")}</h1>
+      <p className="mb-6 text-sm text-gray-500">{t("ingest.url_selection_hint")}</p>
+
+      <div className="space-y-3">
+        {urls.map((u) => (
+          <label
+            key={u.id}
+            className="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 bg-white p-4 hover:border-blue-300"
+          >
+            <input
+              type="checkbox"
+              checked={selected.has(u.url)}
+              onChange={() => toggleUrl(u.url)}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="break-all text-sm font-medium text-blue-600">{u.url}</p>
+              <p className="mt-1 text-xs text-gray-400">
+                {t(`ingest.url_source_${u.source}`)} — {u.context}
+              </p>
+            </div>
+          </label>
+        ))}
+      </div>
+
+      {submitError && (
+        <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+          {submitError}
+        </p>
+      )}
+
+      <div className="mt-8 flex items-center gap-3">
+        <button
+          type="button"
+          disabled={submitting}
+          onClick={handleSubmit}
+          className="rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+        >
+          {submitting ? "..." : t("ingest.url_selection_submit")}
+        </button>
+        <button
+          type="button"
+          disabled={submitting}
+          onClick={handleSkip}
+          className="rounded-lg border border-gray-300 bg-white px-6 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+        >
+          {t("ingest.url_selection_skip")}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 
@@ -298,7 +418,11 @@ export default function IngestSessionPage() {
         setStatus(data.status)
         if (data.phaseMessage !== undefined) setPhaseMessage(data.phaseMessage)
         if (data.errorMessage) setErrorMessage(data.errorMessage)
-        if (data.status === "done" || data.status === "awaiting_clarification") {
+        if (
+          data.status === "done" ||
+          data.status === "awaiting_clarification" ||
+          data.status === "awaiting_url_selection"
+        ) {
           sessionStorage.setItem(`ingest-done-${loaderData.sessionId}`, "1")
           window.location.reload()
         }
@@ -336,6 +460,18 @@ export default function IngestSessionPage() {
     )
   }
 
+  // URL selection state
+  if (status === "awaiting_url_selection" && isUrlSelection(draft)) {
+    return (
+      <UrlSelectionScreen
+        sessionId={loaderData.sessionId}
+        urls={draft.urls}
+        onSubmitted={() => setStatus("processing")}
+        t={t}
+      />
+    )
+  }
+
   // Error state
   if (status === "error") {
     return (
@@ -354,7 +490,7 @@ export default function IngestSessionPage() {
   }
 
   // Done — show review (draft must be the result variant)
-  if (!draft || isClarification(draft)) {
+  if (!draft || isClarification(draft) || isUrlSelection(draft)) {
     return (
       <div className="mx-auto max-w-xl px-4 py-16 text-center">
         <p className="text-gray-500">{t("ingest.draft_not_found")}</p>

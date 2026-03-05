@@ -1,7 +1,7 @@
 /**
  * Google Drive OAuth and export utilities.
  *
- * Scope: drive.readonly — only used to export Google Docs as PDF.
+ * Scope: drive.readonly — used to export Google Docs / Slides as PDF.
  */
 
 export interface DriveToken {
@@ -123,7 +123,7 @@ export async function refreshAccessToken(
 }
 
 // ---------------------------------------------------------------------------
-// Google Doc export as PDF (or plain text fallback)
+// Google Drive file export as PDF (or plain text fallback)
 // ---------------------------------------------------------------------------
 
 const MAX_PDF_BYTES = 20 * 1024 * 1024 // 20 MB
@@ -135,7 +135,7 @@ export interface ExportResult {
   warning?: string
 }
 
-export async function exportDocAsPdf(fileId: string, accessToken: string): Promise<ExportResult> {
+export async function exportFileAsPdf(fileId: string, accessToken: string): Promise<ExportResult> {
   const pdfUrl = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}/export?mimeType=application/pdf`
 
   const pdfResponse = await fetchWithTimeout(
@@ -162,7 +162,7 @@ export async function exportDocAsPdf(fileId: string, accessToken: string): Promi
 
   if (!textResponse.ok) {
     const err = await textResponse.text()
-    throw new Error(`Google Doc export failed: ${textResponse.status} ${err}`)
+    throw new Error(`Google Drive export failed: ${textResponse.status} ${err}`)
   }
 
   let text = await textResponse.text()
@@ -182,11 +182,35 @@ export async function exportDocAsPdf(fileId: string, accessToken: string): Promi
 }
 
 // ---------------------------------------------------------------------------
-// Extract file ID from Google Doc URL
+// Google Drive file export as plain text (for inline content in prompts)
 // ---------------------------------------------------------------------------
 
-export function extractFileId(googleDocUrl: string): string {
-  const match = googleDocUrl.match(/\/d\/([a-zA-Z0-9_-]+)/)
-  if (!match) throw new Error(`Could not extract file ID from URL: ${googleDocUrl}`)
+export async function exportFileAsText(fileId: string, accessToken: string): Promise<string> {
+  const textUrl = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}/export?mimeType=text/plain`
+  const response = await fetchWithTimeout(
+    textUrl,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+    EXPORT_TIMEOUT_MS,
+  )
+
+  if (!response.ok) {
+    const err = await response.text()
+    throw new Error(`Google Drive text export failed (${response.status}): ${err}`)
+  }
+
+  let text = await response.text()
+  if (text.length > MAX_TEXT_CHARS) {
+    text = text.slice(0, MAX_TEXT_CHARS)
+  }
+  return text
+}
+
+// ---------------------------------------------------------------------------
+// Extract file ID from Google Drive URL
+// ---------------------------------------------------------------------------
+
+export function extractFileId(url: string): string {
+  const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/)
+  if (!match) throw new Error(`Could not extract file ID from URL: ${url}`)
   return match[1]
 }

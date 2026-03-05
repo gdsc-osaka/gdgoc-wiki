@@ -22,6 +22,7 @@ declare global {
     BUCKET: R2Bucket
     TRANSLATION_QUEUE: Queue
     ASSETS: Fetcher
+    MAILER: SendEmail
 
     // Secrets (set via `wrangler secret put` or Cloudflare dashboard)
     BETTER_AUTH_SECRET: string

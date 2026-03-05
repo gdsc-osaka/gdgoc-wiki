@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next"
-import { redirect } from "react-router"
+import { Link, redirect } from "react-router"
 import type { LoaderFunctionArgs } from "react-router"
 import { authClient } from "~/lib/auth.client"
 import { createAuth } from "~/lib/auth.server"
@@ -36,6 +36,15 @@ export default function LoginPage() {
         </button>
 
         <p className="mt-6 text-center text-xs text-gray-400">{t("login.access_restricted")}</p>
+
+        <div className="mt-4 flex justify-center gap-4 text-xs text-gray-400">
+          <Link to="/privacy" className="hover:text-blue-500">
+            {t("footer.privacy")}
+          </Link>
+          <Link to="/terms" className="hover:text-blue-500">
+            {t("footer.terms")}
+          </Link>
+        </div>
       </div>
     </div>
   )

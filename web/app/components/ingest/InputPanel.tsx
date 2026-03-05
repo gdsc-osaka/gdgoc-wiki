@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { isGoogleDriveUrl } from "~/lib/google-drive-utils"
 
 interface InputPanelProps {
   driveConnected: boolean
@@ -21,6 +22,9 @@ export default function InputPanel({ driveConnected, serverError }: InputPanelPr
 
   function validate(): string[] {
     const errs: string[] = []
+    if (docUrl.trim() && !isGoogleDriveUrl(docUrl.trim())) {
+      errs.push(t("ingest.errors.invalid_drive_url"))
+    }
     if (!docUrl.trim() && text.trim().length < MIN_TEXT_LENGTH) {
       errs.push(t("ingest.errors.text_too_short", { min: MIN_TEXT_LENGTH }))
     }
@@ -161,7 +165,7 @@ export default function InputPanel({ driveConnected, serverError }: InputPanelPr
             name="googleDocUrl"
             value={docUrl}
             onChange={(e) => setDocUrl(e.target.value)}
-            placeholder="https://docs.google.com/document/d/..."
+            placeholder="https://docs.google.com/..."
             className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
           {driveConnected ? (

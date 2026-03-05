@@ -40,6 +40,7 @@
     "i18next": "^25.8.13",
     "lucide-react": "^0.577.0",
     "marked": "^17.0.3",
+    "md-editor-rt": "^6.4.0",
     "nanoid": "^5.1.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

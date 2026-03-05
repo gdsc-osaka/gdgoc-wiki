@@ -1,8 +1,11 @@
+import { eq } from "drizzle-orm"
 import { useTranslation } from "react-i18next"
 import { NavLink, Outlet, useLoaderData } from "react-router"
 import type { LoaderFunctionArgs } from "react-router"
 import Navbar from "~/components/Navbar"
+import * as schema from "~/db/schema"
 import { requireRole } from "~/lib/auth-utils.server"
+import { getDb } from "~/lib/db.server"
 
 // ---------------------------------------------------------------------------
 // Loader
@@ -10,28 +13,29 @@ import { requireRole } from "~/lib/auth-utils.server"
 
 export async function loader({ request, context }: LoaderFunctionArgs) {
   const { env } = context.cloudflare
-  const user = await requireRole(request, env, "admin")
-  return { user }
+  const user = await requireRole(request, env, "lead")
+  const db = getDb(env)
+
+  let chapter = null
+  if (user.chapterId) {
+    chapter = await db
+      .select()
+      .from(schema.chapters)
+      .where(eq(schema.chapters.id, user.chapterId))
+      .get()
+  }
+
+  return { user, chapter }
 }
 
 // ---------------------------------------------------------------------------
-// Admin sidebar nav items
+// Layout
 // ---------------------------------------------------------------------------
 
-const NAV_ITEMS = [
-  { to: "/admin/users", labelKey: "admin.nav.users" },
-  { to: "/admin/chapters", labelKey: "admin.nav.chapters" },
-  { to: "/admin/pages", labelKey: "admin.nav.pages" },
-  { to: "/admin/tags", labelKey: "admin.nav.tags" },
-  { to: "/admin/stats", labelKey: "admin.nav.stats" },
-] as const
+const NAV_ITEMS = [{ to: "/manage/members", labelKey: "manage.nav.members" }] as const
 
-// ---------------------------------------------------------------------------
-// Layout component
-// ---------------------------------------------------------------------------
-
-export default function AdminLayout() {
-  const { user } = useLoaderData<typeof loader>()
+export default function ManageLayout() {
+  const { user, chapter } = useLoaderData<typeof loader>()
   const { t } = useTranslation()
 
   return (
@@ -39,11 +43,16 @@ export default function AdminLayout() {
       <Navbar user={user} />
 
       <div className="flex flex-1 pt-14">
-        {/* Admin sidebar */}
+        {/* Sidebar */}
         <aside className="fixed bottom-0 left-0 top-14 w-60 overflow-hidden border-r border-gray-200 bg-white">
           <nav className="p-4">
+            {chapter && (
+              <p className="mb-1 px-3 text-xs font-semibold text-gray-900 truncate">
+                {chapter.nameEn}
+              </p>
+            )}
             <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
-              {t("admin.label")}
+              {t("manage.label")}
             </p>
             <ul className="space-y-0.5">
               {NAV_ITEMS.map(({ to, labelKey }) => (

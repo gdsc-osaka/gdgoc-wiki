@@ -7,7 +7,9 @@
     "admin": "管理",
     "github": "GitHub",
     "recent": "最近の更新",
-    "starred": "スター付き"
+    "starred": "スター付き",
+    "close_sidebar": "サイドバーを閉じる",
+    "open_sidebar": "サイドバーを開く"
   },
   "language": {
     "ja": "日本語",
@@ -24,7 +26,22 @@
     "translation_fallback_en": "翻訳準備中 — 日本語コンテンツを表示しています。",
     "translation_fallback_ja": "翻訳準備中 — 英語コンテンツを表示しています。",
     "author": "著者",
-    "tags": "タグ"
+    "tags": "タグ",
+    "visibility": "公開範囲",
+    "visibility_public": "全体公開",
+    "visibility_chapter": "チャプターのみ",
+    "visibility_lead": "リードのみ",
+    "edit": "編集",
+    "starred": "お気に入り",
+    "share": "共有",
+    "share_copied": "コピーしました",
+    "starred_dialog_title": "お気に入りページ",
+    "starred_empty": "お気に入りページはまだありません",
+    "search_starred": "お気に入りを検索...",
+    "this_page": "このページ",
+    "star_add": "追加",
+    "star_remove": "削除",
+    "unstar": "お気に入りを外す"
   },
   "home": {
     "recently_updated": "最近の更新",
@@ -46,9 +63,31 @@
     "label": "管理",
     "nav": {
       "users": "ユーザー",
+      "chapters": "チャプター",
       "pages": "ページ",
       "tags": "タグ",
       "stats": "統計"
+    },
+    "chapters": {
+      "heading": "チャプター管理",
+      "new_chapter": "新規チャプター",
+      "col_name": "名前",
+      "col_abbreviation": "略称",
+      "col_university": "大学",
+      "col_region": "地域",
+      "col_members": "メンバー数",
+      "col_lead": "リード",
+      "empty": "チャプターがありません。",
+      "invite_sent": "{{email}} に招待メールを送信しました",
+      "form": {
+        "name_ja": "名前（日本語）",
+        "name_en": "名前（英語）",
+        "abbreviation": "略称",
+        "university": "大学",
+        "region": "地域",
+        "lead_email": "リードのメールアドレス",
+        "submit": "チャプターを作成"
+      }
     },
     "pages": {
       "heading": "ページ",
@@ -93,7 +132,7 @@
   },
   "ingest": {
     "title": "コンテンツを追加する",
-    "description": "テキスト・画像・Google ドキュメントをもとに、AIがWikiページの下書きを作成します。",
+    "description": "テキスト・画像・Googleドキュメント/スライドをもとに、AIがWikiページの下書きを作成します。",
     "complete_toast": "AIによる取り込みが完了しました！下書きを確認してください。",
     "processing_message": "AIが分析中...",
     "processing_hint": "少々お待ちください",
@@ -106,6 +145,13 @@
     "clarification_submit": "回答して続ける",
     "clarification_hint": "より正確なWikiページを生成するために、以下の情報をお聞かせください",
     "nothing_in_particular": "特になし",
+    "url_selection_heading": "外部URLが見つかりました",
+    "url_selection_hint": "AIページ生成の参考として取得するURLを選択してください。",
+    "url_selection_submit": "選択したURLを取得して続ける",
+    "url_selection_skip": "スキップして続ける",
+    "url_selection_fetching": "外部URLを取得中...",
+    "url_source_user_text": "テキスト入力から",
+    "url_source_google_doc": "Googleドキュメントから",
     "error_heading": "処理中にエラーが発生しました",
     "retry": "もう一度試す",
     "draft_not_found": "下書きが見つかりません。",
@@ -117,7 +163,7 @@
       "char_count": "{{count}} 文字",
       "images_label": "画像添付（最大{{max}}枚・各10MB以下）",
       "drop_hint": "クリックまたはドラッグ&ドロップで画像を追加",
-      "doc_url_label": "Googleドキュメント URL",
+      "doc_url_label": "Googleドキュメント / スライド URL",
       "drive_connected": "接続済み",
       "drive_connect": "Driveを接続",
       "submit": "AI で整理する →"
@@ -126,7 +172,8 @@
       "text_too_short": "入力が少なすぎます。最低{{min}}文字以上入力してください。",
       "too_many_images": "画像は最大{{max}}枚までです。",
       "image_too_large": "{{name}} は10MBを超えています。",
-      "not_an_image": "{{name}} は画像ファイルではありません。"
+      "not_an_image": "{{name}} は画像ファイルではありません。",
+      "invalid_drive_url": "GoogleドキュメントまたはGoogleスライドの有効なURLを入力してください。"
     },
     "review": {
       "ai_rationale": "AIの判断理由",
@@ -216,6 +263,45 @@
       "invalid_chapter": "選択されたチャプターは存在しません。"
     }
   },
+  "manage": {
+    "label": "管理",
+    "nav": {
+      "members": "メンバー管理"
+    },
+    "members": {
+      "heading": "チャプターメンバー",
+      "add_member": "メンバーを招待",
+      "col_user": "ユーザー",
+      "col_email": "メールアドレス",
+      "col_role": "役割",
+      "col_joined": "参加日",
+      "col_invited_at": "招待日",
+      "col_expires_at": "有効期限",
+      "empty": "メンバーがいません。",
+      "pending_heading": "招待待ち",
+      "invite_sent": "{{email}} に招待メールを送信しました",
+      "email_placeholder": "member@example.com",
+      "form": {
+        "submit": "招待を送信"
+      }
+    }
+  },
+  "pending": {
+    "title": "アクセス制限",
+    "message": "このWikiへのアクセス権限がありません。チャプターリードまたは管理者に招待を依頼してください。",
+    "sign_out": "サインアウト"
+  },
+  "search": {
+    "title": "検索結果",
+    "results_count": "{{count}} 件の結果",
+    "no_results": "「{{query}}」に一致するページは見つかりませんでした。",
+    "empty_query": "検索キーワードを入力してページを探しましょう。"
+  },
+  "notifications": {
+    "title": "通知",
+    "empty": "通知はありません",
+    "mark_all_read": "すべて既読にする"
+  },
   "time": {
     "just_now": "たった今",
     "minutes_ago": "{{count}}分前",
@@ -226,7 +312,12 @@
     "noPages": "ページはまだありません",
     "newPage": "新規ページ",
     "collapse": "折りたたむ",
-    "expand": "展開する"
+    "expand": "展開する",
+    "dragHandle": "ドラッグして並び替え"
+  },
+  "footer": {
+    "privacy": "プライバシー",
+    "terms": "利用規約"
   },
   "editor": {
     "back_to_page": "ページに戻る",
@@ -237,5 +328,46 @@
     "autosave_failed": "自動保存に失敗しました",
     "title_ja": "タイトル（日本語）",
     "title_en": "タイトル（英語）"
+  },
+  "privacy": {
+    "title": "プライバシーポリシー",
+    "last_updated": "最終更新日: 2026年3月",
+    "back": "← GDGoC Japan Wiki",
+    "s1_heading": "1. 収集する情報",
+    "s1_body": "Googleアカウントでサインインすると、Googleが提供するお名前、メールアドレス、プロフィール写真のURLを受け取り保存します。また、Wikiで作成またはアップロードしたコンテンツと、作成日時・著者情報などのメタデータも保存します。",
+    "s2_heading": "2. 情報の利用方法",
+    "s2_body": "お客様のデータは、GDGoC Japan Wikiの運営のみに使用します。具体的には、本人確認、Wikiコンテンツの著者表示、チャプターメンバー管理のために使用します。マーケティング目的で個人情報を第三者に販売・提供することはありません。",
+    "s3_heading": "3. 第三者サービス",
+    "s3_intro": "本サービスでは、以下の第三者プロバイダーを利用しています。",
+    "s3_google": "認証のために使用します。詳細は<googlePolicy>Googleのプライバシーポリシー</googlePolicy>をご確認ください。",
+    "s3_cloudflare": "ホスティング、データベース（D1）、オブジェクトストレージ（R2）のために使用します。詳細は<cloudflarePolicy>Cloudflareのプライバシーポリシー</cloudflarePolicy>をご確認ください。",
+    "s3_gemini": "AI支援コンテンツ生成のために使用します。アップロードされたコンテンツはGoogleのAIサービスによって処理される場合があります。",
+    "s4_heading": "4. データの保持",
+    "s4_body": "お客様のアカウントデータは、アカウントが有効な期間中保持されます。アカウントおよび関連データの削除をご希望の場合は、Wiki管理者にご連絡ください。",
+    "s5_heading": "5. お問い合わせ",
+    "s5_body": "プライバシーに関するご質問は、チャプターリードまたはGDGoC Japan WikiのGitHubリポジトリを通じて管理者にお問い合わせください。",
+    "footer_link": "利用規約"
+  },
+  "terms": {
+    "title": "利用規約",
+    "last_updated": "最終更新日: 2026年3月",
+    "back": "← GDGoC Japan Wiki",
+    "s1_heading": "1. サービスの利用",
+    "s1_body": "GDGoC Japan WikiはGDGoC Japanチャプターメンバーのための内部知識共有プラットフォームです。アクセスはチャプターリードおよび管理者の裁量により付与されます。本サービスの利用はGDGoC コミュニティガイドラインに従うものとします。",
+    "s2_heading": "2. アカウントの責任",
+    "s2_body": "サインインに使用するGoogleアカウントの機密性を維持する責任はお客様にあります。アクセス資格情報を共有したり、無権限の第三者があなたのアカウントを通じてWikiを利用することを許可してはなりません。",
+    "s3_heading": "3. コンテンツの所有権",
+    "s3_body": "Wikiで作成したコンテンツの所有権はお客様に帰属します。コンテンツを投稿することにより、GDGoC Japanに対して、承認されたWikiメンバーへの保存・表示・共有のための非独占的ライセンスを付与するものとします。Wikiコンテンツはチャプター内部での利用を目的としています。",
+    "s4_heading": "4. 禁止事項",
+    "s4_intro": "以下の行為を禁止します。",
+    "s4_item1": "違法・嫌がらせ・他者のプライバシーを侵害するコンテンツの投稿",
+    "s4_item2": "機密チャプター情報を無権限の第三者と共有すること",
+    "s4_item3": "アクセス制御やセキュリティ対策を回避しようとする行為",
+    "s4_item4": "GDGoC活動と無関係な目的でWikiやAI機能を使用すること",
+    "s5_heading": "5. 免責事項",
+    "s5_body": "Wikiは「現状のまま」でGDGoC Japan内部利用のために提供されます。AI生成コンテンツにはエラーが含まれる可能性があり、公開前に確認が必要です。稼働時間・データ保全・AI支援機能の正確性に関して、いかなる保証も行いません。",
+    "s6_heading": "6. 規約の変更",
+    "s6_body": "本規約はいつでも更新される場合があります。変更後に本サービスを継続して利用することにより、改定された規約に同意したものとみなします。",
+    "footer_link": "プライバシーポリシー"
   }
 }

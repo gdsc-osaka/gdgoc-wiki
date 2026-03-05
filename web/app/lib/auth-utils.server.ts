@@ -27,6 +27,7 @@ export async function requireRole(request: Request, env: Env, minRole: Role) {
   const auth = createAuth(env)
   const session = await auth.api.getSession({ headers: request.headers })
   if (!session) throw redirect("/login")
+  if (session.user.role === "pending") throw redirect("/pending")
   if (!hasRole(session.user.role as string, minRole)) {
     throw new Response(null, { status: 403 })
   }

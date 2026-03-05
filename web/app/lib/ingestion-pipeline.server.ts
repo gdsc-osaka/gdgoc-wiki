@@ -9,6 +9,7 @@
 import { eq, sql } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/d1"
 import * as schema from "~/db/schema"
+import { sendIngestionCompleteEmail } from "./email.server"
 import {
   type ClarificationQuestion,
   type ClarificationResult,
@@ -24,8 +25,14 @@ import {
   runPhase2Patcher,
   uploadFileToGemini,
 } from "./gemini.server"
-import { exportDocAsPdf, extractFileId, refreshAccessToken } from "./google-drive.server"
+import {
+  exportFileAsPdf,
+  exportFileAsText,
+  extractFileId,
+  refreshAccessToken,
+} from "./google-drive.server"
 import { tiptapToMarkdown } from "./tiptap-convert"
+import { type ExtractedUrl, extractUrls, fetchUrlViaJina } from "./url-extract"
 
 // ---------------------------------------------------------------------------
 // Input / output types
@@ -57,6 +64,14 @@ export type AiDraftJson =
       questions: ClarificationQuestion[]
       summary: string
       fileUris: { uri: string; mimeType: string }[]
+      googleDocText?: string
+      fetchedUrlContent?: string
+    }
+  | {
+      phase: "url_selection"
+      urls: ExtractedUrl[]
+      fileUris: { uri: string; mimeType: string }[]
+      googleDocText?: string
     }
   | {
       phase?: "result"
@@ -65,6 +80,14 @@ export type AiDraftJson =
       sensitiveItems: import("./gemini.server").SensitiveItem[]
       warnings: string[]
     }
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function buildUserText(baseUserText: string, docTexts: string[]): string {
+  return [baseUserText, ...docTexts].filter((t) => t.trim().length > 0).join("\n\n---\n\n")
+}
 
 // ---------------------------------------------------------------------------
 // Phase progress helper
@@ -93,18 +116,29 @@ export async function runIngestionPipeline(
   resumeContext?: {
     fileUris: { uri: string; mimeType: string }[]
     clarificationAnswers: string
+    googleDocText?: string
+    selectedUrls?: string[]
+    fetchedUrlContent?: string
   },
 ): Promise<void> {
   const db = drizzle(env.DB, { schema })
 
   try {
-    const userText = inputs.texts.join("\n\n")
+    const baseUserText = inputs.texts.join("\n\n")
     let fileUris: { uri: string; mimeType: string }[]
     const warnings: string[] = []
+    const docTexts: string[] = []
+
+    // Determine resume type
+    const isPostClarification = !!resumeContext?.clarificationAnswers
+    const isPostUrlSelection = !!resumeContext?.selectedUrls && !isPostClarification
 
     if (resumeContext) {
-      // Resuming after clarification — reuse already-uploaded files
+      // Resuming — reuse already-uploaded files + doc text
       fileUris = resumeContext.fileUris
+      if (resumeContext.googleDocText) {
+        docTexts.push(resumeContext.googleDocText)
+      }
     } else {
       fileUris = []
 
@@ -126,26 +160,27 @@ export async function runIngestionPipeline(
       }
 
       // ------------------------------------------------------------------
-      // Step 2: If Google Doc URL, export + upload to Gemini
+      // Step 2: If Google Drive URL, export text (required) + PDF (best-effort)
       // ------------------------------------------------------------------
       for (const docUrl of inputs.googleDocUrls) {
-        try {
-          const fileId = extractFileId(docUrl)
+        const fileId = extractFileId(docUrl)
 
-          const tokenRow = await db
-            .select()
-            .from(schema.googleDriveTokens)
-            .where(eq(schema.googleDriveTokens.userId, userId))
-            .get()
+        const tokenRow = await db
+          .select()
+          .from(schema.googleDriveTokens)
+          .where(eq(schema.googleDriveTokens.userId, userId))
+          .get()
 
-          if (!tokenRow) {
-            warnings.push(`Google Drive token not found. Skipping doc: ${docUrl}`)
-            continue
-          }
+        if (!tokenRow) {
+          throw new Error(
+            `Google Driveの認証が見つかりません。設定画面からGoogle Driveを再接続してください。(URL: ${docUrl})`,
+          )
+        }
 
-          let accessToken = tokenRow.accessToken
-          const now = new Date()
-          if (tokenRow.expiresAt < now && tokenRow.refreshToken) {
+        let accessToken = tokenRow.accessToken
+        const now = new Date()
+        if (tokenRow.expiresAt < now && tokenRow.refreshToken) {
+          try {
             const refreshed = await refreshAccessToken(
               tokenRow.refreshToken,
               env.GOOGLE_DOCS_CLIENT_ID,
@@ -160,28 +195,117 @@ export async function runIngestionPipeline(
                 updatedAt: now,
               })
               .where(eq(schema.googleDriveTokens.userId, userId))
+          } catch (refreshErr) {
+            const msg = refreshErr instanceof Error ? refreshErr.message : String(refreshErr)
+            throw new Error(
+              `Google Driveのアクセスが無効になりました。設定画面からGoogle Driveを再接続してください。(${msg})`,
+            )
           }
+        }
 
-          const exported = await exportDocAsPdf(fileId, accessToken)
+        // Primary: extract plain text (must succeed)
+        const docText = await exportFileAsText(fileId, accessToken)
+        docTexts.push(docText)
+
+        // Best-effort: upload PDF for rich content (images, tables)
+        try {
+          const exported = await exportFileAsPdf(fileId, accessToken)
           if (exported.warning) warnings.push(exported.warning)
 
           const uri = await uploadFileToGemini(
             exported.buffer,
             exported.mimeType,
-            `google-doc-${fileId}`,
+            `google-drive-${fileId}`,
             env.GEMINI_API_KEY,
           )
           fileUris.push({ uri, mimeType: exported.mimeType })
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err)
-          warnings.push(`Google Doc export failed: ${msg}`)
+          warnings.push(
+            `Google DriveファイルのPDFアップロードに失敗しました（テキストは取得済み）: ${msg}`,
+          )
         }
       }
 
       // ------------------------------------------------------------------
-      // Step 0: Phase 0 — Clarifier
+      // Step 2.5: Extract URLs from user text + Google Doc text
       // ------------------------------------------------------------------
-      const clarifierResult = await runPhase0Clarifier(env.GEMINI_API_KEY, userText, fileUris)
+      const allExtractedUrls: ExtractedUrl[] = []
+      const seenUrls = new Set<string>()
+
+      for (const extracted of extractUrls(baseUserText, "user_text")) {
+        if (!seenUrls.has(extracted.url)) {
+          seenUrls.add(extracted.url)
+          allExtractedUrls.push(extracted)
+        }
+      }
+      for (const docText of docTexts) {
+        for (const extracted of extractUrls(docText, "google_doc")) {
+          if (!seenUrls.has(extracted.url)) {
+            seenUrls.add(extracted.url)
+            allExtractedUrls.push(extracted)
+          }
+        }
+      }
+
+      // Cap at 5 URLs total
+      const urlsToShow = allExtractedUrls.slice(0, 5)
+
+      if (urlsToShow.length > 0) {
+        const aiDraftJson: AiDraftJson = {
+          phase: "url_selection",
+          urls: urlsToShow,
+          fileUris,
+          googleDocText: docTexts.join("\n\n---\n\n"),
+        }
+        await db
+          .update(schema.ingestionSessions)
+          .set({
+            aiDraftJson: JSON.stringify(aiDraftJson),
+            status: "awaiting_url_selection",
+            phaseMessage: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(schema.ingestionSessions.id, sessionId))
+        return
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // Step 2.6: Fetch selected URLs via Jina.ai (if resuming from URL selection)
+    // ------------------------------------------------------------------
+    let fetchedUrlContent = resumeContext?.fetchedUrlContent ?? ""
+
+    if (
+      isPostUrlSelection &&
+      resumeContext?.selectedUrls &&
+      resumeContext.selectedUrls.length > 0
+    ) {
+      await updatePhase(db, sessionId, "fetching_urls")
+      const parts: string[] = []
+      for (const url of resumeContext.selectedUrls) {
+        const result = await fetchUrlViaJina(url)
+        if (result.error) {
+          parts.push(`### ${url}\n(取得失敗: ${result.error})`)
+        } else {
+          const suffix = result.truncated ? "\n\n(... 10,000文字で切り詰めました)" : ""
+          parts.push(`### ${url}\n${result.markdown}${suffix}`)
+        }
+      }
+      fetchedUrlContent = parts.join("\n\n")
+    }
+
+    // ------------------------------------------------------------------
+    // Phase 0: Clarifier (runs on first run OR after URL selection)
+    // ------------------------------------------------------------------
+    if (!isPostClarification) {
+      const userText = buildUserText(baseUserText, docTexts)
+      let clarifierText = userText
+      if (fetchedUrlContent) {
+        clarifierText += `\n\n---\n## 参考URL（ユーザーが選択した外部ページ）\n${fetchedUrlContent}`
+      }
+
+      const clarifierResult = await runPhase0Clarifier(env.GEMINI_API_KEY, clarifierText, fileUris)
 
       if (clarifierResult.needsClarification) {
         const aiDraftJson: AiDraftJson = {
@@ -189,6 +313,8 @@ export async function runIngestionPipeline(
           questions: clarifierResult.questions,
           summary: clarifierResult.summary,
           fileUris,
+          googleDocText: docTexts.join("\n\n---\n\n"),
+          fetchedUrlContent: fetchedUrlContent || undefined,
         }
         await db
           .update(schema.ingestionSessions)
@@ -204,9 +330,15 @@ export async function runIngestionPipeline(
     }
 
     // Build final user text (prepend clarification answers if resuming)
-    const effectiveUserText = resumeContext
-      ? `${resumeContext.clarificationAnswers}\n\n${userText}`
+    const userText = buildUserText(baseUserText, docTexts)
+
+    let effectiveUserText = isPostClarification
+      ? `${resumeContext?.clarificationAnswers}\n\n${userText}`
       : userText
+
+    if (fetchedUrlContent) {
+      effectiveUserText += `\n\n---\n## 参考URL（ユーザーが選択した外部ページ）\n${fetchedUrlContent}`
+    }
 
     // ------------------------------------------------------------------
     // Step 3: Fetch page index from D1 (FTS5, max 200)
@@ -341,17 +473,89 @@ export async function runIngestionPipeline(
         updatedAt: new Date(),
       })
       .where(eq(schema.ingestionSessions.id, sessionId))
+
+    // Create notification + best-effort email (never block pipeline)
+    try {
+      const reviewUrl = `/ingest/${sessionId}`
+      const notificationId = crypto.randomUUID()
+      await db.insert(schema.notifications).values({
+        id: notificationId,
+        userId,
+        type: "ingestion_done",
+        titleJa: "下書きの確認準備完了",
+        titleEn: "Draft ready for review",
+        refId: sessionId,
+        refUrl: reviewUrl,
+      })
+
+      try {
+        const userRow = await db
+          .select({ name: schema.user.name, email: schema.user.email })
+          .from(schema.user)
+          .where(eq(schema.user.id, userId))
+          .get()
+
+        if (userRow) {
+          const siteUrl = (env.BETTER_AUTH_URL ?? "").replace(/\/$/, "")
+          await sendIngestionCompleteEmail(env, {
+            to: userRow.email,
+            userName: userRow.name,
+            sessionId,
+            reviewUrl: `${siteUrl}${reviewUrl}`,
+          })
+          await db
+            .update(schema.notifications)
+            .set({ emailedAt: new Date() })
+            .where(eq(schema.notifications.id, notificationId))
+        }
+      } catch (emailErr) {
+        console.error(
+          `[ingestion-pipeline] email notification failed for session=${sessionId}:`,
+          emailErr,
+        )
+      }
+    } catch (notifErr) {
+      console.error(
+        `[ingestion-pipeline] notification insert failed for session=${sessionId}:`,
+        notifErr,
+      )
+    }
   } catch (err) {
     console.error(`[ingestion-pipeline] session=${sessionId} error:`, err)
-    await drizzle(env.DB, { schema })
+    const rawMessage = err instanceof Error ? err.message : String(err)
+    // Surface Google Drive / auth errors directly to the user
+    const isGoogleDriveError =
+      /google\s*(drive|doc)|invalid_grant|invalid_token|refresh.?token|drive\.googleapis\.com|drive\s*api|oauth|access.?token/i.test(
+        rawMessage,
+      ) || rawMessage.includes("401")
+    const errorMessage = isGoogleDriveError
+      ? rawMessage
+      : "Ingestion failed due to an internal error."
+    const errorDb = drizzle(env.DB, { schema })
+    await errorDb
       .update(schema.ingestionSessions)
       .set({
         status: "error",
-        errorMessage: "Ingestion failed due to an internal error.",
+        errorMessage,
         phaseMessage: null,
         updatedAt: new Date(),
       })
       .where(eq(schema.ingestionSessions.id, sessionId))
+
+    // Create error notification (best-effort)
+    try {
+      await errorDb.insert(schema.notifications).values({
+        id: crypto.randomUUID(),
+        userId,
+        type: "ingestion_error",
+        titleJa: "処理に失敗しました",
+        titleEn: "Processing failed",
+        refId: sessionId,
+        refUrl: `/ingest/${sessionId}`,
+      })
+    } catch {
+      // never block error handling
+    }
   }
 }
 

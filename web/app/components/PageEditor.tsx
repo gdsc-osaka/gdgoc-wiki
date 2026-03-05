@@ -1,7 +1,9 @@
+import { MdEditor } from "md-editor-rt"
+import "md-editor-rt/lib/style.css"
+import { ArrowLeft } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, useBlocker, useFetcher } from "react-router"
-import TipTapEditor from "~/components/TipTapEditor"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -26,10 +28,6 @@ interface PageEditorProps {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function isTipTapJson(content: string | null | undefined): boolean {
-  return typeof content === "string" && content.startsWith('{"type":"doc"')
-}
-
 function formatRelativeTime(
   isoString: string,
   t: (key: string, opts?: Record<string, unknown>) => string,
@@ -37,7 +35,11 @@ function formatRelativeTime(
   const diff = Date.now() - new Date(isoString).getTime()
   const minutes = Math.floor(diff / 60_000)
   if (minutes < 1) return t("time.just_now")
-  return t("time.minutes_ago", { count: minutes })
+  if (minutes < 60) return t("time.minutes_ago", { count: minutes })
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return t("time.hours_ago", { count: hours })
+  const days = Math.floor(hours / 24)
+  return t("time.days_ago", { count: days })
 }
 
 // ---------------------------------------------------------------------------
@@ -115,79 +117,72 @@ export default function PageEditor({ page, canPublish }: PageEditorProps) {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-8">
-      {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
-        <Link to={`/wiki/${page.slug}`} className="text-sm text-blue-600 hover:underline">
-          ← {t("editor.back_to_page")}
+    <fetcher.Form
+      method="post"
+      className="flex flex-col"
+      style={{ height: "calc(100dvh - 3.5rem)" }}
+    >
+      {/* Hidden content fields — always kept in sync */}
+      <input type="hidden" name="contentJa" value={contentJa} />
+      <input type="hidden" name="contentEn" value={contentEn} />
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Mini-header                                                          */}
+      {/* ------------------------------------------------------------------ */}
+      <div className="sticky top-14 z-10 flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-2 shadow-sm">
+        {/* Back button */}
+        <Link
+          to={`/wiki/${page.slug}`}
+          className="shrink-0 rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+          aria-label={t("editor.back_to_page")}
+        >
+          <ArrowLeft size={18} />
         </Link>
+
+        {/* Title inputs — toggled by active language, both always in DOM */}
+        <input
+          name="titleJa"
+          value={titleJa}
+          onChange={(e) => setTitleJa(e.target.value)}
+          placeholder={t("editor.title_ja")}
+          required
+          className={`min-w-0 flex-1 rounded bg-transparent px-2 py-1 text-base font-medium text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${activeLang !== "ja" ? "hidden" : ""}`}
+        />
+        <input
+          name="titleEn"
+          value={titleEn}
+          onChange={(e) => setTitleEn(e.target.value)}
+          placeholder={t("editor.title_en")}
+          className={`min-w-0 flex-1 rounded bg-transparent px-2 py-1 text-base font-medium text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${activeLang !== "en" ? "hidden" : ""}`}
+        />
+
+        {/* Autosave status */}
+        {statusText && (
+          <span
+            className={`shrink-0 text-xs ${fetcher.data && !fetcher.data.ok ? "text-red-500" : "text-gray-400"}`}
+          >
+            {statusText}
+          </span>
+        )}
+
+        {/* Draft badge */}
         {page.status === "draft" && (
-          <span className="rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-medium text-yellow-800">
+          <span className="shrink-0 rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">
             Draft
           </span>
         )}
-      </div>
 
-      {/* Auto-save status bar */}
-      {statusText && (
-        <div
-          className={`mb-4 rounded-md px-3 py-2 text-sm ${
-            fetcher.data && !fetcher.data.ok
-              ? "bg-red-50 text-red-700"
-              : "bg-green-50 text-green-700"
-          }`}
-        >
-          {statusText}
-        </div>
-      )}
-
-      <fetcher.Form method="post">
-        {/* Hidden content fields — always kept in sync */}
-        <input type="hidden" name="contentJa" value={contentJa} />
-        <input type="hidden" name="contentEn" value={contentEn} />
-
-        {/* Title inputs */}
-        <div className="mb-6 space-y-3">
-          <div>
-            <label htmlFor="titleJa" className="mb-1 block text-sm font-medium text-gray-700">
-              {t("editor.title_ja")} *
-            </label>
-            <input
-              id="titleJa"
-              type="text"
-              name="titleJa"
-              value={titleJa}
-              onChange={(e) => setTitleJa(e.target.value)}
-              required
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-lg focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="titleEn" className="mb-1 block text-sm font-medium text-gray-700">
-              {t("editor.title_en")}
-            </label>
-            <input
-              id="titleEn"
-              type="text"
-              name="titleEn"
-              value={titleEn}
-              onChange={(e) => setTitleEn(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-lg focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        </div>
-
-        {/* Language tabs */}
-        <div className="mb-2 flex gap-2">
+        {/* Language switcher */}
+        <div className="flex shrink-0 overflow-hidden rounded-md border border-gray-200">
           {(["ja", "en"] as const).map((lang) => (
             <button
               key={lang}
               type="button"
               onClick={() => setActiveLang(lang)}
-              className={`rounded-t-lg border px-4 py-2 text-sm font-medium transition-colors ${
+              className={`px-3 py-1 text-sm font-medium transition-colors ${
                 activeLang === lang
-                  ? "border-b-white bg-white text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                  ? "bg-gray-900 text-white"
+                  : "bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700"
               }`}
             >
               {lang === "ja" ? t("language.ja") : t("language.en")}
@@ -195,44 +190,48 @@ export default function PageEditor({ page, canPublish }: PageEditorProps) {
           ))}
         </div>
 
-        {/* TipTap editors — both always mounted, toggled via CSS */}
-        <div className={activeLang === "ja" ? "" : "hidden"}>
-          <TipTapEditor
-            initialJson={isTipTapJson(page.contentJa) ? page.contentJa : undefined}
-            initialMarkdown={isTipTapJson(page.contentJa) ? undefined : page.contentJa}
-            onChange={setContentJa}
-          />
-        </div>
-        <div className={activeLang === "en" ? "" : "hidden"}>
-          <TipTapEditor
-            initialJson={isTipTapJson(page.contentEn) ? page.contentEn : undefined}
-            initialMarkdown={isTipTapJson(page.contentEn) ? undefined : page.contentEn}
-            onChange={setContentEn}
-          />
-        </div>
-
-        {/* Sticky footer */}
-        <div className="sticky bottom-0 mt-6 flex justify-end gap-3 border-t border-gray-200 bg-white pt-4 pb-4">
+        {/* Action buttons */}
+        <button
+          type="submit"
+          name="intent"
+          value="save"
+          className="shrink-0 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          {t("editor.save_draft")}
+        </button>
+        {canPublish && (
           <button
             type="submit"
             name="intent"
-            value="save"
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value="publish"
+            className="shrink-0 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            {t("editor.save_draft")}
+            {t("editor.publish")} ↗
           </button>
-          {canPublish && (
-            <button
-              type="submit"
-              name="intent"
-              value="publish"
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {t("editor.publish")} ↗
-            </button>
-          )}
-        </div>
-      </fetcher.Form>
-    </div>
+        )}
+      </div>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Editor body — no padding, full size                                 */}
+      {/* ------------------------------------------------------------------ */}
+      <div className={`min-h-0 flex-1 ${activeLang === "ja" ? "" : "hidden"}`}>
+        <MdEditor
+          modelValue={contentJa}
+          onChange={setContentJa}
+          language="en-US"
+          noUploadImg
+          style={{ height: "100%" }}
+        />
+      </div>
+      <div className={`min-h-0 flex-1 ${activeLang === "en" ? "" : "hidden"}`}>
+        <MdEditor
+          modelValue={contentEn}
+          onChange={setContentEn}
+          language="en-US"
+          noUploadImg
+          style={{ height: "100%" }}
+        />
+      </div>
+    </fetcher.Form>
   )
 }
