@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm"
+import { and, eq, sql } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/d1"
 import { nanoid } from "nanoid"
 import { useTranslation } from "react-i18next"
@@ -110,7 +110,27 @@ export async function action({ request, context }: ActionFunctionArgs) {
     updatedAt: new Date(),
   })
 
-  await env.INGESTION_QUEUE.send(buildIngestionQueueMessage(sessionId, user.id, "initial"))
+  try {
+    await env.INGESTION_QUEUE.send(buildIngestionQueueMessage(sessionId, user.id, "initial"))
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    console.error("ingest: failed to enqueue ingestion job", { sessionId, userId: user.id, err })
+    await db
+      .update(schema.ingestionSessions)
+      .set({
+        status: "error",
+        errorMessage: `Queue enqueue failed: ${message}`,
+        phaseMessage: "queue_enqueue_failed",
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(schema.ingestionSessions.id, sessionId),
+          eq(schema.ingestionSessions.userId, user.id),
+        ),
+      )
+    return { errorKey: "ingest.errors.enqueue_failed" }
+  }
 
   throw redirect(`/ingest/${sessionId}`)
 }

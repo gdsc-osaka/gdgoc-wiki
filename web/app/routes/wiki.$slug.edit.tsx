@@ -12,6 +12,7 @@ import PageEditor from "~/components/PageEditor"
 import * as schema from "~/db/schema"
 import { hasRole, requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
+import { canUserChangeVisibility } from "~/lib/page-visibility.server"
 import { tiptapToMarkdown } from "~/lib/tiptap-convert"
 
 // ---------------------------------------------------------------------------
@@ -57,6 +58,8 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
       status: schema.pages.status,
       contentJa: schema.pages.contentJa,
       contentEn: schema.pages.contentEn,
+      visibility: schema.pages.visibility,
+      chapterId: schema.pages.chapterId,
       authorId: schema.pages.authorId,
     })
     .from(schema.pages)
@@ -80,6 +83,7 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
       contentEn: tiptapToMarkdown(page.contentEn ?? ""),
     },
     canPublish: canEditAny,
+    canChangeVisibility: canUserChangeVisibility(user, page),
   }
 }
 
@@ -181,7 +185,9 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
 // ---------------------------------------------------------------------------
 
 export default function EditPage() {
-  const { page, canPublish } = useLoaderData<typeof loader>()
+  const { page, canPublish, canChangeVisibility } = useLoaderData<typeof loader>()
 
-  return <PageEditor page={page} canPublish={canPublish} />
+  return (
+    <PageEditor page={page} canPublish={canPublish} canChangeVisibility={canChangeVisibility} />
+  )
 }

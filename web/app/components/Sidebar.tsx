@@ -127,6 +127,15 @@ export default function Sidebar({
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [isMobile, isOpen, onClose])
 
+  useEffect(() => {
+    if (!isMobile) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = isOpen ? "hidden" : previousOverflow
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [isMobile, isOpen])
+
   const sidebarContent = (
     <div className="flex h-full flex-col">
       {/* Nav items */}

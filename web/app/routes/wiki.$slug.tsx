@@ -222,9 +222,8 @@ function parseMdHeadings(md: string): TocItem[] {
 }
 
 export default function WikiPage() {
-  const { page, tags, author, editor, lang, userRole, visibility, canChangeVisibility, isStarred } =
-    useLoaderData<typeof loader>()
-  const { t } = useTranslation()
+  const { page, tags, author, editor, lang, userRole, isStarred } = useLoaderData<typeof loader>()
+  const { t } = useTranslation("common")
   const theme = useThemeMode()
   const location = useLocation()
   const contentLangFetcher = useFetcher()
@@ -344,30 +343,66 @@ export default function WikiPage() {
 
   return (
     <div>
-      {/* Action bar */}
-      <div className="flex items-center justify-end gap-1 border-b border-gray-100 px-4 py-2 md:px-10">
-        {canEdit && (
-          <Link to={`/wiki/${page.slug}/edit`} className={btnBase}>
-            <Pencil size={14} />
-            {t("wiki.edit")}
-          </Link>
-        )}
-        <button
-          type="button"
-          onClick={handleToggleStar}
-          className={btnBase}
-          style={optimisticStarred ? { color: "#E06C00" } : undefined}
-        >
-          <Star
-            size={14}
-            style={optimisticStarred ? { fill: "#E06C00", color: "#E06C00" } : undefined}
-          />
-          {optimisticStarred ? t("wiki.unstar") : t("wiki.starred")}
-        </button>
-        <button type="button" onClick={handleShare} className={btnBase}>
-          <Share2 size={14} />
-          {copied ? t("wiki.share_copied") : t("wiki.share")}
-        </button>
+      {/* Mini-header */}
+      <div className="flex items-center justify-between gap-2 border-b border-gray-100 px-4 py-2 md:px-10">
+        <div className="flex shrink-0 gap-1 rounded-md border border-gray-200 bg-white p-0.5">
+          {(["ja", "en"] as const).map((l) => {
+            const status = l === "ja" ? page.translationStatusJa : page.translationStatusEn
+            const isPending = status === "missing"
+            const isActive = lang === l
+            const className = [
+              "min-w-10 rounded px-2 py-1 text-center text-sm font-medium transition-colors",
+              isActive
+                ? "bg-blue-500 text-white"
+                : isPending
+                  ? "text-gray-300"
+                  : "text-gray-600 hover:bg-gray-100",
+            ].join(" ")
+
+            if (isPending) {
+              return (
+                <span
+                  key={l}
+                  aria-disabled="true"
+                  title={t("wiki.translation_pending")}
+                  className={className}
+                >
+                  {l === "ja" ? "JA" : "EN"}
+                </span>
+              )
+            }
+
+            return (
+              <Link key={l} to={l === "ja" ? jaUrl : enUrl} className={className}>
+                {l === "ja" ? "JA" : "EN"}
+              </Link>
+            )
+          })}
+        </div>
+        <div className="flex items-center gap-1">
+          {canEdit && (
+            <Link to={`/wiki/${page.slug}/edit`} className={btnBase}>
+              <Pencil size={14} />
+              {t("wiki.edit")}
+            </Link>
+          )}
+          <button
+            type="button"
+            onClick={handleToggleStar}
+            className={btnBase}
+            style={optimisticStarred ? { color: "#E06C00" } : undefined}
+          >
+            <Star
+              size={14}
+              style={optimisticStarred ? { fill: "#E06C00", color: "#E06C00" } : undefined}
+            />
+            {optimisticStarred ? t("wiki.unstar") : t("wiki.starred")}
+          </button>
+          <button type="button" onClick={handleShare} className={btnBase}>
+            <Share2 size={14} />
+            {copied ? t("wiki.share_copied") : t("wiki.share")}
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-0">
@@ -386,7 +421,6 @@ export default function WikiPage() {
               {t("wiki.contents")}
             </button>
           )}
-
           {tags.length > 0 && (
             <div className="mb-6 flex flex-wrap gap-2">
               {tags.map((tag) => (
@@ -432,9 +466,6 @@ export default function WikiPage() {
             lang={lang}
             translationStatusJa={page.translationStatusJa}
             translationStatusEn={page.translationStatusEn}
-            slug={page.slug}
-            visibility={visibility}
-            canChangeVisibility={canChangeVisibility}
           />
         )}
       </div>
@@ -466,46 +497,13 @@ export default function WikiPage() {
             </div>
 
             <div className="space-y-5 px-4 py-3">
-              {/* Language toggle */}
-              <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                  {t("wiki.read_in")}
-                </p>
-                <div className="flex gap-1">
-                  {(["ja", "en"] as const).map((l) => {
-                    const status = l === "ja" ? page.translationStatusJa : page.translationStatusEn
-                    const isPending = status === "missing"
-                    const isActive = lang === l
-                    return (
-                      <Link
-                        key={l}
-                        to={l === "ja" ? jaUrl : enUrl}
-                        onClick={closeMobileContents}
-                        aria-disabled={isPending}
-                        title={isPending ? t("wiki.translation_pending") : undefined}
-                        className={[
-                          "flex-1 rounded px-2 py-1 text-center text-sm font-medium transition-colors",
-                          isActive
-                            ? "bg-blue-500 text-white"
-                            : isPending
-                              ? "pointer-events-none text-gray-300"
-                              : "text-gray-600 hover:bg-gray-100",
-                        ].join(" ")}
-                      >
-                        {l === "ja" ? "JA" : "EN"}
-                      </Link>
-                    )
-                  })}
-                </div>
-              </div>
-
               {/* TOC */}
               {tocItems.length > 0 && (
                 <div>
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
                     {t("wiki.on_this_page")}
                   </p>
-                  <nav aria-label="Table of contents">
+                  <nav aria-label={t("tableOfContents")}>
                     <ul className="space-y-1">
                       {tocItems.map((item) => (
                         <li

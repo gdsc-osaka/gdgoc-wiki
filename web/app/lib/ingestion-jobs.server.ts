@@ -1,4 +1,8 @@
 import type { IngestionInputs } from "./ingestion-pipeline.server"
+export type {
+  IngestionResumePostClarificationDraft,
+  IngestionResumePostUrlSelectionDraft,
+} from "./ingestion-pipeline.server"
 
 export type IngestionResumeMode = "initial" | "post_clarification" | "post_url_selection"
 
@@ -7,21 +11,6 @@ export interface IngestionQueueMessage {
   sessionId: string
   userId: string
   resumeMode: IngestionResumeMode
-}
-
-export interface IngestionResumePostClarificationDraft {
-  phase: "resume_post_clarification"
-  fileUris: { uri: string; mimeType: string }[]
-  clarificationAnswers: string
-  googleDocText?: string
-  fetchedUrlContent?: string
-}
-
-export interface IngestionResumePostUrlSelectionDraft {
-  phase: "resume_post_url_selection"
-  fileUris: { uri: string; mimeType: string }[]
-  selectedUrls: string[]
-  googleDocText?: string
 }
 
 type SessionInputsJson = {

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Link, useFetcher, useLocation } from "react-router"
 
 export interface TocItem {
   id: string
@@ -35,21 +34,6 @@ interface WikiRightSidebarProps {
   lang: "ja" | "en"
   translationStatusJa: string
   translationStatusEn: string
-  slug: string
-  visibility: string
-  canChangeVisibility: boolean
-}
-
-const VISIBILITY_OPTIONS = [
-  { value: "public" },
-  { value: "private_to_chapter" },
-  { value: "private_to_lead" },
-] as const
-
-const VISIBILITY_KEYS: Record<string, string> = {
-  public: "wiki.visibility_public",
-  private_to_chapter: "wiki.visibility_chapter",
-  private_to_lead: "wiki.visibility_lead",
 }
 
 function timeAgo(date: Date, t: (key: string, opts?: Record<string, unknown>) => string): string {
@@ -72,16 +56,9 @@ export default function WikiRightSidebar({
   lang,
   translationStatusJa,
   translationStatusEn,
-  slug,
-  visibility,
-  canChangeVisibility,
 }: WikiRightSidebarProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
   const { t } = useTranslation()
-  const location = useLocation()
-  const visibilityFetcher = useFetcher()
-  const jaUrl = `${location.pathname}?lang=ja`
-  const enUrl = `${location.pathname}?lang=en`
   const translationStatus = lang === "en" ? translationStatusEn : translationStatusJa
 
   useEffect(() => {
@@ -105,38 +82,6 @@ export default function WikiRightSidebar({
 
   return (
     <aside className="sticky top-14 w-56 flex-shrink-0 self-start overflow-y-auto px-4 py-8">
-      {/* Language Toggle */}
-      <div className="mb-6">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
-          {t("wiki.read_in")}
-        </p>
-        <div className="flex gap-1">
-          {(["ja", "en"] as const).map((l) => {
-            const status = l === "ja" ? translationStatusJa : translationStatusEn
-            const isPending = status === "missing"
-            const isActive = lang === l
-            return (
-              <Link
-                key={l}
-                to={l === "ja" ? jaUrl : enUrl}
-                aria-disabled={isPending}
-                title={isPending ? t("wiki.translation_pending") : undefined}
-                className={[
-                  "flex-1 rounded px-2 py-1 text-center text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-blue-500 text-white"
-                    : isPending
-                      ? "pointer-events-none text-gray-300"
-                      : "text-gray-600 hover:bg-gray-100",
-                ].join(" ")}
-              >
-                {l === "ja" ? "JA" : "EN"}
-              </Link>
-            )
-          })}
-        </div>
-      </div>
-
       {/* Table of Contents */}
       {tocItems.length > 0 && (
         <div className="mb-6">
@@ -227,31 +172,6 @@ export default function WikiRightSidebar({
                 </span>
               ))}
             </div>
-          </div>
-        )}
-
-        {/* Visibility */}
-        {canChangeVisibility && (
-          <div>
-            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
-              {t("wiki.visibility")}
-            </p>
-            <select
-              value={(visibilityFetcher.formData?.get("visibility") as string) ?? visibility}
-              onChange={(e) => {
-                visibilityFetcher.submit(
-                  { intent: "setVisibility", visibility: e.target.value },
-                  { method: "post", action: `/wiki/${slug}` },
-                )
-              }}
-              className="w-full rounded border border-gray-200 bg-white px-2 py-1 text-sm text-gray-700"
-            >
-              {VISIBILITY_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {t(VISIBILITY_KEYS[opt.value])}
-                </option>
-              ))}
-            </select>
           </div>
         )}
       </div>

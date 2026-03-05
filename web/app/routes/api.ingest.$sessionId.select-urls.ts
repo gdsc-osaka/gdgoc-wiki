@@ -83,9 +83,23 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
     })
     .where(eq(schema.ingestionSessions.id, session.id))
 
-  await env.INGESTION_QUEUE.send(
-    buildIngestionQueueMessage(session.id, user.id, "post_url_selection"),
-  )
+  try {
+    await env.INGESTION_QUEUE.send(
+      buildIngestionQueueMessage(session.id, user.id, "post_url_selection"),
+    )
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    await db
+      .update(schema.ingestionSessions)
+      .set({
+        status: "awaiting_url_selection",
+        aiDraftJson: JSON.stringify(storedDraft),
+        phaseMessage: `Queue enqueue failed: ${message}`,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.ingestionSessions.id, session.id))
+    throw new Response(`Failed to enqueue ingestion job: ${message}`, { status: 500 })
+  }
 
   return Response.json({ ok: true })
 }

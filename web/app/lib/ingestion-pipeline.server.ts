@@ -94,6 +94,16 @@ export type AiDraftJson =
       warnings: string[]
     }
 
+export type IngestionResumePostClarificationDraft = Extract<
+  AiDraftJson,
+  { phase: "resume_post_clarification" }
+>
+
+export type IngestionResumePostUrlSelectionDraft = Extract<
+  AiDraftJson,
+  { phase: "resume_post_url_selection" }
+>
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -160,24 +170,8 @@ export async function runIngestionPipeline(
       // ------------------------------------------------------------------
       // Step 1: Upload images to Gemini File API
       // ------------------------------------------------------------------
-      const imageFiles =
-        inputs.imageFiles && inputs.imageFiles.length > 0
-          ? inputs.imageFiles
-          : await Promise.all(
-              inputs.imageKeys.map(async (key) => {
-                const obj = await env.BUCKET.get(key)
-                if (!obj) throw new Error(`Uploaded image not found in R2: ${key}`)
-                return {
-                  key,
-                  buffer: await obj.arrayBuffer(),
-                  mimeType: obj.httpMetadata?.contentType ?? "application/octet-stream",
-                  name: key.split("/").at(-1) ?? key,
-                }
-              }),
-            )
-
-      if (imageFiles.length > 0) {
-        for (const img of imageFiles) {
+      if (inputs.imageFiles && inputs.imageFiles.length > 0) {
+        for (const img of inputs.imageFiles) {
           const uri = await uploadFileToGemini(
             img.buffer,
             img.mimeType,
@@ -185,6 +179,16 @@ export async function runIngestionPipeline(
             env.GEMINI_API_KEY,
           )
           fileUris.push({ uri, mimeType: img.mimeType })
+        }
+      } else {
+        for (const key of inputs.imageKeys) {
+          const obj = await env.BUCKET.get(key)
+          if (!obj) throw new Error(`Uploaded image not found in R2: ${key}`)
+          const mimeType = obj.httpMetadata?.contentType ?? "application/octet-stream"
+          const name = key.split("/").at(-1) ?? key
+          const buffer = await obj.arrayBuffer()
+          const uri = await uploadFileToGemini(buffer, mimeType, name, env.GEMINI_API_KEY)
+          fileUris.push({ uri, mimeType })
         }
       }
 
