@@ -13,7 +13,9 @@ import { buildVisibilityFilter } from "~/lib/page-visibility.server"
 
 export const meta: MetaFunction<typeof loader> = ({ matches }) => {
   const origin = (matches.find((m) => m.id === "root")?.data as { origin?: string })?.origin ?? ""
+  const parentMeta = matches.flatMap((m) => m.meta ?? [])
   return [
+    ...parentMeta,
     { title: "GDGoC Japan Wiki" },
     {
       name: "description",

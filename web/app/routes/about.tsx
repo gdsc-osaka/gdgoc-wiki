@@ -6,7 +6,9 @@ import { requireRole } from "~/lib/auth-utils.server"
 
 export const meta: MetaFunction = ({ matches }) => {
   const origin = (matches.find((m) => m.id === "root")?.data as { origin?: string })?.origin ?? ""
+  const parentMeta = matches.flatMap((m) => m.meta ?? [])
   return [
+    ...parentMeta,
     { title: "About — GDGoC Japan Wiki" },
     {
       name: "description",
