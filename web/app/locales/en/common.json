@@ -1,6 +1,7 @@
 {
   "app_name": "GDGoC Japan Wiki",
   "close": "Close",
+  "cancel": "Cancel",
   "draft": "Draft",
   "tableOfContents": "Table of contents",
   "nav": {
@@ -11,6 +12,7 @@
     "github": "GitHub",
     "recent": "Recent",
     "starred": "Starred",
+    "archived": "Archived",
     "close_sidebar": "Close Sidebar",
     "open_sidebar": "Open Sidebar"
   },
@@ -54,7 +56,18 @@
     "attached_images": "Attached Images",
     "history": "History",
     "history_empty": "No edit history yet",
-    "history_current": "Current"
+    "history_current": "Current",
+    "archive": "Archive",
+    "archive_confirm": "Archive \"{{title}}\"? You can restore it later."
+  },
+  "archived": {
+    "title": "Archived Pages",
+    "empty": "No archived pages.",
+    "own_pages_note": "Showing your archived pages only.",
+    "all_pages_note": "Showing all archived pages.",
+    "restore": "Restore",
+    "delete": "Delete",
+    "delete_confirm": "Permanently delete \"{{title}}\"? This cannot be undone."
   },
   "home": {
     "recently_updated": "Recently Updated",

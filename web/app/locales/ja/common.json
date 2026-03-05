@@ -1,6 +1,7 @@
 {
   "app_name": "GDGoC Japan Wiki",
   "close": "閉じる",
+  "cancel": "キャンセル",
   "draft": "下書き",
   "tableOfContents": "目次",
   "nav": {
@@ -11,6 +12,7 @@
     "github": "GitHub",
     "recent": "最近の更新",
     "starred": "スター付き",
+    "archived": "アーカイブ済み",
     "close_sidebar": "サイドバーを閉じる",
     "open_sidebar": "サイドバーを開く"
   },
@@ -54,7 +56,18 @@
     "attached_images": "添付画像 / Attached Images",
     "history": "編集履歴",
     "history_empty": "編集履歴はまだありません",
-    "history_current": "現在"
+    "history_current": "現在",
+    "archive": "アーカイブ",
+    "archive_confirm": "「{{title}}」をアーカイブしますか？後から復元できます。"
+  },
+  "archived": {
+    "title": "アーカイブ済みページ",
+    "empty": "アーカイブ済みのページはありません。",
+    "own_pages_note": "自分がアーカイブしたページのみ表示しています。",
+    "all_pages_note": "すべてのアーカイブ済みページを表示しています。",
+    "restore": "復元",
+    "delete": "削除",
+    "delete_confirm": "「{{title}}」を完全に削除しますか？この操作は元に戻せません。"
   },
   "home": {
     "recently_updated": "最近の更新",
