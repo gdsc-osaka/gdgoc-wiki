@@ -34,15 +34,15 @@ interface WikiRightSidebarProps {
   canEdit: boolean
 }
 
-function timeAgo(date: Date): string {
+function timeAgo(date: Date, t: (key: string, opts?: Record<string, unknown>) => string): string {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
-  if (seconds < 60) return "just now"
+  if (seconds < 60) return t("time.just_now")
   const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}m ago`
+  if (minutes < 60) return t("time.minutes_ago", { count: minutes })
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
+  if (hours < 24) return t("time.hours_ago", { count: hours })
   const days = Math.floor(hours / 24)
-  return `${days}d ago`
+  return t("time.days_ago", { count: days })
 }
 
 export default function WikiRightSidebar({
@@ -151,7 +151,7 @@ export default function WikiRightSidebar({
         {author && (
           <div>
             <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
-              Author
+              {t("wiki.author")}
             </p>
             <div className="flex items-center gap-2">
               {author.image ? (
@@ -178,7 +178,7 @@ export default function WikiRightSidebar({
             </p>
             <p className="text-xs text-gray-500">
               {editor ? `${editor.name}, ` : ""}
-              {timeAgo(new Date(updatedAt as string))}
+              {timeAgo(new Date(updatedAt as string), t)}
             </p>
           </div>
         )}
@@ -194,7 +194,7 @@ export default function WikiRightSidebar({
         {tags.length > 0 && (
           <div>
             <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
-              Tags
+              {t("wiki.tags")}
             </p>
             <div className="flex flex-wrap gap-1">
               {tags.map((tag) => (

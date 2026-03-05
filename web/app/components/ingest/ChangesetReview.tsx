@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import TipTapEditor from "~/components/TipTapEditor"
 import type { ChangesetOperation } from "~/lib/ingestion-pipeline.server"
 import { applyPatchesToMarkdown, tiptapToMarkdown } from "~/lib/tiptap-convert"
@@ -12,24 +13,24 @@ type ResultDraft = Extract<
 // Constants
 // ---------------------------------------------------------------------------
 
-const PAGE_TYPES = [
-  { value: "event-report", label: "イベントレポート" },
-  { value: "speaker-profile", label: "スピーカープロファイル" },
-  { value: "project-log", label: "プロジェクトログ" },
-  { value: "how-to-guide", label: "ハウツーガイド" },
-  { value: "onboarding-guide", label: "オンボーディングガイド" },
-]
+const PAGE_TYPE_VALUES = [
+  "event-report",
+  "speaker-profile",
+  "project-log",
+  "how-to-guide",
+  "onboarding-guide",
+] as const
 
-const CANONICAL_TAGS = [
-  { slug: "event-operations", label: "イベント運営" },
-  { slug: "speaker-management", label: "スピーカー管理" },
-  { slug: "sponsor-relations", label: "スポンサー・渉外" },
-  { slug: "project", label: "プロジェクト" },
-  { slug: "onboarding", label: "新メンバー向け" },
-  { slug: "community-ops", label: "コミュニティ運営" },
-  { slug: "technical", label: "技術" },
-  { slug: "template", label: "テンプレート" },
-]
+const CANONICAL_TAG_SLUGS = [
+  "event-operations",
+  "speaker-management",
+  "sponsor-relations",
+  "project",
+  "onboarding",
+  "community-ops",
+  "technical",
+  "template",
+] as const
 
 // ---------------------------------------------------------------------------
 // Types
@@ -55,6 +56,7 @@ interface ChangesetReviewProps {
 // ---------------------------------------------------------------------------
 
 export default function ChangesetReview({ draft, sessionId, userRole }: ChangesetReviewProps) {
+  const { t } = useTranslation()
   const [operations, setOperations] = useState(draft.operations)
   const [opStates, setOpStates] = useState<OperationState[]>(() =>
     draft.operations.map((op) => initOpState(op)),
@@ -152,7 +154,7 @@ export default function ChangesetReview({ draft, sessionId, userRole }: Changese
         window.location.href = "/"
       } else {
         const err = await res.text()
-        alert(`エラー: ${err}`)
+        alert(t("ingest.review.error", { message: err }))
       }
     } finally {
       setSubmitting(false)
@@ -165,14 +167,14 @@ export default function ChangesetReview({ draft, sessionId, userRole }: Changese
     <div className="space-y-6">
       {/* Plan rationale */}
       <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
-        <h3 className="text-sm font-medium text-blue-800">AIの判断理由</h3>
+        <h3 className="text-sm font-medium text-blue-800">{t("ingest.review.ai_rationale")}</h3>
         <p className="mt-1 text-sm text-blue-700">{draft.planRationale}</p>
       </div>
 
       {/* Warnings */}
       {draft.warnings && draft.warnings.length > 0 && (
         <div className="rounded-lg border border-yellow-100 bg-yellow-50 p-4">
-          <h3 className="text-sm font-medium text-yellow-800">注意</h3>
+          <h3 className="text-sm font-medium text-yellow-800">{t("ingest.review.warnings")}</h3>
           <ul className="mt-1 list-disc pl-4 text-sm text-yellow-700">
             {draft.warnings.map((w) => (
               <li key={w}>{w}</li>
@@ -202,7 +204,7 @@ export default function ChangesetReview({ draft, sessionId, userRole }: Changese
                   op.type === "create" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"
                 }`}
               >
-                {op.type === "create" ? "新規作成" : "更新"}
+                {op.type === "create" ? t("ingest.review.op_create") : t("ingest.review.op_update")}
               </span>
               <span className="text-sm text-gray-500">{op.rationale}</span>
             </div>
@@ -217,8 +219,8 @@ export default function ChangesetReview({ draft, sessionId, userRole }: Changese
                 }`}
               >
                 <strong>
-                  アクション可能性スコア: {score}/3
-                  {score === 1 && " — 入力を補強して再生成することを推奨します"}
+                  {t("ingest.review.actionability_score", { score })}
+                  {score === 1 && ` ${t("ingest.review.actionability_regen_hint")}`}
                 </strong>
                 {notes && <p className="mt-1">{notes}</p>}
               </div>
@@ -230,7 +232,7 @@ export default function ChangesetReview({ draft, sessionId, userRole }: Changese
                 htmlFor={`title-${idx}`}
                 className="mb-1 block text-xs font-medium text-gray-600"
               >
-                ページタイトル
+                {t("ingest.review.field_title")}
               </label>
               <input
                 id={`title-${idx}`}
@@ -247,7 +249,7 @@ export default function ChangesetReview({ draft, sessionId, userRole }: Changese
                 htmlFor={`summary-${idx}`}
                 className="mb-1 block text-xs font-medium text-gray-600"
               >
-                要約
+                {t("ingest.review.field_summary")}
               </label>
               <textarea
                 id={`summary-${idx}`}
@@ -264,7 +266,7 @@ export default function ChangesetReview({ draft, sessionId, userRole }: Changese
                 htmlFor={`pagetype-${idx}`}
                 className="mb-1 block text-xs font-medium text-gray-600"
               >
-                ページタイプ
+                {t("ingest.review.field_page_type")}
               </label>
               <select
                 id={`pagetype-${idx}`}
@@ -272,9 +274,9 @@ export default function ChangesetReview({ draft, sessionId, userRole }: Changese
                 onChange={(e) => updateOp(idx, { pageType: e.target.value })}
                 className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               >
-                {PAGE_TYPES.map((pt) => (
-                  <option key={pt.value} value={pt.value}>
-                    {pt.label}
+                {PAGE_TYPE_VALUES.map((value) => (
+                  <option key={value} value={value}>
+                    {t(`ingest.review.pageType.${value}`)}
                   </option>
                 ))}
               </select>
@@ -282,20 +284,22 @@ export default function ChangesetReview({ draft, sessionId, userRole }: Changese
 
             {/* Tags */}
             <div className="mb-4">
-              <p className="mb-1 text-xs font-medium text-gray-600">タグ（最大5つ）</p>
+              <p className="mb-1 text-xs font-medium text-gray-600">
+                {t("ingest.review.field_tags")}
+              </p>
               <div className="flex flex-wrap gap-2">
-                {CANONICAL_TAGS.map((tag) => (
+                {CANONICAL_TAG_SLUGS.map((slug) => (
                   <button
-                    key={tag.slug}
+                    key={slug}
                     type="button"
-                    onClick={() => toggleTag(idx, tag.slug)}
+                    onClick={() => toggleTag(idx, slug)}
                     className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                      state.tags.includes(tag.slug)
+                      state.tags.includes(slug)
                         ? "bg-blue-600 text-white"
                         : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                     }`}
                   >
-                    {tag.label}
+                    {t(`ingest.review.tag.${slug}`)}
                   </button>
                 ))}
               </div>
@@ -303,7 +307,9 @@ export default function ChangesetReview({ draft, sessionId, userRole }: Changese
 
             {/* Editor */}
             <div className="mb-4">
-              <p className="mb-1 text-xs font-medium text-gray-600">本文</p>
+              <p className="mb-1 text-xs font-medium text-gray-600">
+                {t("ingest.review.field_body")}
+              </p>
               <TipTapEditor
                 initialMarkdown={draftMarkdown}
                 onChange={(json) => updateOp(idx, { tiptapJson: json })}
@@ -316,7 +322,7 @@ export default function ChangesetReview({ draft, sessionId, userRole }: Changese
                 htmlFor={`feedback-${idx}`}
                 className="mb-1 block text-xs font-medium text-gray-500"
               >
-                再生成フィードバック
+                {t("ingest.review.field_feedback")}
               </label>
               <div className="flex gap-2">
                 <input
@@ -328,7 +334,7 @@ export default function ChangesetReview({ draft, sessionId, userRole }: Changese
                     next[idx] = e.target.value
                     setFeedback(next)
                   }}
-                  placeholder="改善してほしい点を入力..."
+                  placeholder={t("ingest.review.feedback_placeholder")}
                   className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
                 <button
@@ -337,7 +343,9 @@ export default function ChangesetReview({ draft, sessionId, userRole }: Changese
                   disabled={regenerating[idx] || !feedback[idx].trim()}
                   className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50"
                 >
-                  {regenerating[idx] ? "生成中..." : "再生成"}
+                  {regenerating[idx]
+                    ? t("ingest.review.regenerating")
+                    : t("ingest.review.regenerate")}
                 </button>
               </div>
             </div>
@@ -353,7 +361,7 @@ export default function ChangesetReview({ draft, sessionId, userRole }: Changese
           disabled={submitting}
           className="rounded-lg border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
         >
-          {submitting ? "保存中..." : "下書きとして保存"}
+          {submitting ? t("ingest.review.saving") : t("ingest.review.save_draft")}
         </button>
         {canPublish && (
           <button
@@ -362,7 +370,7 @@ export default function ChangesetReview({ draft, sessionId, userRole }: Changese
             disabled={submitting}
             className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
           >
-            {submitting ? "公開中..." : "公開する"}
+            {submitting ? t("ingest.review.publishing") : t("ingest.review.publish")}
           </button>
         )}
       </div>

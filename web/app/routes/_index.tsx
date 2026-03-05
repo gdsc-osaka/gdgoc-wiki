@@ -71,15 +71,15 @@ export async function loader({ context }: LoaderFunctionArgs) {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function timeAgo(date: Date): string {
+function timeAgo(date: Date, t: (key: string, opts?: Record<string, unknown>) => string): string {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
-  if (seconds < 60) return "just now"
+  if (seconds < 60) return t("time.just_now")
   const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}m ago`
+  if (minutes < 60) return t("time.minutes_ago", { count: minutes })
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
+  if (hours < 24) return t("time.hours_ago", { count: hours })
   const days = Math.floor(hours / 24)
-  return `${days}d ago`
+  return t("time.days_ago", { count: days })
 }
 
 // ---------------------------------------------------------------------------
@@ -129,7 +129,9 @@ export default function Index() {
                 </div>
 
                 {page.updatedAt && (
-                  <time className="text-xs text-gray-400">{timeAgo(new Date(page.updatedAt))}</time>
+                  <time className="text-xs text-gray-400">
+                    {timeAgo(new Date(page.updatedAt), t)}
+                  </time>
                 )}
               </Link>
             ))}
