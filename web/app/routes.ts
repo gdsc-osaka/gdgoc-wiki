@@ -38,6 +38,9 @@ export default [
   // Pending access — no auth shell needed
   route("/pending", "routes/pending.tsx"),
 
+  // About / landing for logged-in users — no app shell
+  route("/about", "routes/about.tsx"),
+
   // Legal pages — public, no auth shell
   route("/privacy", "routes/privacy.tsx"),
   route("/terms", "routes/terms.tsx"),
@@ -48,7 +51,6 @@ export default [
   // App routes — wrapped in shared layout (Navbar + PageTree sidebar)
   layout("routes/_app.tsx", [
     index("routes/_index.tsx"),
-    route("/about", "routes/about.tsx"),
     route("/search", "routes/search.tsx"),
     route("/wiki/:slug", "routes/wiki.$slug.tsx"),
     route("/wiki/:slug/edit", "routes/wiki.$slug.edit.tsx"),
