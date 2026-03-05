@@ -8,7 +8,8 @@ import InputPanel from "~/components/ingest/InputPanel"
 import * as schema from "~/db/schema"
 import { requireRole } from "~/lib/auth-utils.server"
 import { isGoogleDriveUrl } from "~/lib/google-drive-utils"
-import { type IngestionInputs, runIngestionPipeline } from "~/lib/ingestion-pipeline.server"
+import { buildIngestionQueueMessage } from "~/lib/ingestion-jobs.server"
+import type { IngestionInputs } from "~/lib/ingestion-pipeline.server"
 
 // ---------------------------------------------------------------------------
 // Loader
@@ -47,7 +48,7 @@ const MAX_IMAGE_SIZE = 10 * 1024 * 1024 // 10 MB
 const MIN_TEXT_LENGTH = 50
 
 export async function action({ request, context }: ActionFunctionArgs) {
-  const { env, ctx } = context.cloudflare
+  const { env } = context.cloudflare
   const user = await requireRole(request, env, "member")
   const db = drizzle(env.DB, { schema })
 
@@ -109,8 +110,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
     updatedAt: new Date(),
   })
 
-  // Run pipeline in background
-  ctx.waitUntil(runIngestionPipeline(env, sessionId, user.id, inputs))
+  await env.INGESTION_QUEUE.send(buildIngestionQueueMessage(sessionId, user.id, "initial"))
 
   throw redirect(`/ingest/${sessionId}`)
 }

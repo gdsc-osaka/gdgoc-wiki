@@ -4,8 +4,11 @@ import type { ActionFunctionArgs } from "react-router"
 import { z } from "zod"
 import * as schema from "~/db/schema"
 import { requireRole } from "~/lib/auth-utils.server"
-import type { AiDraftJson, IngestionInputs } from "~/lib/ingestion-pipeline.server"
-import { runIngestionPipeline } from "~/lib/ingestion-pipeline.server"
+import {
+  type IngestionResumePostClarificationDraft,
+  buildIngestionQueueMessage,
+} from "~/lib/ingestion-jobs.server"
+import type { AiDraftJson } from "~/lib/ingestion-pipeline.server"
 
 const ClarifyBodySchema = z.object({
   answers: z.array(
@@ -18,7 +21,7 @@ const ClarifyBodySchema = z.object({
 })
 
 export async function action({ request, context, params }: ActionFunctionArgs) {
-  const { env, ctx } = context.cloudflare
+  const { env } = context.cloudflare
   const user = await requireRole(request, env, "member")
   const db = drizzle(env.DB, { schema })
 
@@ -62,21 +65,12 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
     ...answers.map((a) => `Q: ${a.question}\nA: ${a.answer}`),
   ].join("\n")
 
-  // Reconstruct inputs from inputsJson (texts + googleDocUrls only; files reuse stored URIs)
-  let inputs: IngestionInputs
-  try {
-    const parsed = JSON.parse(session.inputsJson) as {
-      texts: string[]
-      imageKeys: string[]
-      googleDocUrls: string[]
-    }
-    inputs = {
-      texts: parsed.texts,
-      imageKeys: parsed.imageKeys,
-      googleDocUrls: [], // skip re-upload; fileUris already stored
-    }
-  } catch {
-    return new Response("Failed to parse session inputs", { status: 500 })
+  const resumeDraft: IngestionResumePostClarificationDraft = {
+    phase: "resume_post_clarification",
+    fileUris,
+    clarificationAnswers,
+    googleDocText: googleDocText || undefined,
+    fetchedUrlContent,
   }
 
   // Transition status back to processing
@@ -84,19 +78,14 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
     .update(schema.ingestionSessions)
     .set({
       status: "processing",
-      aiDraftJson: null,
+      aiDraftJson: JSON.stringify(resumeDraft),
       phaseMessage: "parsing",
       updatedAt: new Date(),
     })
     .where(eq(schema.ingestionSessions.id, session.id))
 
-  ctx.waitUntil(
-    runIngestionPipeline(env, session.id, user.id, inputs, {
-      fileUris,
-      clarificationAnswers,
-      googleDocText,
-      fetchedUrlContent,
-    }),
+  await env.INGESTION_QUEUE.send(
+    buildIngestionQueueMessage(session.id, user.id, "post_clarification"),
   )
 
   return Response.json({ ok: true })

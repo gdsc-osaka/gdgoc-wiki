@@ -21,6 +21,7 @@ declare global {
     DB: D1Database
     BUCKET: R2Bucket
     TRANSLATION_QUEUE: Queue
+    INGESTION_QUEUE: Queue
     ASSETS: Fetcher
     MAILER: SendEmail
 

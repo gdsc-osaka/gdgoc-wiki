@@ -42,16 +42,25 @@ binding = "BUCKET"
 bucket_name = "gdgoc-wiki-production-storage"
 
 # ---------------------------------------------------------------------------
-# Cloudflare Queues — background translation jobs
+# Cloudflare Queues — background translation / ingestion jobs
 # ---------------------------------------------------------------------------
 [[queues.producers]]
 binding = "TRANSLATION_QUEUE"
 queue = "gdgoc-wiki-production-translation-jobs"
 
+[[queues.producers]]
+binding = "INGESTION_QUEUE"
+queue = "gdgoc-wiki-production-ingestion-jobs"
+
 [[queues.consumers]]
 queue = "gdgoc-wiki-production-translation-jobs"
 max_batch_size = 10
 max_batch_timeout = 30
+
+[[queues.consumers]]
+queue = "gdgoc-wiki-production-ingestion-jobs"
+max_batch_size = 1
+max_batch_timeout = 5
 
 # ---------------------------------------------------------------------------
 # Cloudflare Email Workers — send invitation emails
