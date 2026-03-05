@@ -40,6 +40,7 @@ describe("ingestion-jobs helpers", () => {
       texts: ["hello"],
       imageKeys: ["ingestion/u1/s1/a.png"],
       googleDocUrls: [],
+      pdfKeys: [],
     })
   })
 

@@ -50,6 +50,8 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
 const MAX_IMAGES = 5
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024 // 10 MB
 const MAX_EXCEL_SIZE = 10 * 1024 * 1024 // 10 MB
+const MAX_PDFS = 3
+const MAX_PDF_SIZE = 20 * 1024 * 1024 // 20 MB
 const MIN_TEXT_LENGTH = 10
 
 export async function action({ request, context }: ActionFunctionArgs) {
@@ -77,17 +79,27 @@ export async function action({ request, context }: ActionFunctionArgs) {
     excelMarkdown = parseExcelToMarkdown(buf)
   }
 
-  // Validate text (skip if a Google Drive URL or Excel file is provided)
-  if (!googleDocUrl && !excelMarkdown && text.length < MIN_TEXT_LENGTH) {
-    return { errorKey: "ingest.errors.text_too_short", errorParams: { min: MIN_TEXT_LENGTH } }
-  }
-
   // Collect image files
   const imageEntries = formData.getAll("images")
   const imageFiles: Array<{ key: string; buffer: ArrayBuffer; mimeType: string; name: string }> = []
 
   if (imageEntries.length > MAX_IMAGES) {
     return { errorKey: "ingest.errors.too_many_images", errorParams: { max: MAX_IMAGES } }
+  }
+
+  // Collect PDF files
+  const pdfEntries = formData.getAll("pdfs")
+  const pdfFiles: Array<{ key: string; buffer: ArrayBuffer; mimeType: string; name: string }> = []
+
+  if (pdfEntries.length > MAX_PDFS) {
+    return { errorKey: "ingest.errors.too_many_pdfs", errorParams: { max: MAX_PDFS } }
+  }
+
+  // Validate text (skip if a Google Drive URL, Excel file, or PDF is provided)
+  // We can't check pdfFiles.length yet (files not parsed), so check pdfEntries
+  const hasPdfInput = pdfEntries.some((e) => e instanceof File && e.size > 0)
+  if (!googleDocUrl && !excelMarkdown && !hasPdfInput && text.length < MIN_TEXT_LENGTH) {
+    return { errorKey: "ingest.errors.text_too_short", errorParams: { min: MIN_TEXT_LENGTH } }
   }
 
   const sessionId = nanoid()
@@ -104,12 +116,28 @@ export async function action({ request, context }: ActionFunctionArgs) {
     imageFiles.push({ key, buffer, mimeType: entry.type, name: entry.name })
   }
 
+  for (const entry of pdfEntries) {
+    if (!(entry instanceof File) || entry.size === 0) continue
+    if (entry.size > MAX_PDF_SIZE) {
+      return { errorKey: "ingest.errors.pdf_too_large", errorParams: { name: entry.name } }
+    }
+    if (entry.type !== "application/pdf") {
+      return { errorKey: "ingest.errors.not_a_pdf", errorParams: { name: entry.name } }
+    }
+    const buffer = await entry.arrayBuffer()
+    const key = `ingestion/${user.id}/${sessionId}/${entry.name}`
+    await env.BUCKET.put(key, buffer, { httpMetadata: { contentType: "application/pdf" } })
+    pdfFiles.push({ key, buffer, mimeType: "application/pdf", name: entry.name })
+  }
+
   // Build inputs
   const inputs: IngestionInputs = {
     texts: excelMarkdown ? [text, excelMarkdown].filter(Boolean) : [text],
     imageKeys: imageFiles.map((f) => f.key),
     googleDocUrls: googleDocUrl ? [googleDocUrl] : [],
     imageFiles,
+    pdfKeys: pdfFiles.map((f) => f.key),
+    pdfFiles,
   }
 
   // Create session row
@@ -121,6 +149,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
       texts: inputs.texts,
       imageKeys: inputs.imageKeys,
       googleDocUrls: inputs.googleDocUrls,
+      pdfKeys: inputs.pdfKeys,
     }),
     createdAt: new Date(),
     updatedAt: new Date(),

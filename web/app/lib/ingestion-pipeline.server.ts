@@ -33,7 +33,7 @@ import {
   refreshAccessToken,
 } from "./google-drive.server"
 import { tiptapToMarkdown } from "./tiptap-convert"
-import { type ExtractedUrl, extractUrls, fetchUrlAsPdf } from "./url-extract"
+import { type ExtractedUrl, extractUrls, fetchUrlAsPdf, fetchUrlViaJina } from "./url-extract"
 
 // ---------------------------------------------------------------------------
 // Input / output types
@@ -49,6 +49,8 @@ export interface IngestionInputs {
   imageKeys: string[] // R2 keys for uploaded images
   googleDocUrls: string[]
   imageFiles?: Array<{ key: string; buffer: ArrayBuffer; mimeType: string; name: string }>
+  pdfKeys?: string[]
+  pdfFiles?: Array<{ key: string; buffer: ArrayBuffer; mimeType: string; name: string }>
 }
 
 export interface ChangesetOperation {
@@ -100,6 +102,7 @@ export type AiDraftJson =
       warnings: string[]
       sources: SourceUrl[]
       imageKeys: string[]
+      pdfKeys: string[]
     }
 
 export type IngestionResumePostClarificationDraft = Extract<
@@ -268,6 +271,37 @@ export async function runIngestionPipeline(
       }
 
       // ------------------------------------------------------------------
+      // Step 1b: Upload PDFs to Gemini File API
+      // ------------------------------------------------------------------
+      if (inputs.pdfFiles && inputs.pdfFiles.length > 0) {
+        const pdfUris = await Promise.all(
+          inputs.pdfFiles.map((pdf) =>
+            uploadFileToGemini(pdf.buffer, pdf.mimeType, pdf.name, env.GEMINI_API_KEY).then(
+              (uri) => ({ uri, mimeType: pdf.mimeType }),
+            ),
+          ),
+        )
+        fileUris.push(...pdfUris)
+      } else if (inputs.pdfKeys && inputs.pdfKeys.length > 0) {
+        const pdfUris = await Promise.all(
+          inputs.pdfKeys.map(async (key) => {
+            const obj = await env.BUCKET.get(key)
+            if (!obj) throw new Error(`Uploaded PDF not found in R2: ${key}`)
+            const buffer = await obj.arrayBuffer()
+            const name = key.split("/").at(-1) ?? key
+            const uri = await uploadFileToGemini(
+              buffer,
+              "application/pdf",
+              name,
+              env.GEMINI_API_KEY,
+            )
+            return { uri, mimeType: "application/pdf" }
+          }),
+        )
+        fileUris.push(...pdfUris)
+      }
+
+      // ------------------------------------------------------------------
       // Step 2: If Google Drive URL, export text (required) + PDF (best-effort)
       // ------------------------------------------------------------------
       for (const docUrl of inputs.googleDocUrls) {
@@ -396,28 +430,66 @@ export async function runIngestionPipeline(
       resumeContext.selectedUrls.length > 0
     ) {
       await updatePhase(db, sessionId, "fetching_urls")
-      const fetchResults = await Promise.all(
-        resumeContext.selectedUrls.map((url) =>
-          fetchUrlAsPdf(env.BROWSER as unknown as BrowserWorker, url).then((result) => ({
-            url,
-            result,
-          })),
-        ),
-      )
-      for (const { url, result } of fetchResults) {
-        if (result.error !== undefined) {
-          warnings.push(`URL取得失敗 ${url}: ${result.error}`)
-          sources.push({ url, title: url })
-        } else {
-          const hostname = new URL(url).hostname
-          const geminiUri = await uploadFileToGemini(
-            result.buffer,
-            "application/pdf",
-            hostname,
-            env.GEMINI_API_KEY,
-          )
-          fileUris.push({ uri: geminiUri, mimeType: "application/pdf" })
-          sources.push({ url, title: result.title || url })
+
+      if (env.BROWSER) {
+        // Production: render each URL as a PDF and upload to Gemini File API
+        console.log("[ingestion-pipeline] step 2.6: fetching URLs as PDF (Browser Rendering)")
+        const fetchResults = await Promise.all(
+          resumeContext.selectedUrls.map((url) =>
+            fetchUrlAsPdf(env.BROWSER as unknown as BrowserWorker, url).then((result) => ({
+              url,
+              result,
+            })),
+          ),
+        )
+        for (const { url, result } of fetchResults) {
+          if (result.error !== undefined) {
+            console.warn("[ingestion-pipeline] URL PDF fetch failed:", url, result.error)
+            warnings.push(`URL取得失敗 ${url}: ${result.error}`)
+            sources.push({ url, title: url })
+          } else {
+            console.log("[ingestion-pipeline] URL PDF fetched ok:", url, "title:", result.title)
+            const hostname = new URL(url).hostname
+            const geminiUri = await uploadFileToGemini(
+              result.buffer,
+              "application/pdf",
+              hostname,
+              env.GEMINI_API_KEY,
+            )
+            fileUris.push({ uri: geminiUri, mimeType: "application/pdf" })
+            sources.push({ url, title: result.title || url })
+          }
+        }
+      } else {
+        // Local dev fallback: fetch markdown via Jina and append to user text
+        console.log("[ingestion-pipeline] step 2.6: fetching URLs via Jina (no BROWSER binding)")
+        const fetchResults = await Promise.all(
+          resumeContext.selectedUrls.map((url) =>
+            fetchUrlViaJina(url).then((result) => ({ url, result })),
+          ),
+        )
+        const parts: string[] = []
+        for (const { url, result } of fetchResults) {
+          if (result.error !== undefined) {
+            console.warn("[ingestion-pipeline] URL Jina fetch failed:", url, result.error)
+            parts.push(`### ${url}\n(取得失敗: ${result.error})`)
+            sources.push({ url, title: url })
+          } else {
+            console.log(
+              "[ingestion-pipeline] URL Jina fetch ok:",
+              url,
+              `${result.markdown.length} chars`,
+              result.truncated ? "(truncated)" : "",
+            )
+            const suffix = result.truncated ? "\n\n(... 10,000文字で切り詰めました)" : ""
+            parts.push(`### ${url}\n${result.markdown}${suffix}`)
+            const titleMatch = result.markdown?.match(/^(?:Title:\s*(.+)|#\s+(.+))/m)
+            const title = (titleMatch?.[1] ?? titleMatch?.[2])?.trim() || url
+            sources.push({ url, title })
+          }
+        }
+        if (parts.length > 0) {
+          docTexts.push(`## 参考URL（ユーザーが選択した外部ページ）\n${parts.join("\n\n")}`)
         }
       }
     }
@@ -428,6 +500,13 @@ export async function runIngestionPipeline(
     const effectiveUserText = isPostClarification
       ? `${resumeContext?.clarificationAnswers}\n\n${userText}`
       : userText
+
+    console.log(
+      "[ingestion-pipeline] effectiveUserText length:",
+      effectiveUserText.length,
+      "fileUris:",
+      fileUris.length,
+    )
 
     // ------------------------------------------------------------------
     // Phase 0: Clarifier (runs on first run OR after URL selection)
@@ -506,11 +585,15 @@ export async function runIngestionPipeline(
 
     await updatePhase(db, sessionId, `generating:0/${total}`)
 
-    // Derive image file names for AI hints
-    const imageNames: string[] =
-      inputs.imageFiles && inputs.imageFiles.length > 0
+    // Derive image + PDF file names for AI hints
+    const imageNames: string[] = [
+      ...(inputs.imageFiles && inputs.imageFiles.length > 0
         ? inputs.imageFiles.map((f) => f.name)
-        : inputs.imageKeys.map((k) => k.split("/").at(-1) ?? k)
+        : inputs.imageKeys.map((k) => k.split("/").at(-1) ?? k)),
+      ...(inputs.pdfFiles && inputs.pdfFiles.length > 0
+        ? inputs.pdfFiles.map((f) => f.name)
+        : (inputs.pdfKeys ?? []).map((k) => k.split("/").at(-1) ?? k)),
+    ]
 
     const creatorResults = await Promise.all(
       createOps.map(async (op) => {
@@ -588,6 +671,7 @@ export async function runIngestionPipeline(
       warnings,
       sources,
       imageKeys: inputs.imageKeys,
+      pdfKeys: inputs.pdfKeys ?? [],
     }
 
     // ------------------------------------------------------------------

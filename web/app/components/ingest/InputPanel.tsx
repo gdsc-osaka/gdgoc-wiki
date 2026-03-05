@@ -10,17 +10,21 @@ interface InputPanelProps {
 const MAX_IMAGES = 5
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024 // 10 MB
 const MAX_EXCEL_SIZE = 10 * 1024 * 1024 // 10 MB
+const MAX_PDFS = 3
+const MAX_PDF_SIZE = 20 * 1024 * 1024 // 20 MB
 const MIN_TEXT_LENGTH = 10
 
 export default function InputPanel({ driveConnected, serverError }: InputPanelProps) {
   const { t } = useTranslation()
   const [text, setText] = useState("")
   const [images, setImages] = useState<File[]>([])
+  const [pdfs, setPdfs] = useState<File[]>([])
   const [docUrl, setDocUrl] = useState("")
   const [excelFile, setExcelFile] = useState<File | null>(null)
   const [errors, setErrors] = useState<string[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const excelInputRef = useRef<HTMLInputElement>(null)
+  const pdfInputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
 
   function validate(): string[] {
@@ -28,10 +32,36 @@ export default function InputPanel({ driveConnected, serverError }: InputPanelPr
     if (docUrl.trim() && !isGoogleDriveUrl(docUrl.trim())) {
       errs.push(t("ingest.errors.invalid_drive_url"))
     }
-    if (!docUrl.trim() && !excelFile && text.trim().length < MIN_TEXT_LENGTH) {
+    if (!docUrl.trim() && !excelFile && pdfs.length === 0 && text.trim().length < MIN_TEXT_LENGTH) {
       errs.push(t("ingest.errors.text_too_short", { min: MIN_TEXT_LENGTH }))
     }
     return errs
+  }
+
+  function handleAddPdfs(files: FileList | File[]) {
+    const arr = Array.from(files)
+    const current = pdfs.length
+    const errs: string[] = []
+
+    const valid: File[] = []
+    for (const f of arr) {
+      if (current + valid.length >= MAX_PDFS) {
+        errs.push(t("ingest.errors.too_many_pdfs", { max: MAX_PDFS }))
+        break
+      }
+      if (f.size > MAX_PDF_SIZE) {
+        errs.push(t("ingest.errors.pdf_too_large", { name: f.name }))
+        continue
+      }
+      if (f.type !== "application/pdf") {
+        errs.push(t("ingest.errors.not_a_pdf", { name: f.name }))
+        continue
+      }
+      valid.push(f)
+    }
+
+    setErrors(errs)
+    setPdfs((prev) => [...prev, ...valid])
   }
 
   function handleAddImages(files: FileList | File[]) {
@@ -212,6 +242,66 @@ export default function InputPanel({ driveConnected, serverError }: InputPanelPr
             />
           </button>
         )}
+      </div>
+
+      {/* PDF upload */}
+      <div>
+        <p className="mb-1.5 text-sm font-medium text-gray-700">
+          {t("ingest.form.pdfs_label", { max: MAX_PDFS })}
+        </p>
+        <p className="mb-2 text-xs text-gray-400">{t("ingest.form.pdfs_hint")}</p>
+        {pdfs.length > 0 && (
+          <div className="mb-2 space-y-1.5">
+            {pdfs.map((pdf) => (
+              <div
+                key={`${pdf.name}-${pdf.size}`}
+                className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2"
+              >
+                <svg
+                  className="h-4 w-4 shrink-0 text-red-500"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <span className="flex-1 truncate text-sm text-gray-700">{pdf.name}</span>
+                <span className="shrink-0 text-xs text-gray-400">
+                  {(pdf.size / 1024 / 1024).toFixed(1)} MB
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPdfs((prev) => prev.filter((f) => f !== pdf))}
+                  className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => pdfInputRef.current?.click()}
+          className={`w-full cursor-pointer rounded-lg border-2 border-dashed border-gray-200 p-4 text-center text-sm text-gray-500 transition-colors hover:border-gray-300 hover:bg-gray-50 ${pdfs.length >= MAX_PDFS ? "hidden" : ""}`}
+        >
+          {t("ingest.form.pdfs_drop_hint")}
+          <input
+            ref={pdfInputRef}
+            type="file"
+            name="pdfs"
+            multiple
+            accept="application/pdf"
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files) handleAddPdfs(e.target.files)
+            }}
+          />
+        </button>
       </div>
 
       {/* Google Doc URL */}

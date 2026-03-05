@@ -17,6 +17,7 @@ type SessionInputsJson = {
   texts: string[]
   imageKeys: string[]
   googleDocUrls: string[]
+  pdfKeys?: string[]
 }
 
 function isStringArray(value: unknown): value is string[] {
@@ -51,7 +52,8 @@ export function parseSessionInputsJson(inputsJson: string): IngestionInputs {
     typeof parsed !== "object" ||
     !isStringArray(parsed.texts) ||
     !isStringArray(parsed.imageKeys) ||
-    !isStringArray(parsed.googleDocUrls)
+    !isStringArray(parsed.googleDocUrls) ||
+    (parsed.pdfKeys !== undefined && !isStringArray(parsed.pdfKeys))
   ) {
     throw new Error("Invalid session inputs")
   }
@@ -60,5 +62,6 @@ export function parseSessionInputsJson(inputsJson: string): IngestionInputs {
     texts: parsed.texts,
     imageKeys: parsed.imageKeys,
     googleDocUrls: parsed.googleDocUrls,
+    pdfKeys: parsed.pdfKeys ?? [],
   }
 }

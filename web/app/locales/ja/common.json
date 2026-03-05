@@ -268,6 +268,9 @@
       "excel_label": "スプレッドシート（Excel）",
       "excel_hint": ".xlsx または .xls ファイルをアップロード（最大10MB）",
       "excel_drop_hint": "クリックしてスプレッドシートを追加",
+      "pdfs_label": "PDFファイル（最大{{max}}件・各20MB以下）",
+      "pdfs_hint": "AI分析のソースとしてPDFドキュメントをアップロードします",
+      "pdfs_drop_hint": "クリックしてPDFファイルを追加",
       "submit": "AI で整理する →"
     },
     "errors": {
@@ -277,6 +280,9 @@
       "not_an_image": "{{name}} は画像ファイルではありません。",
       "invalid_drive_url": "GoogleドキュメントまたはGoogleスライドの有効なURLを入力してください。",
       "excel_too_large": "{{name}} は10MBを超えています。",
+      "too_many_pdfs": "PDFファイルは最大{{max}}件までです。",
+      "pdf_too_large": "{{name}} は20MBを超えています。",
+      "not_a_pdf": "{{name}} はPDFファイルではありません。",
       "enqueue_failed": "取り込みジョブの開始に失敗しました。もう一度お試しください。"
     },
     "review": {
