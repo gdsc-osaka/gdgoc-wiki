@@ -90,11 +90,12 @@ export const ingestionSessions = sqliteTable("ingestion_sessions", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull(),
   status: text("status").notNull().default("pending"),
-  // "pending" | "processing" | "done" | "error" | "archived"
+  // "pending" | "processing" | "done" | "error" | "archived" | "awaiting_clarification"
   inputsJson: text("inputs_json").notNull(),
   // JSON: { texts: string[], imageKeys: string[], googleDocUrls: string[] }
   aiDraftJson: text("ai_draft_json"),
   errorMessage: text("error_message"),
+  phaseMessage: text("phase_message"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
 })

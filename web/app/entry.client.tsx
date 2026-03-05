@@ -3,9 +3,9 @@ import { StrictMode, startTransition } from "react"
 import { hydrateRoot } from "react-dom/client"
 import { initReactI18next } from "react-i18next"
 import { HydratedRouter } from "react-router/dom"
-import enCommon from "../public/locales/en/common.json"
-import jaCommon from "../public/locales/ja/common.json"
 import { defaultNS, fallbackLng, supportedLngs } from "./i18n"
+import enCommon from "./locales/en/common.json"
+import jaCommon from "./locales/ja/common.json"
 
 // Initialize with the SSR locale so hydration matches the server-rendered HTML.
 i18next

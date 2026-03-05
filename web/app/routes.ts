@@ -11,6 +11,7 @@ export default [
   route("/api/set-content-lang", "routes/api.set-content-lang.tsx"),
   route("/api/ingest/:sessionId/status", "routes/api.ingest.$sessionId.status.ts"),
   route("/api/ingest/:sessionId/commit", "routes/api.ingest.$sessionId.commit.ts"),
+  route("/api/ingest/:sessionId/clarify", "routes/api.ingest.$sessionId.clarify.ts"),
   route("/api/ingest/:sessionId/regenerate", "routes/api.ingest.$sessionId.regenerate.ts"),
   route("/api/google-drive/auth", "routes/api.google-drive.auth.ts"),
   route("/api/google-drive/callback", "routes/api.google-drive.callback.ts"),
@@ -24,6 +25,9 @@ export default [
     route("stats", "routes/admin.stats.tsx"),
   ]),
 
+  // Catch-all: return 404 for any unmatched URL (suppresses React Router warning)
+  route("*", "routes/$.tsx"),
+
   // App routes — wrapped in shared layout (Navbar + PageTree sidebar)
   layout("routes/_app.tsx", [
     index("routes/_index.tsx"),
@@ -31,5 +35,6 @@ export default [
     route("/wiki/:slug/edit", "routes/wiki.$slug.edit.tsx"),
     route("/ingest", "routes/ingest.tsx"),
     route("/ingest/:sessionId", "routes/ingest.$sessionId.tsx"),
+    route("/settings", "routes/settings.tsx"),
   ]),
 ] satisfies RouteConfig

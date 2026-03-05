@@ -3,10 +3,10 @@ import { renderToReadableStream } from "react-dom/server"
 import { I18nextProvider, initReactI18next } from "react-i18next"
 import type { AppLoadContext, EntryContext } from "react-router"
 import { ServerRouter } from "react-router"
-import enCommon from "../public/locales/en/common.json"
-import jaCommon from "../public/locales/ja/common.json"
 import { defaultNS, fallbackLng, supportedLngs } from "./i18n"
 import { i18nextServer } from "./i18n.server"
+import enCommon from "./locales/en/common.json"
+import jaCommon from "./locales/ja/common.json"
 
 export default async function handleRequest(
   request: Request,

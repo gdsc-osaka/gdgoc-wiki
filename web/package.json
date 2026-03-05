@@ -14,7 +14,9 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test --pass-with-no-tests",
-    "deploy": "pnpm build && wrangler deploy"
+    "deploy": "pnpm build && wrangler deploy",
+    "migrate:local": "wrangler d1 migrations apply gdgoc-wiki-production-db --local",
+    "migrate:remote": "wrangler d1 migrations apply gdgoc-wiki-production-db --remote"
   },
   "dependencies": {
     "@google/genai": "^1.43.0",
@@ -33,6 +35,7 @@
     "dompurify": "^3.3.1",
     "drizzle-orm": "^0.45.1",
     "i18next": "^25.8.13",
+    "lucide-react": "^0.577.0",
     "marked": "^17.0.3",
     "nanoid": "^5.1.6",
     "react": "^19.0.0",

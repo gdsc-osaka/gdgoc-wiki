@@ -1,6 +1,11 @@
 import { useState } from "react"
 import TipTapEditor from "~/components/TipTapEditor"
-import type { AiDraftJson, ChangesetOperation } from "~/lib/ingestion-pipeline.server"
+import type { ChangesetOperation } from "~/lib/ingestion-pipeline.server"
+
+type ResultDraft = Extract<
+  import("~/lib/ingestion-pipeline.server").AiDraftJson,
+  { planRationale: string }
+>
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -39,7 +44,7 @@ interface OperationState {
 }
 
 interface ChangesetReviewProps {
-  draft: AiDraftJson
+  draft: ResultDraft
   sessionId: string
   userRole: string
 }

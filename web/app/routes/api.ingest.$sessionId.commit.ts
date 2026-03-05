@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm"
+import { eq, inArray } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/d1"
 import { nanoid } from "nanoid"
 import type { ActionFunctionArgs } from "react-router"
@@ -62,16 +62,37 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
   const canPublish = userRole === "lead" || userRole === "admin"
   const publishStatus = canPublish ? body.publishStatus : "draft"
 
-  const now = new Date()
   const pageIds: string[] = []
   const translationPageIds: string[] = []
+
+  // Pre-validate tag slugs against the canonical tags table to avoid FK constraint failures.
+  // AI-suggested tags that don't exist in the taxonomy are silently dropped.
+  const allTagSlugs = [...new Set(body.operations.flatMap((op) => op.tags ?? []))]
+  let validTagSlugs = new Set<string>()
+  if (allTagSlugs.length > 0) {
+    const rows = await db
+      .select({ slug: schema.tags.slug })
+      .from(schema.tags)
+      .where(inArray(schema.tags.slug, allTagSlugs))
+      .all()
+    validTagSlugs = new Set(rows.map((r) => r.slug))
+  }
+
+  // Pre-allocate real page IDs for all create ops so tempId → realId resolution works
+  // for parent-child relationships within the same plan.
+  const tempIdMap: Record<string, string> = {}
+  for (const op of body.operations) {
+    if (op.type === "create") {
+      tempIdMap[op.tempId ?? ""] = nanoid()
+    }
+  }
 
   // Execute atomically using D1 batch
   const statements = []
 
   for (const op of body.operations) {
     if (op.type === "create") {
-      const pageId = nanoid()
+      const pageId = tempIdMap[op.tempId ?? ""] ?? nanoid()
       pageIds.push(pageId)
 
       // Generate a unique slug by checking for collisions
@@ -85,12 +106,18 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
 
       const metadata = JSON.stringify(op.pageMetadata ?? {})
 
+      // Resolve suggestedParentId: tempId → real page ID, or pass through as existing page ID
+      const parentId =
+        op.suggestedParentId != null
+          ? (tempIdMap[op.suggestedParentId] ?? op.suggestedParentId)
+          : null
+
       statements.push(
         env.DB.prepare(
           `INSERT INTO pages (id, title_ja, slug, content_ja, summary_ja, page_type, page_metadata,
-            ingestion_session_id, actionability_score, author_id, last_edited_by,
+            parent_id, ingestion_session_id, actionability_score, author_id, last_edited_by,
             status, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, unixepoch(), unixepoch())`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, unixepoch(), unixepoch())`,
         ).bind(
           pageId,
           op.title,
@@ -99,6 +126,7 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
           op.summaryJa,
           op.pageType,
           metadata,
+          parentId,
           params.sessionId,
           op.actionabilityScore,
           user.id,
@@ -107,8 +135,8 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
         ),
       )
 
-      // Insert tags
-      for (const tagSlug of op.tags ?? []) {
+      // Insert tags (only slugs that exist in the canonical tags table)
+      for (const tagSlug of (op.tags ?? []).filter((s) => validTagSlugs.has(s))) {
         statements.push(
           env.DB.prepare("INSERT OR IGNORE INTO page_tags (page_id, tag_slug) VALUES (?, ?)").bind(
             pageId,
