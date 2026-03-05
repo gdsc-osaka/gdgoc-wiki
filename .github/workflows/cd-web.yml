@@ -36,8 +36,34 @@ jobs:
           cache: pnpm
           cache-dependency-path: web/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
-      - name: Deploy via Wrangler
-        run: pnpm run deploy
+      - name: Deploy via Wrangler (retry on transient API errors)
+        run: |
+          set -o pipefail
+
+          max_attempts=4
+          attempt=1
+
+          while [ "$attempt" -le "$max_attempts" ]; do
+            echo "Deploy attempt ${attempt}/${max_attempts}"
+
+            if pnpm run deploy 2>&1 | tee deploy.log; then
+              echo "Deployment succeeded"
+              exit 0
+            fi
+
+            if grep -Eqi "502 Bad Gateway|Received a malformed response from the API|-> 5[0-9]{2}|HTTP/[0-9.]+ 5[0-9]{2}|timed out|ECONNRESET|ENOTFOUND|EAI_AGAIN" deploy.log; then
+              if [ "$attempt" -lt "$max_attempts" ]; then
+                sleep_seconds=$((attempt * 15))
+                echo "Transient deploy failure detected. Retrying in ${sleep_seconds}s..."
+                sleep "$sleep_seconds"
+                attempt=$((attempt + 1))
+                continue
+              fi
+            fi
+
+            echo "Deployment failed with a non-retryable error or retries exhausted."
+            exit 1
+          done
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
