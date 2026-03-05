@@ -3,6 +3,37 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router"
 
+function playChime() {
+  try {
+    const ctx = new AudioContext()
+    const freqs = [587.33, 880] // D5, A5
+    let t = ctx.currentTime
+    for (const freq of freqs) {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.type = "sine"
+      osc.frequency.value = freq
+      gain.gain.setValueAtTime(0.18, t)
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08)
+      osc.start(t)
+      osc.stop(t + 0.08)
+      t += 0.1
+    }
+  } catch {
+    // ignore – autoplay policy or unsupported
+  }
+}
+
+function AutoDismiss({ onDismiss }: { onDismiss: () => void }) {
+  useEffect(() => {
+    const timer = setTimeout(onDismiss, 5_000)
+    return () => clearTimeout(timer)
+  }, [onDismiss])
+  return null
+}
+
 interface Notification {
   id: string
   type: string
@@ -44,8 +75,10 @@ export default function NotificationBell({ initialCount }: { initialCount: numbe
   const [open, setOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(initialCount)
+  const [chipNotification, setChipNotification] = useState<Notification | null>(null)
   const ref = useRef<HTMLDivElement>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const prevUnreadRef = useRef(initialCount)
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -53,7 +86,14 @@ export default function NotificationBell({ initialCount }: { initialCount: numbe
       if (!res.ok) return
       const data = (await res.json()) as { notifications: Notification[]; unreadCount: number }
       setNotifications(data.notifications)
-      setUnreadCount(data.unreadCount)
+      const newCount = data.unreadCount
+      setUnreadCount(newCount)
+      if (newCount > prevUnreadRef.current) {
+        playChime()
+        const newest = data.notifications.find((n) => !n.readAt)
+        if (newest) setChipNotification(newest)
+      }
+      prevUnreadRef.current = newCount
     } catch {
       // ignore fetch errors
     }
@@ -144,6 +184,27 @@ export default function NotificationBell({ initialCount }: { initialCount: numbe
           </span>
         )}
       </button>
+
+      {chipNotification && (
+        <div
+          key={chipNotification.id}
+          className="fixed right-4 top-16 z-50 flex max-w-[calc(100vw-2rem)] items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-lg sm:max-w-xs"
+        >
+          {typeIcon(chipNotification.type)}
+          <p className="min-w-0 flex-1 truncate text-sm font-medium text-gray-800">
+            {title(chipNotification)}
+          </p>
+          <button
+            type="button"
+            onClick={() => setChipNotification(null)}
+            aria-label="Dismiss"
+            className="text-gray-400 hover:text-gray-600"
+          >
+            ×
+          </button>
+          <AutoDismiss onDismiss={() => setChipNotification(null)} />
+        </div>
+      )}
 
       {open && (
         <div className="absolute right-0 top-full z-50 mt-1 w-[calc(100vw-1.5rem)] max-w-72 rounded-md border border-gray-200 bg-white shadow-lg sm:w-72">
