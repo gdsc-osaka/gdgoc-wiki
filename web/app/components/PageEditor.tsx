@@ -114,6 +114,24 @@ export default function PageEditor({ page, canPublish, canChangeVisibility }: Pa
   // Navigation guard when dirty
   useBlocker(() => isDirty && fetcher.state === "idle")
 
+  // Image upload callback for the markdown editor
+  const handleUploadImg = useCallback(
+    async (files: File[], callback: (urls: string[]) => void) => {
+      const urls: string[] = []
+      for (const file of files) {
+        const fd = new FormData()
+        fd.set("image", file)
+        const res = await fetch(`/api/wiki/${page.slug}/upload-image`, { method: "post", body: fd })
+        if (res.ok) {
+          const data = (await res.json()) as { url: string }
+          urls.push(data.url)
+        }
+      }
+      callback(urls)
+    },
+    [page.slug],
+  )
+
   // Autosave status text
   let statusText: string | null = null
   if (fetcher.state !== "idle") {
@@ -255,7 +273,7 @@ export default function PageEditor({ page, canPublish, canChangeVisibility }: Pa
           onChange={setContentJa}
           language="en-US"
           theme={theme}
-          noUploadImg
+          onUploadImg={handleUploadImg}
           style={{ height: "100%" }}
         />
       </div>
@@ -265,7 +283,7 @@ export default function PageEditor({ page, canPublish, canChangeVisibility }: Pa
           onChange={setContentEn}
           language="en-US"
           theme={theme}
-          noUploadImg
+          onUploadImg={handleUploadImg}
           style={{ height: "100%" }}
         />
       </div>

@@ -44,7 +44,10 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
 
   // Verify session ownership
   const session = await db
-    .select({ userId: schema.ingestionSessions.userId })
+    .select({
+      userId: schema.ingestionSessions.userId,
+      inputsJson: schema.ingestionSessions.inputsJson,
+    })
     .from(schema.ingestionSessions)
     .where(eq(schema.ingestionSessions.id, params.sessionId ?? ""))
     .get()
@@ -221,6 +224,43 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
           ).bind(nanoid(), pageId, src.url, src.title),
         )
       }
+    }
+  }
+
+  // Build r2key → mimeType map from session inputs for accurate MIME types
+  const r2KeyMimeMap: Record<string, string> = {}
+  try {
+    const parsedInputs = JSON.parse(session.inputsJson ?? "{}") as {
+      imageKeys?: string[]
+    }
+    for (const key of parsedInputs.imageKeys ?? []) {
+      const obj = await env.BUCKET.head(key)
+      if (obj?.httpMetadata?.contentType) {
+        r2KeyMimeMap[key] = obj.httpMetadata.contentType
+      }
+    }
+  } catch {
+    // best-effort; fall back to image/jpeg below
+  }
+
+  // Scan each op's tiptapJson for ingestion image references and create page_attachments
+  for (const op of body.operations) {
+    const pageId = op.type === "create" ? tempIdMap[op.tempId as string] : (op.pageId as string)
+    if (!pageId || !op.tiptapJson) continue
+
+    const imgRegex = /"src":"\/api\/images\/(ingestion\/[^"]+)"/g
+    const seenKeys = new Set<string>()
+    for (const match of op.tiptapJson.matchAll(imgRegex)) {
+      const r2Key = match[1]
+      if (seenKeys.has(r2Key)) continue
+      seenKeys.add(r2Key)
+      const fileName = r2Key.split("/").at(-1) ?? r2Key
+      const mimeType = r2KeyMimeMap[r2Key] ?? "image/jpeg"
+      statements.push(
+        env.DB.prepare(
+          "INSERT OR IGNORE INTO page_attachments (id, page_id, r2_key, file_name, mime_type, created_at) VALUES (?, ?, ?, ?, ?, unixepoch())",
+        ).bind(nanoid(), pageId, r2Key, fileName, mimeType),
+      )
     }
   }
 

@@ -49,14 +49,21 @@ interface ChangesetReviewProps {
   draft: ResultDraft
   sessionId: string
   userRole: string
+  imageKeys?: string[]
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export default function ChangesetReview({ draft, sessionId, userRole }: ChangesetReviewProps) {
+export default function ChangesetReview({
+  draft,
+  sessionId,
+  userRole,
+  imageKeys,
+}: ChangesetReviewProps) {
   const { t } = useTranslation()
+  const imageUrlMap = buildImageUrlMap(imageKeys ?? [])
   const [operations, setOperations] = useState(draft.operations)
   const [opStates, setOpStates] = useState<OperationState[]>(() =>
     draft.operations.map((op) => initOpState(op)),
@@ -205,11 +212,14 @@ export default function ChangesetReview({ draft, sessionId, userRole }: Changese
         const state = opStates[idx]
         const score = op.draft?.actionabilityScore ?? op.patch?.actionabilityScore
         const notes = op.draft?.actionabilityNotes ?? op.patch?.actionabilityNotes
-        const draftMarkdown = op.draft
-          ? buildMarkdownFromDraft(op.draft)
-          : op.patch
-            ? buildMarkdownFromPatch(op.patch, op.existingTipTapJson)
-            : ""
+        const draftMarkdown = resolveImgPlaceholders(
+          op.draft
+            ? buildMarkdownFromDraft(op.draft)
+            : op.patch
+              ? buildMarkdownFromPatch(op.patch, op.existingTipTapJson)
+              : "",
+          imageUrlMap,
+        )
         const opKey = op.tempId ?? op.pageId ?? String(idx)
 
         return (
@@ -424,4 +434,17 @@ function buildMarkdownFromPatch(
 ): string {
   const existingMarkdown = existingTipTapJson ? tiptapToMarkdown(existingTipTapJson) : ""
   return applyPatchesToMarkdown(existingMarkdown, patch.sectionPatches)
+}
+
+function buildImageUrlMap(imageKeys: string[]): Record<string, string> {
+  const map: Record<string, string> = {}
+  for (const key of imageKeys) {
+    const name = key.split("/").at(-1) ?? key
+    map[name] = `/api/images/${key}`
+  }
+  return map
+}
+
+function resolveImgPlaceholders(markdown: string, imageUrlMap: Record<string, string>): string {
+  return markdown.replace(/\(img:([^)]+)\)/g, (_, name) => `(${imageUrlMap[name] ?? "#"})`)
 }

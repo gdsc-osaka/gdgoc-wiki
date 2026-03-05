@@ -98,6 +98,7 @@ export type AiDraftJson =
       sensitiveItems: import("./gemini.server").SensitiveItem[]
       warnings: string[]
       sources: SourceUrl[]
+      imageKeys: string[]
     }
 
 export type IngestionResumePostClarificationDraft = Extract<
@@ -488,6 +489,12 @@ export async function runIngestionPipeline(
 
     await updatePhase(db, sessionId, `generating:0/${total}`)
 
+    // Derive image file names for AI hints
+    const imageNames: string[] =
+      inputs.imageFiles && inputs.imageFiles.length > 0
+        ? inputs.imageFiles.map((f) => f.name)
+        : inputs.imageKeys.map((k) => k.split("/").at(-1) ?? k)
+
     const creatorResults = await Promise.all(
       createOps.map(async (op) => {
         const result = await runPhase2Creator(
@@ -498,6 +505,7 @@ export async function runIngestionPipeline(
           pageIndex,
           createOps.filter((o) => o.tempId !== op.tempId),
           currentDatetime,
+          imageNames,
         )
         done++
         await updatePhase(db, sessionId, `generating:${done}/${total}`)
@@ -516,6 +524,7 @@ export async function runIngestionPipeline(
           op,
           markdown,
           currentDatetime,
+          imageNames,
         )
         done++
         await updatePhase(db, sessionId, `generating:${done}/${total}`)
@@ -561,6 +570,7 @@ export async function runIngestionPipeline(
       sensitiveItems: allSensitiveItems,
       warnings,
       sources,
+      imageKeys: inputs.imageKeys,
     }
 
     // ------------------------------------------------------------------
