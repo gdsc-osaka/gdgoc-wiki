@@ -148,7 +148,19 @@
       "you": "(you)",
       "empty": "No users found.",
       "error_own_role": "You cannot change your own role",
-      "error_invalid_role": "Invalid role"
+      "error_invalid_role": "Invalid role",
+      "invite_heading": "Invite User",
+      "pending_heading": "Pending Invitations",
+      "col_invited_at": "Invited",
+      "col_expires_at": "Expires",
+      "invite_sent": "Invitation sent to {{email}}",
+      "no_chapter": "— None —",
+      "form": {
+        "email": "Email",
+        "role": "Role",
+        "chapter": "Chapter (optional)",
+        "submit": "Send Invite"
+      }
     },
     "tags": {
       "heading": "Tags",

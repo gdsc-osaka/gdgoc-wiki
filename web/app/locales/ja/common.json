@@ -148,7 +148,19 @@
       "you": "（自分）",
       "empty": "ユーザーが見つかりません。",
       "error_own_role": "自分の役割は変更できません",
-      "error_invalid_role": "無効な役割です"
+      "error_invalid_role": "無効な役割です",
+      "invite_heading": "ユーザーを招待",
+      "pending_heading": "招待待ち",
+      "col_invited_at": "招待日",
+      "col_expires_at": "有効期限",
+      "invite_sent": "{{email}} に招待メールを送信しました",
+      "no_chapter": "— なし —",
+      "form": {
+        "email": "メールアドレス",
+        "role": "役割",
+        "chapter": "チャプター（任意）",
+        "submit": "招待を送信"
+      }
     },
     "tags": {
       "heading": "タグ",
