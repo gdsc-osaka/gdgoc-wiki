@@ -6,6 +6,7 @@
  * when done or on error.
  */
 
+import type { BrowserWorker } from "@cloudflare/puppeteer"
 import { eq, sql } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/d1"
 import * as schema from "~/db/schema"
@@ -32,7 +33,7 @@ import {
   refreshAccessToken,
 } from "./google-drive.server"
 import { tiptapToMarkdown } from "./tiptap-convert"
-import { type ExtractedUrl, extractUrls, fetchUrlViaJina } from "./url-extract"
+import { type ExtractedUrl, extractUrls, fetchUrlAsPdf } from "./url-extract"
 
 // ---------------------------------------------------------------------------
 // Input / output types
@@ -70,7 +71,6 @@ export type AiDraftJson =
       summary: string
       fileUris: { uri: string; mimeType: string }[]
       googleDocText?: string
-      fetchedUrlContent?: string
       sources?: SourceUrl[]
     }
   | {
@@ -84,7 +84,6 @@ export type AiDraftJson =
       fileUris: { uri: string; mimeType: string }[]
       clarificationAnswers: string
       googleDocText?: string
-      fetchedUrlContent?: string
       sources?: SourceUrl[]
     }
   | {
@@ -150,7 +149,6 @@ export async function runIngestionPipeline(
     clarificationAnswers: string
     googleDocText?: string
     selectedUrls?: string[]
-    fetchedUrlContent?: string
     priorSources?: SourceUrl[]
   },
 ): Promise<void> {
@@ -390,10 +388,8 @@ export async function runIngestionPipeline(
     }
 
     // ------------------------------------------------------------------
-    // Step 2.6: Fetch selected URLs via Jina.ai (if resuming from URL selection)
+    // Step 2.6: Fetch selected URLs as PDFs and upload to Gemini File API
     // ------------------------------------------------------------------
-    let fetchedUrlContent = resumeContext?.fetchedUrlContent ?? ""
-
     if (
       isPostUrlSelection &&
       resumeContext?.selectedUrls &&
@@ -402,35 +398,36 @@ export async function runIngestionPipeline(
       await updatePhase(db, sessionId, "fetching_urls")
       const fetchResults = await Promise.all(
         resumeContext.selectedUrls.map((url) =>
-          fetchUrlViaJina(url).then((result) => ({ url, result })),
+          fetchUrlAsPdf(env.BROWSER as unknown as BrowserWorker, url).then((result) => ({
+            url,
+            result,
+          })),
         ),
       )
-      const parts: string[] = []
       for (const { url, result } of fetchResults) {
-        if (result.error) {
-          parts.push(`### ${url}\n(取得失敗: ${result.error})`)
+        if (result.error !== undefined) {
+          warnings.push(`URL取得失敗 ${url}: ${result.error}`)
           sources.push({ url, title: url })
         } else {
-          const suffix = result.truncated ? "\n\n(... 10,000文字で切り詰めました)" : ""
-          parts.push(`### ${url}\n${result.markdown}${suffix}`)
-          const titleMatch = result.markdown?.match(/^(?:Title:\s*(.+)|#\s+(.+))/m)
-          const title = (titleMatch?.[1] ?? titleMatch?.[2])?.trim() || url
-          sources.push({ url, title })
+          const hostname = new URL(url).hostname
+          const geminiUri = await uploadFileToGemini(
+            result.buffer,
+            "application/pdf",
+            hostname,
+            env.GEMINI_API_KEY,
+          )
+          fileUris.push({ uri: geminiUri, mimeType: "application/pdf" })
+          sources.push({ url, title: result.title || url })
         }
       }
-      fetchedUrlContent = parts.join("\n\n")
     }
 
     // Build final user text (prepend clarification answers if resuming)
     const userText = buildUserText(baseUserText, docTexts)
 
-    let effectiveUserText = isPostClarification
+    const effectiveUserText = isPostClarification
       ? `${resumeContext?.clarificationAnswers}\n\n${userText}`
       : userText
-
-    if (fetchedUrlContent) {
-      effectiveUserText += `\n\n---\n## 参考URL（ユーザーが選択した外部ページ）\n${fetchedUrlContent}`
-    }
 
     // ------------------------------------------------------------------
     // Phase 0: Clarifier (runs on first run OR after URL selection)
@@ -452,7 +449,6 @@ export async function runIngestionPipeline(
           summary: clarifierResult.summary,
           fileUris,
           googleDocText: docTexts.join("\n\n---\n\n"),
-          fetchedUrlContent: fetchedUrlContent || undefined,
           sources: sources.length > 0 ? sources : undefined,
         }
         await db

@@ -23,6 +23,7 @@ declare global {
     TRANSLATION_QUEUE: Queue
     INGESTION_QUEUE: Queue
     ASSETS: Fetcher
+    BROWSER: Fetcher
 
     // Secrets (set via `wrangler secret put` or Cloudflare dashboard)
     RESEND_API_KEY: string

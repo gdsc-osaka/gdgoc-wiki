@@ -63,6 +63,12 @@ max_batch_size = 1
 max_batch_timeout = 5
 
 # ---------------------------------------------------------------------------
+# Cloudflare Browser Rendering — headless Chromium for PDF generation
+# ---------------------------------------------------------------------------
+[browser]
+binding = "BROWSER"
+
+# ---------------------------------------------------------------------------
 # Secrets (set via `wrangler secret put`)
 # RESEND_API_KEY     — Resend transactional email API key
 # WIKI_DISCORD_SECRET — shared secret for Discord bot → wiki API auth

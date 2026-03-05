@@ -87,7 +87,6 @@ export async function processIngestionMessage(
         clarificationAnswers: string
         googleDocText?: string
         selectedUrls?: string[]
-        fetchedUrlContent?: string
         priorSources?: SourceUrl[]
       }
     | undefined
@@ -124,7 +123,6 @@ export async function processIngestionMessage(
       fileUris: draft.fileUris,
       clarificationAnswers: draft.clarificationAnswers,
       googleDocText: draft.googleDocText,
-      fetchedUrlContent: draft.fetchedUrlContent,
       priorSources: draft.sources,
     }
   } else if (body.resumeMode === "post_url_selection") {

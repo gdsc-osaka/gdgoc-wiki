@@ -1,3 +1,5 @@
+import puppeteer, { type Browser, type BrowserWorker } from "@cloudflare/puppeteer"
+
 export interface ExtractedUrl {
   id: string
   url: string
@@ -5,15 +7,15 @@ export interface ExtractedUrl {
   context: string
 }
 
-export interface JinaResult {
-  markdown: string
-  truncated: boolean
+export interface UrlPdfResult {
+  buffer: ArrayBuffer
+  title: string
   error?: undefined
 }
 
-export interface JinaError {
-  markdown?: undefined
-  truncated?: undefined
+export interface UrlPdfError {
+  buffer?: undefined
+  title?: undefined
   error: string
 }
 
@@ -22,10 +24,8 @@ const URL_REGEX = /https?:\/\/[^\s<>"')\]},;!？。、）」』】\u3000]+/g
 // Google Drive/Docs/Slides/Sheets patterns — already handled by Step 2
 const GOOGLE_DRIVE_RE = /^https?:\/\/(docs|drive|slides|sheets)\.google\.com\//
 
-const JINA_RE = /^https?:\/\/r\.jina\.ai\//
-
 /**
- * Extract URLs from text, excluding Google Drive URLs and Jina URLs.
+ * Extract URLs from text, excluding Google Drive URLs.
  * Returns deduplicated list with surrounding context snippets.
  */
 export function extractUrls(
@@ -41,7 +41,6 @@ export function extractUrls(
     const url = match[0]
     if (seen.has(url)) continue
     if (GOOGLE_DRIVE_RE.test(url)) continue
-    if (JINA_RE.test(url)) continue
     seen.add(url)
 
     // Extract ~50 chars of surrounding context
@@ -64,35 +63,35 @@ export function extractUrls(
 }
 
 /**
- * Fetch a URL via Jina.ai reader API, returning clean markdown.
+ * Render a URL as a PDF using Cloudflare Browser Rendering.
  */
-export async function fetchUrlViaJina(
+export async function fetchUrlAsPdf(
+  browser: BrowserWorker,
   url: string,
-  timeoutMs = 15000,
-): Promise<JinaResult | JinaError> {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), timeoutMs)
-
+  timeoutMs = 30000,
+): Promise<UrlPdfResult | UrlPdfError> {
+  // @cloudflare/puppeteer types don't expose the Workers-specific launch(BrowserWorker) API
+  const launchBrowser = (
+    puppeteer as unknown as { launch: (endpoint: BrowserWorker) => Promise<Browser> }
+  ).launch
+  let b: Browser | undefined
   try {
-    const res = await fetch(`https://r.jina.ai/${url}`, {
-      signal: controller.signal,
-      headers: { Accept: "text/markdown" },
-    })
-
-    if (!res.ok) {
-      return { error: `HTTP ${res.status} from Jina reader` }
-    }
-
-    const text = await res.text()
-    const MAX_CHARS = 10_000
-    if (text.length > MAX_CHARS) {
-      return { markdown: text.slice(0, MAX_CHARS), truncated: true }
-    }
-    return { markdown: text, truncated: false }
+    b = await launchBrowser(browser)
+    const page = await b.newPage()
+    await page.goto(url, { waitUntil: "networkidle2", timeout: timeoutMs })
+    const title = await page.title()
+    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true })
+    return { buffer: pdfBuffer.buffer as ArrayBuffer, title }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    return { error: msg.includes("abort") ? "Timeout fetching URL" : msg }
+    return { error: msg }
   } finally {
-    clearTimeout(timer)
+    if (b) {
+      try {
+        await b.close()
+      } catch {
+        // ignore close errors
+      }
+    }
   }
 }
