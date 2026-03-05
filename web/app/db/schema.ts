@@ -246,3 +246,16 @@ export const pageFavorites = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.userId, t.pageId] })],
 )
+
+// ---------------------------------------------------------------------------
+// page_sources (ingestion source URLs)
+// ---------------------------------------------------------------------------
+export const pageSources = sqliteTable("page_sources", {
+  id: text("id").primaryKey(),
+  pageId: text("page_id")
+    .notNull()
+    .references(() => pages.id, { onDelete: "cascade" }),
+  url: text("url").notNull(),
+  title: text("title").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+})

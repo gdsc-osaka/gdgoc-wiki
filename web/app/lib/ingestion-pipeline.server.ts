@@ -29,6 +29,7 @@ import {
   exportFileAsPdf,
   exportFileAsText,
   extractFileId,
+  getDriveFileName,
   refreshAccessToken,
 } from "./google-drive.server"
 import { tiptapToMarkdown } from "./tiptap-convert"
@@ -37,6 +38,11 @@ import { type ExtractedUrl, extractUrls, fetchUrlViaJina } from "./url-extract"
 // ---------------------------------------------------------------------------
 // Input / output types
 // ---------------------------------------------------------------------------
+
+export interface SourceUrl {
+  url: string
+  title: string
+}
 
 export interface IngestionInputs {
   texts: string[]
@@ -92,6 +98,7 @@ export type AiDraftJson =
       operations: ChangesetOperation[]
       sensitiveItems: import("./gemini.server").SensitiveItem[]
       warnings: string[]
+      sources: SourceUrl[]
     }
 
 export type IngestionResumePostClarificationDraft = Extract<
@@ -151,6 +158,7 @@ export async function runIngestionPipeline(
     let fileUris: { uri: string; mimeType: string }[]
     const warnings: string[] = []
     const docTexts: string[] = []
+    const sources: SourceUrl[] = []
 
     // Determine resume type
     const isPostClarification = !!resumeContext?.clarificationAnswers
@@ -161,6 +169,43 @@ export async function runIngestionPipeline(
       fileUris = resumeContext.fileUris
       if (resumeContext.googleDocText) {
         docTexts.push(resumeContext.googleDocText)
+      }
+      // Re-collect Google Doc sources (pipeline is stateless between phases)
+      if (isPostUrlSelection && inputs.googleDocUrls.length > 0) {
+        const tokenRow = await db
+          .select()
+          .from(schema.googleDriveTokens)
+          .where(eq(schema.googleDriveTokens.userId, userId))
+          .get()
+        if (tokenRow) {
+          let accessToken = tokenRow.accessToken
+          const now = new Date()
+          if (tokenRow.expiresAt < now && tokenRow.refreshToken) {
+            try {
+              const refreshed = await refreshAccessToken(
+                tokenRow.refreshToken,
+                env.GOOGLE_DOCS_CLIENT_ID,
+                env.GOOGLE_DOCS_CLIENT_SECRET,
+              )
+              accessToken = refreshed.accessToken
+            } catch {
+              // ignore refresh errors — sources are best-effort
+            }
+          }
+          for (const docUrl of inputs.googleDocUrls) {
+            const fileId = extractFileId(docUrl)
+            try {
+              const fileName = await getDriveFileName(fileId, accessToken)
+              sources.push({ url: docUrl, title: fileName })
+            } catch {
+              sources.push({ url: docUrl, title: fileId })
+            }
+          }
+        } else {
+          for (const docUrl of inputs.googleDocUrls) {
+            sources.push({ url: docUrl, title: extractFileId(docUrl) })
+          }
+        }
       }
     } else {
       fileUris = []
@@ -234,6 +279,14 @@ export async function runIngestionPipeline(
               `Google Driveのアクセスが無効になりました。設定画面からGoogle Driveを再接続してください。(${msg})`,
             )
           }
+        }
+
+        // Collect source URL with display name (best-effort)
+        try {
+          const fileName = await getDriveFileName(fileId, accessToken)
+          sources.push({ url: docUrl, title: fileName })
+        } catch {
+          sources.push({ url: docUrl, title: fileId })
         }
 
         // Primary: extract plain text (must succeed)
@@ -320,9 +373,13 @@ export async function runIngestionPipeline(
         const result = await fetchUrlViaJina(url)
         if (result.error) {
           parts.push(`### ${url}\n(取得失敗: ${result.error})`)
+          sources.push({ url, title: url })
         } else {
           const suffix = result.truncated ? "\n\n(... 10,000文字で切り詰めました)" : ""
           parts.push(`### ${url}\n${result.markdown}${suffix}`)
+          const titleMatch = result.markdown?.match(/^(?:Title:\s*(.+)|#\s+(.+))/m)
+          const title = (titleMatch?.[1] ?? titleMatch?.[2])?.trim() || url
+          sources.push({ url, title })
         }
       }
       fetchedUrlContent = parts.join("\n\n")
@@ -491,6 +548,7 @@ export async function runIngestionPipeline(
       operations,
       sensitiveItems: allSensitiveItems,
       warnings,
+      sources,
     }
 
     // ------------------------------------------------------------------

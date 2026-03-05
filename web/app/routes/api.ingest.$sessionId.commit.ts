@@ -28,6 +28,7 @@ const CommitOperationSchema = z.object({
 const CommitBodySchema = z.object({
   publishStatus: z.enum(["draft", "published"]),
   operations: z.array(CommitOperationSchema).min(1),
+  sources: z.array(z.object({ url: z.string(), title: z.string() })).default([]),
 })
 
 type CommitBody = z.infer<typeof CommitBodySchema>
@@ -206,6 +207,19 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
 
       if (publishStatus === "published") {
         translationPageIds.push(op.pageId)
+      }
+    }
+  }
+
+  // Insert page sources for all affected pages
+  if (body.sources.length > 0) {
+    for (const pageId of pageIds) {
+      for (const src of body.sources) {
+        statements.push(
+          env.DB.prepare(
+            "INSERT INTO page_sources (id, page_id, url, title, created_at) VALUES (?, ?, ?, ?, unixepoch())",
+          ).bind(nanoid(), pageId, src.url, src.title),
+        )
       }
     }
   }

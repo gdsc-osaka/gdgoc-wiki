@@ -142,6 +142,7 @@ export default function ChangesetReview({ draft, sessionId, userRole }: Changese
           suggestedParentId: op.draft?.suggestedParentId ?? null,
           actionabilityScore: op.draft?.actionabilityScore ?? op.patch?.actionabilityScore ?? 2,
         })),
+        sources: draft.sources ?? [],
       }
 
       const res = await fetch(`/api/ingest/${sessionId}/commit`, {

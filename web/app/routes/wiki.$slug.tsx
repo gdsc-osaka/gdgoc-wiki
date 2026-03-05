@@ -59,7 +59,7 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
     throw new Response("Not Found", { status: 404 })
   }
 
-  const [pageTags, authorRow, editorRow, fav] = await Promise.all([
+  const [pageTags, authorRow, editorRow, fav, sources] = await Promise.all([
     db
       .select({
         tagSlug: schema.pageTags.tagSlug,
@@ -91,6 +91,11 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
         ),
       )
       .get(),
+    db
+      .select({ url: schema.pageSources.url, title: schema.pageSources.title })
+      .from(schema.pageSources)
+      .where(eq(schema.pageSources.pageId, page.id))
+      .all(),
   ])
 
   const url = new URL(request.url)
@@ -111,6 +116,7 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
     visibility: page.visibility,
     canChangeVisibility: canUserChangeVisibility(sessionUser, page),
     isStarred: !!fav,
+    sources,
   }
 }
 
@@ -222,7 +228,8 @@ function parseMdHeadings(md: string): TocItem[] {
 }
 
 export default function WikiPage() {
-  const { page, tags, author, editor, lang, userRole, isStarred } = useLoaderData<typeof loader>()
+  const { page, tags, author, editor, lang, userRole, isStarred, sources } =
+    useLoaderData<typeof loader>()
   const { t } = useTranslation("common")
   const theme = useThemeMode()
   const location = useLocation()
@@ -466,6 +473,7 @@ export default function WikiPage() {
             lang={lang}
             translationStatusJa={page.translationStatusJa}
             translationStatusEn={page.translationStatusEn}
+            sources={sources}
           />
         )}
       </div>
