@@ -180,7 +180,7 @@ export default function WikiHistory() {
     : null
 
   return (
-    <div>
+    <div className="flex min-h-full flex-col">
       {/* Mini-header */}
       <div className="flex items-center justify-between gap-2 border-b border-gray-100 px-4 py-2 md:px-10">
         <Link to={`/wiki/${page.slug}`} className="text-sm text-gray-500 hover:text-gray-700">
@@ -192,7 +192,7 @@ export default function WikiHistory() {
         </div>
       </div>
 
-      <div className="flex gap-0 px-4 py-4 md:px-10 md:py-6">
+      <div className="flex flex-1 gap-0 px-4 py-4 md:px-10 md:py-6">
         {/* Left: version list */}
         <aside className="mr-6 w-56 shrink-0 border-r border-gray-100 pr-4">
           {versions.length === 0 ? (
