@@ -1,7 +1,8 @@
 import { eq, sql } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/d1"
 import { nanoid } from "nanoid"
-import { redirect } from "react-router"
+import { useTranslation } from "react-i18next"
+import { redirect, useActionData, useLoaderData } from "react-router"
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router"
 import InputPanel from "~/components/ingest/InputPanel"
 import * as schema from "~/db/schema"
@@ -53,9 +54,9 @@ export async function action({ request, context }: ActionFunctionArgs) {
   const text = String(formData.get("text") ?? "").trim()
   const googleDocUrl = String(formData.get("googleDocUrl") ?? "").trim()
 
-  // Validate text
-  if (text.length < MIN_TEXT_LENGTH) {
-    return { error: `入力が少なすぎます。最低${MIN_TEXT_LENGTH}文字以上入力してください。` }
+  // Validate text (skip if a Google Doc URL is provided)
+  if (!googleDocUrl && text.length < MIN_TEXT_LENGTH) {
+    return { errorKey: "ingest.errors.text_too_short", errorParams: { min: MIN_TEXT_LENGTH } }
   }
 
   // Collect image files
@@ -63,7 +64,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
   const imageFiles: Array<{ key: string; buffer: ArrayBuffer; mimeType: string; name: string }> = []
 
   if (imageEntries.length > MAX_IMAGES) {
-    return { error: `画像は最大${MAX_IMAGES}枚までです。` }
+    return { errorKey: "ingest.errors.too_many_images", errorParams: { max: MAX_IMAGES } }
   }
 
   const sessionId = nanoid()
@@ -71,7 +72,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
   for (const entry of imageEntries) {
     if (!(entry instanceof File) || entry.size === 0) continue
     if (entry.size > MAX_IMAGE_SIZE) {
-      return { error: `${entry.name} は10MBを超えています。` }
+      return { errorKey: "ingest.errors.image_too_large", errorParams: { name: entry.name } }
     }
     const buffer = await entry.arrayBuffer()
     const key = `ingestion/${user.id}/${sessionId}/${entry.name}`
@@ -113,14 +114,12 @@ export async function action({ request, context }: ActionFunctionArgs) {
 // ---------------------------------------------------------------------------
 
 export default function IngestPage() {
-  // useLoaderData not directly available here — pass via parent or use Form
+  const { t } = useTranslation()
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">コンテンツを追加する</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          テキスト・画像・Google ドキュメントをもとに、AIがWikiページの下書きを作成します。
-        </p>
+        <h1 className="text-2xl font-bold text-gray-900">{t("ingest.title")}</h1>
+        <p className="mt-1 text-sm text-gray-500">{t("ingest.description")}</p>
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -131,9 +130,13 @@ export default function IngestPage() {
 }
 
 function IngestForm() {
-  const { driveConnected } = useLoaderData()
-  return <InputPanel driveConnected={driveConnected} />
-}
+  const { driveConnected } = useLoaderData<typeof loader>()
+  const actionData = useActionData<typeof action>()
+  const { t } = useTranslation()
 
-// Inline import to keep component colocated
-import { useLoaderData } from "react-router"
+  const serverError = actionData?.errorKey
+    ? t(actionData.errorKey, actionData.errorParams as Record<string, unknown>)
+    : undefined
+
+  return <InputPanel driveConnected={driveConnected} serverError={serverError} />
+}

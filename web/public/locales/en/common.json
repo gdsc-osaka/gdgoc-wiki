@@ -32,7 +32,26 @@
     "sign_out": "Sign out"
   },
   "ingest": {
-    "complete_toast": "AI ingestion complete! Review your draft below."
+    "title": "Add Content",
+    "description": "AI will create a draft wiki page from your text, images, and Google Docs.",
+    "complete_toast": "AI ingestion complete! Review your draft below.",
+    "form": {
+      "text_label": "Text input",
+      "text_placeholder": "Write freely about an event or activity (min. 50 chars)\nE.g. Our Tech Talk last week had 45 attendees. Speaker Tanaka-san shared...",
+      "char_count": "{{count}} chars",
+      "images_label": "Images (max {{max}}, up to 10MB each)",
+      "drop_hint": "Click or drag & drop to add images",
+      "doc_url_label": "Google Docs URL",
+      "drive_connected": "Connected",
+      "drive_connect": "Connect Drive",
+      "submit": "Organize with AI →"
+    },
+    "errors": {
+      "text_too_short": "Not enough text. Please enter at least {{min}} characters.",
+      "too_many_images": "You can attach up to {{max}} images.",
+      "image_too_large": "{{name}} exceeds 10MB.",
+      "not_an_image": "{{name}} is not an image file."
+    }
   },
   "editor": {
     "back_to_page": "Back to page",

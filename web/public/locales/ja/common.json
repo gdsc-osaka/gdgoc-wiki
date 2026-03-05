@@ -32,7 +32,26 @@
     "sign_out": "サインアウト"
   },
   "ingest": {
-    "complete_toast": "AIによる取り込みが完了しました！下書きを確認してください。"
+    "title": "コンテンツを追加する",
+    "description": "テキスト・画像・Google ドキュメントをもとに、AIがWikiページの下書きを作成します。",
+    "complete_toast": "AIによる取り込みが完了しました！下書きを確認してください。",
+    "form": {
+      "text_label": "テキスト入力",
+      "text_placeholder": "イベントや活動について自由に書いてください（最低50文字）\n例: 先日のTech Talkは参加者45名で盛況でした。スピーカーの田中さんは...",
+      "char_count": "{{count}} 文字",
+      "images_label": "画像添付（最大{{max}}枚・各10MB以下）",
+      "drop_hint": "クリックまたはドラッグ&ドロップで画像を追加",
+      "doc_url_label": "Googleドキュメント URL",
+      "drive_connected": "接続済み",
+      "drive_connect": "Driveを接続",
+      "submit": "AI で整理する →"
+    },
+    "errors": {
+      "text_too_short": "入力が少なすぎます。最低{{min}}文字以上入力してください。",
+      "too_many_images": "画像は最大{{max}}枚までです。",
+      "image_too_large": "{{name}} は10MBを超えています。",
+      "not_an_image": "{{name}} は画像ファイルではありません。"
+    }
   },
   "editor": {
     "back_to_page": "ページに戻る",
