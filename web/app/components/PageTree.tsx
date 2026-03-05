@@ -200,7 +200,7 @@ function SortableTreeItem({
           paddingLeft: `${depth * INDENT_WIDTH}px`,
           opacity: isDragging ? 0.3 : 1,
         }}
-        className={`group flex min-h-7 items-center gap-1 rounded px-1 py-1 text-sm ${
+        className={`group flex min-h-8 items-center gap-1 rounded px-1 py-1.5 text-sm ${
           isCurrent ? "bg-blue-500/10 font-medium text-blue-500" : "text-gray-700 hover:bg-gray-100"
         }${isOverlay ? " border border-gray-200 bg-white shadow-md" : ""}`}
       >
@@ -412,7 +412,7 @@ function TreeNode({ node, currentSlug, depth, isCollapsed }: TreeNodeProps) {
     <li>
       <div
         title={isCollapsed ? title : undefined}
-        className={`flex min-h-7 items-center gap-1 rounded px-2 py-1 text-sm ${
+        className={`flex min-h-8 items-center gap-1 rounded px-2 py-1.5 text-sm ${
           isCurrent ? "bg-blue-500/10 font-medium text-blue-500" : "text-gray-700 hover:bg-gray-100"
         }`}
       >

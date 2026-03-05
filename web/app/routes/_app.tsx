@@ -1,4 +1,5 @@
-import { and, eq } from "drizzle-orm"
+import { and, eq, notInArray, sql } from "drizzle-orm"
+import { useState } from "react"
 import { Outlet, useLoaderData, useParams } from "react-router"
 import type { LoaderFunctionArgs } from "react-router"
 import Footer from "~/components/Footer"
@@ -34,7 +35,20 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
     .orderBy(schema.pages.sortOrder)
     .all()
 
-  return { user, pageTree: buildTree(treeRows) }
+  const countResult = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(schema.ingestionSessions)
+    .where(
+      and(
+        eq(schema.ingestionSessions.userId, user.id),
+        notInArray(schema.ingestionSessions.status, ["archived", "pending"]),
+      ),
+    )
+    .get()
+
+  const activeIngestionCount = countResult?.count ?? 0
+
+  return { user, pageTree: buildTree(treeRows), activeIngestionCount }
 }
 
 // ---------------------------------------------------------------------------
@@ -42,22 +56,43 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
 // ---------------------------------------------------------------------------
 
 export default function AppLayout() {
-  const { user, pageTree } = useLoaderData<typeof loader>()
+  const { user, pageTree, activeIngestionCount } = useLoaderData<typeof loader>()
   const { slug } = useParams()
+
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true
+    const stored = localStorage.getItem("gdgoc-sidebar-open")
+    return stored === null ? true : stored === "true"
+  })
+
+  function toggleSidebar() {
+    setSidebarOpen((v) => {
+      const next = !v
+      localStorage.setItem("gdgoc-sidebar-open", String(next))
+      return next
+    })
+  }
 
   return (
     <div className="flex min-h-screen flex-col">
-      <Navbar user={user} />
+      <Navbar
+        user={user}
+        sidebarOpen={sidebarOpen}
+        onToggleSidebar={toggleSidebar}
+        activeIngestionCount={activeIngestionCount}
+      />
 
       <div className="flex flex-1 pt-14">
-        <Sidebar pages={pageTree} currentSlug={slug} userRole={user.role} />
+        <Sidebar pages={pageTree} currentSlug={slug} userRole={user.role} isOpen={sidebarOpen} />
 
         {/* Main content */}
-        <main className="min-w-0 flex-1">
-          <Outlet />
-        </main>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <main className="flex-1">
+            <Outlet />
+          </main>
+          <Footer />
+        </div>
       </div>
-      <Footer />
     </div>
   )
 }

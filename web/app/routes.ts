@@ -16,6 +16,7 @@ export default [
   route("/api/google-drive/auth", "routes/api.google-drive.auth.ts"),
   route("/api/google-drive/callback", "routes/api.google-drive.callback.ts"),
   route("/api/pages/reorder", "routes/api.pages.reorder.ts"),
+  route("/api/notifications", "routes/api.notifications.ts"),
 
   // Admin routes — separate layout with admin sidebar
   route("admin", "routes/admin.tsx", [
@@ -32,6 +33,10 @@ export default [
 
   // Pending access — no auth shell needed
   route("/pending", "routes/pending.tsx"),
+
+  // Legal pages — public, no auth shell
+  route("/privacy", "routes/privacy.tsx"),
+  route("/terms", "routes/terms.tsx"),
 
   // Catch-all: return 404 for any unmatched URL (suppresses React Router warning)
   route("*", "routes/$.tsx"),

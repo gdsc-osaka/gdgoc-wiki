@@ -38,9 +38,10 @@ interface SidebarProps {
   pages: PageNode[]
   currentSlug?: string
   userRole?: string
+  isOpen?: boolean
 }
 
-export default function Sidebar({ pages, currentSlug, userRole }: SidebarProps) {
+export default function Sidebar({ pages, currentSlug, userRole, isOpen = true }: SidebarProps) {
   const { t } = useTranslation()
   const location = useLocation()
 
@@ -53,8 +54,11 @@ export default function Sidebar({ pages, currentSlug, userRole }: SidebarProps) 
   const isDragging = useRef(false)
   const startX = useRef(0)
   const startWidth = useRef(0)
+  const [isResizing, setIsResizing] = useState(false)
 
   const isCollapsed = width < COLLAPSE_THRESHOLD
+  const displayWidth = isOpen ? width : 0
+  const transition = isResizing ? "none" : "width 200ms ease"
 
   const onMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging.current) return
@@ -66,6 +70,7 @@ export default function Sidebar({ pages, currentSlug, userRole }: SidebarProps) 
   const onMouseUp = useCallback(() => {
     if (!isDragging.current) return
     isDragging.current = false
+    setIsResizing(false)
     document.body.style.cursor = ""
     document.body.style.userSelect = ""
     setWidth((w) => {
@@ -80,6 +85,7 @@ export default function Sidebar({ pages, currentSlug, userRole }: SidebarProps) 
     (e: React.MouseEvent) => {
       e.preventDefault()
       isDragging.current = true
+      setIsResizing(true)
       startX.current = e.clientX
       startWidth.current = width
       document.body.style.cursor = "col-resize"
@@ -102,7 +108,7 @@ export default function Sidebar({ pages, currentSlug, userRole }: SidebarProps) 
     <>
       {/* Sidebar */}
       <aside
-        style={{ width }}
+        style={{ width: displayWidth, transition }}
         className="fixed bottom-0 left-0 top-14 overflow-hidden border-r border-gray-200 bg-white"
       >
         <div className="flex h-full flex-col">
@@ -155,15 +161,17 @@ export default function Sidebar({ pages, currentSlug, userRole }: SidebarProps) 
         </div>
 
         {/* Drag handle */}
-        <div
-          onMouseDown={onDragHandleMouseDown}
-          className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-200/50 active:bg-blue-300/50"
-          aria-hidden="true"
-        />
+        {isOpen && (
+          <div
+            onMouseDown={onDragHandleMouseDown}
+            className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-200/50 active:bg-blue-300/50"
+            aria-hidden="true"
+          />
+        )}
       </aside>
 
       {/* Spacer for main content */}
-      <div style={{ width }} className="flex-shrink-0" />
+      <div style={{ width: displayWidth, transition }} className="flex-shrink-0" />
     </>
   )
 }

@@ -7,7 +7,9 @@
     "admin": "Admin",
     "github": "GitHub",
     "recent": "Recent",
-    "starred": "Starred"
+    "starred": "Starred",
+    "close_sidebar": "Close Sidebar",
+    "open_sidebar": "Open Sidebar"
   },
   "language": {
     "ja": "日本語",
@@ -276,6 +278,14 @@
     "results_count": "{{count}} results",
     "no_results": "No pages found for \"{{query}}\".",
     "empty_query": "Enter a search term to find pages."
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No active tasks",
+    "status_processing": "AI is processing...",
+    "status_done": "Draft ready for review",
+    "status_error": "Processing failed",
+    "status_clarification": "Clarification needed"
   },
   "time": {
     "just_now": "just now",

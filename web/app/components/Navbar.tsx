@@ -1,10 +1,14 @@
-import { LogOut, Settings } from "lucide-react"
+import { Globe, LogOut, PanelLeft, PanelLeftClose, Settings } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Form, Link, useFetcher, useSearchParams } from "react-router"
+import NotificationBell from "./NotificationBell"
 
 interface NavbarProps {
   user: { name: string; email: string; image?: string | null; role: string } | null
+  sidebarOpen?: boolean
+  onToggleSidebar?: () => void
+  activeIngestionCount?: number
 }
 
 function UiLangSwitcher() {
@@ -39,8 +43,7 @@ function UiLangSwitcher() {
         className="flex items-center gap-1 rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
         aria-label={t("language.switch_ui")}
       >
-        <span className="text-base leading-none">🌐</span>
-        <span className="text-xs font-medium uppercase">{current}</span>
+        <Globe size={18} aria-hidden="true" />
       </button>
 
       {open && (
@@ -141,13 +144,31 @@ function UserMenu({ user }: { user: NonNullable<NavbarProps["user"]> }) {
   )
 }
 
-export default function Navbar({ user }: NavbarProps) {
+export default function Navbar({
+  user,
+  sidebarOpen,
+  onToggleSidebar,
+  activeIngestionCount,
+}: NavbarProps) {
   const { t } = useTranslation()
   const [searchParams] = useSearchParams()
   const currentQuery = searchParams.get("q") ?? ""
 
   return (
     <header className="fixed top-0 right-0 left-0 z-50 flex h-14 items-center gap-4 border-b border-gray-200 bg-white px-4">
+      {/* Sidebar toggle */}
+      {onToggleSidebar && (
+        <button
+          type="button"
+          onClick={onToggleSidebar}
+          title={sidebarOpen ? t("nav.close_sidebar") : t("nav.open_sidebar")}
+          aria-label={sidebarOpen ? t("nav.close_sidebar") : t("nav.open_sidebar")}
+          className="flex items-center justify-center rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+        >
+          {sidebarOpen ? <PanelLeftClose size={20} /> : <PanelLeft size={20} />}
+        </button>
+      )}
+
       {/* Logo */}
       <Link to="/" className="flex-shrink-0">
         <img src="/logo.png" alt="GDGoC Japan Wiki" className="h-8 w-auto" />
@@ -169,11 +190,13 @@ export default function Navbar({ user }: NavbarProps) {
         {user && (
           <Link
             to="/ingest"
-            className="rounded-md bg-blue-500 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-600"
+            className="whitespace-nowrap rounded-md bg-blue-500 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-600"
           >
             + {t("nav.new_page")}
           </Link>
         )}
+
+        {user && <NotificationBell initialCount={activeIngestionCount ?? 0} />}
 
         <UiLangSwitcher />
 

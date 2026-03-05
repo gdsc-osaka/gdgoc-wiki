@@ -7,7 +7,9 @@
     "admin": "管理",
     "github": "GitHub",
     "recent": "最近の更新",
-    "starred": "スター付き"
+    "starred": "スター付き",
+    "close_sidebar": "サイドバーを閉じる",
+    "open_sidebar": "サイドバーを開く"
   },
   "language": {
     "ja": "日本語",
@@ -276,6 +278,14 @@
     "results_count": "{{count}} 件の結果",
     "no_results": "「{{query}}」に一致するページは見つかりませんでした。",
     "empty_query": "検索キーワードを入力してページを探しましょう。"
+  },
+  "notifications": {
+    "title": "通知",
+    "empty": "アクティブなタスクはありません",
+    "status_processing": "AIが処理中...",
+    "status_done": "下書きの確認準備完了",
+    "status_error": "処理に失敗しました",
+    "status_clarification": "確認事項があります"
   },
   "time": {
     "just_now": "たった今",

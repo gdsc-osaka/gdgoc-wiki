@@ -117,6 +117,7 @@ export const ingestionSessions = sqliteTable("ingestion_sessions", {
   phaseMessage: text("phase_message"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  notifiedAt: integer("notified_at", { mode: "timestamp" }),
 })
 
 // ---------------------------------------------------------------------------

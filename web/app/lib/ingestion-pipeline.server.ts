@@ -9,6 +9,7 @@
 import { eq, sql } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/d1"
 import * as schema from "~/db/schema"
+import { sendIngestionCompleteEmail } from "./email.server"
 import {
   type ClarificationQuestion,
   type ClarificationResult,
@@ -367,6 +368,35 @@ export async function runIngestionPipeline(
         updatedAt: new Date(),
       })
       .where(eq(schema.ingestionSessions.id, sessionId))
+
+    // Send completion email (best-effort — never block pipeline)
+    try {
+      const userRow = await db
+        .select({ name: schema.user.name, email: schema.user.email })
+        .from(schema.user)
+        .where(eq(schema.user.id, userId))
+        .get()
+
+      if (userRow) {
+        const siteUrl = (env.BETTER_AUTH_URL ?? "").replace(/\/$/, "")
+        const reviewUrl = `${siteUrl}/ingest/${sessionId}`
+        await sendIngestionCompleteEmail(env, {
+          to: userRow.email,
+          userName: userRow.name,
+          sessionId,
+          reviewUrl,
+        })
+        await db
+          .update(schema.ingestionSessions)
+          .set({ notifiedAt: new Date() })
+          .where(eq(schema.ingestionSessions.id, sessionId))
+      }
+    } catch (emailErr) {
+      console.error(
+        `[ingestion-pipeline] email notification failed for session=${sessionId}:`,
+        emailErr,
+      )
+    }
   } catch (err) {
     console.error(`[ingestion-pipeline] session=${sessionId} error:`, err)
     const rawMessage = err instanceof Error ? err.message : String(err)
