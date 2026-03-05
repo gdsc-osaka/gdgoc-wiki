@@ -112,6 +112,88 @@ export default function AdminTags() {
         <div className="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-800">{flashError}</div>
       )}
 
+      {/* Create form */}
+      <div className="mb-8">
+        <h2 className="mb-4 text-lg font-semibold text-gray-900">{t("admin.tags.new_tag")}</h2>
+        <div className="rounded-lg border border-gray-200 bg-white p-6">
+          <Form method="post">
+            <input type="hidden" name="intent" value="createTag" />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="create-slug"
+                  className="mb-1 block text-sm font-medium text-gray-700"
+                >
+                  {t("admin.tags.form.slug")}
+                </label>
+                <input
+                  id="create-slug"
+                  type="text"
+                  name="slug"
+                  required
+                  pattern="[a-z0-9]+(-[a-z0-9]+)*"
+                  placeholder="my-tag"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="create-color"
+                  className="mb-1 block text-sm font-medium text-gray-700"
+                >
+                  {t("admin.tags.form.color")}
+                </label>
+                <input
+                  id="create-color"
+                  type="color"
+                  name="color"
+                  defaultValue="#3b82f6"
+                  className="h-10 w-full cursor-pointer rounded-md border border-gray-300"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="create-label-ja"
+                  className="mb-1 block text-sm font-medium text-gray-700"
+                >
+                  {t("admin.tags.form.label_ja")}
+                </label>
+                <input
+                  id="create-label-ja"
+                  type="text"
+                  name="labelJa"
+                  required
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="create-label-en"
+                  className="mb-1 block text-sm font-medium text-gray-700"
+                >
+                  {t("admin.tags.form.label_en")}
+                </label>
+                <input
+                  id="create-label-en"
+                  type="text"
+                  name="labelEn"
+                  required
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+              <div className="col-span-2 flex justify-end">
+                <button
+                  type="submit"
+                  className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                >
+                  {t("admin.tags.form.submit")}
+                </button>
+              </div>
+            </div>
+          </Form>
+        </div>
+      </div>
+
       <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
         <table className="w-full text-sm">
           <thead className="border-b border-gray-200 bg-gray-50">
@@ -259,88 +341,6 @@ export default function AdminTags() {
         {tags.length === 0 && (
           <p className="px-4 py-8 text-center text-sm text-gray-400">{t("admin.tags.empty")}</p>
         )}
-      </div>
-
-      {/* Create form */}
-      <div className="mt-8">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">{t("admin.tags.new_tag")}</h2>
-        <div className="rounded-lg border border-gray-200 bg-white p-6">
-          <Form method="post">
-            <input type="hidden" name="intent" value="createTag" />
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor="create-slug"
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  {t("admin.tags.form.slug")}
-                </label>
-                <input
-                  id="create-slug"
-                  type="text"
-                  name="slug"
-                  required
-                  pattern="[a-z0-9]+(-[a-z0-9]+)*"
-                  placeholder="my-tag"
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="create-color"
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  {t("admin.tags.form.color")}
-                </label>
-                <input
-                  id="create-color"
-                  type="color"
-                  name="color"
-                  defaultValue="#3b82f6"
-                  className="h-10 w-full cursor-pointer rounded-md border border-gray-300"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="create-label-ja"
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  {t("admin.tags.form.label_ja")}
-                </label>
-                <input
-                  id="create-label-ja"
-                  type="text"
-                  name="labelJa"
-                  required
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="create-label-en"
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  {t("admin.tags.form.label_en")}
-                </label>
-                <input
-                  id="create-label-en"
-                  type="text"
-                  name="labelEn"
-                  required
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-              <div className="col-span-2 flex justify-end">
-                <button
-                  type="submit"
-                  className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                >
-                  {t("admin.tags.form.submit")}
-                </button>
-              </div>
-            </div>
-          </Form>
-        </div>
       </div>
     </div>
   )
