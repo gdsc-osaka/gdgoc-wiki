@@ -1,43 +1,27 @@
-import { AlertCircle, Bell, BellDot, CheckCircle2, HelpCircle, Loader2 } from "lucide-react"
+import { AlertCircle, Bell, BellDot, CheckCircle2 } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router"
 
-interface Session {
+interface Notification {
   id: string
-  status: string
-  phaseMessage: string | null
+  type: string
+  titleJa: string
+  titleEn: string
+  refId: string | null
+  refUrl: string | null
+  readAt: string | null
   createdAt: string
-  updatedAt: string
 }
 
-function statusIcon(status: string) {
-  switch (status) {
-    case "processing":
-      return <Loader2 className="h-4 w-4 shrink-0 animate-spin text-blue-500" />
-    case "done":
+function typeIcon(type: string) {
+  switch (type) {
+    case "ingestion_done":
       return <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
-    case "error":
+    case "ingestion_error":
       return <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
-    case "awaiting_clarification":
-      return <HelpCircle className="h-4 w-4 shrink-0 text-amber-500" />
     default:
-      return <Loader2 className="h-4 w-4 shrink-0 animate-spin text-gray-400" />
-  }
-}
-
-function statusLabel(t: (key: string) => string, status: string): string {
-  switch (status) {
-    case "processing":
-      return t("notifications.status_processing")
-    case "done":
-      return t("notifications.status_done")
-    case "error":
-      return t("notifications.status_error")
-    case "awaiting_clarification":
-      return t("notifications.status_clarification")
-    default:
-      return t("notifications.status_processing")
+      return <Bell className="h-4 w-4 shrink-0 text-gray-400" />
   }
 }
 
@@ -53,21 +37,21 @@ function relativeTime(t: (key: string, opts?: Record<string, unknown>) => string
 }
 
 export default function NotificationBell({ initialCount }: { initialCount: number }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
-  const [sessions, setSessions] = useState<Session[]>([])
-  const [count, setCount] = useState(initialCount)
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [unreadCount, setUnreadCount] = useState(initialCount)
   const ref = useRef<HTMLDivElement>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const fetchSessions = useCallback(async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       const res = await fetch("/api/notifications")
       if (!res.ok) return
-      const data = (await res.json()) as { sessions: Session[] }
-      setSessions(data.sessions)
-      setCount(data.sessions.length)
+      const data = (await res.json()) as { notifications: Notification[]; unreadCount: number }
+      setNotifications(data.notifications)
+      setUnreadCount(data.unreadCount)
     } catch {
       // ignore fetch errors
     }
@@ -86,23 +70,58 @@ export default function NotificationBell({ initialCount }: { initialCount: numbe
   useEffect(() => {
     const interval = open ? 5_000 : 30_000
     if (intervalRef.current) clearInterval(intervalRef.current)
-    intervalRef.current = setInterval(fetchSessions, interval)
+    intervalRef.current = setInterval(fetchNotifications, interval)
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
-  }, [open, fetchSessions])
+  }, [open, fetchNotifications])
 
   // Fetch immediately when dropdown opens
   useEffect(() => {
-    if (open) fetchSessions()
-  }, [open, fetchSessions])
+    if (open) fetchNotifications()
+  }, [open, fetchNotifications])
 
   // Sync initialCount on server re-renders
   useEffect(() => {
-    setCount(initialCount)
+    setUnreadCount(initialCount)
   }, [initialCount])
 
-  const BellIcon = count > 0 ? BellDot : Bell
+  async function markAsRead(notificationId: string) {
+    // Optimistic update
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === notificationId ? { ...n, readAt: new Date().toISOString() } : n)),
+    )
+    setUnreadCount((c) => Math.max(0, c - 1))
+    try {
+      await fetch("/api/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notificationId }),
+      })
+    } catch {
+      // revert on failure
+      fetchNotifications()
+    }
+  }
+
+  async function markAllRead() {
+    setNotifications((prev) =>
+      prev.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() })),
+    )
+    setUnreadCount(0)
+    try {
+      await fetch("/api/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ markAllRead: true }),
+      })
+    } catch {
+      fetchNotifications()
+    }
+  }
+
+  const title = (n: Notification) => (i18n.language === "en" ? n.titleEn : n.titleJa)
+  const BellIcon = unreadCount > 0 ? BellDot : Bell
 
   return (
     <div ref={ref} className="relative">
@@ -114,39 +133,52 @@ export default function NotificationBell({ initialCount }: { initialCount: numbe
         className="relative flex items-center justify-center rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
       >
         <BellIcon className="h-5 w-5" />
-        {count > 0 && (
+        {unreadCount > 0 && (
           <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-500 px-1 text-[10px] font-bold leading-none text-white">
-            {count > 99 ? "99+" : count}
+            {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
       </button>
 
       {open && (
         <div className="absolute right-0 top-full z-50 mt-1 w-72 rounded-md border border-gray-200 bg-white shadow-lg">
-          <div className="border-b border-gray-100 px-3 py-2">
+          <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
             <p className="text-sm font-semibold text-gray-900">{t("notifications.title")}</p>
+            {unreadCount > 0 && (
+              <button
+                type="button"
+                onClick={markAllRead}
+                className="text-xs text-blue-500 hover:text-blue-700"
+              >
+                {t("notifications.mark_all_read")}
+              </button>
+            )}
           </div>
 
-          {sessions.length === 0 ? (
+          {notifications.length === 0 ? (
             <div className="px-3 py-6 text-center text-sm text-gray-400">
               {t("notifications.empty")}
             </div>
           ) : (
             <div className="max-h-64 overflow-y-auto">
-              {sessions.map((s) => (
+              {notifications.map((n) => (
                 <button
-                  key={s.id}
+                  key={n.id}
                   type="button"
                   onClick={() => {
+                    if (!n.readAt) markAsRead(n.id)
                     setOpen(false)
-                    navigate(`/ingest/${s.id}`)
+                    if (n.refUrl) navigate(n.refUrl)
                   }}
-                  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left hover:bg-gray-50"
+                  className={[
+                    "flex w-full items-center gap-2.5 px-3 py-2.5 text-left hover:bg-gray-50",
+                    !n.readAt ? "bg-blue-50" : "",
+                  ].join(" ")}
                 >
-                  {statusIcon(s.status)}
+                  {typeIcon(n.type)}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm text-gray-800">{statusLabel(t, s.status)}</p>
-                    <p className="text-xs text-gray-400">{relativeTime(t, s.updatedAt)}</p>
+                    <p className="truncate text-sm text-gray-800">{title(n)}</p>
+                    <p className="text-xs text-gray-400">{relativeTime(t, n.createdAt)}</p>
                   </div>
                 </button>
               ))}

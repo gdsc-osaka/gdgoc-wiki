@@ -1,5 +1,5 @@
-import { and, eq, notInArray } from "drizzle-orm"
-import type { LoaderFunctionArgs } from "react-router"
+import { and, desc, eq, isNull, sql } from "drizzle-orm"
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router"
 import * as schema from "~/db/schema"
 import { requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
@@ -9,27 +9,63 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
   const user = await requireRole(request, env, "viewer")
   const db = getDb(env)
 
-  const sessions = await db
+  const notifications = await db
     .select({
-      id: schema.ingestionSessions.id,
-      status: schema.ingestionSessions.status,
-      phaseMessage: schema.ingestionSessions.phaseMessage,
-      createdAt: schema.ingestionSessions.createdAt,
-      updatedAt: schema.ingestionSessions.updatedAt,
+      id: schema.notifications.id,
+      type: schema.notifications.type,
+      titleJa: schema.notifications.titleJa,
+      titleEn: schema.notifications.titleEn,
+      refId: schema.notifications.refId,
+      refUrl: schema.notifications.refUrl,
+      readAt: schema.notifications.readAt,
+      createdAt: schema.notifications.createdAt,
     })
-    .from(schema.ingestionSessions)
-    .where(
-      and(
-        eq(schema.ingestionSessions.userId, user.id),
-        notInArray(schema.ingestionSessions.status, ["archived", "pending"]),
-      ),
-    )
-    .orderBy(schema.ingestionSessions.updatedAt)
-    .limit(20)
+    .from(schema.notifications)
+    .where(eq(schema.notifications.userId, user.id))
+    .orderBy(desc(schema.notifications.createdAt))
+    .limit(50)
     .all()
 
-  // Reverse so most recent is first (orderBy desc not available in all D1 builds)
-  sessions.reverse()
+  const countResult = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(schema.notifications)
+    .where(and(eq(schema.notifications.userId, user.id), isNull(schema.notifications.readAt)))
+    .get()
 
-  return Response.json({ sessions })
+  return Response.json({
+    notifications,
+    unreadCount: countResult?.count ?? 0,
+  })
+}
+
+export async function action({ request, context }: ActionFunctionArgs) {
+  const { env } = context.cloudflare
+  const user = await requireRole(request, env, "viewer")
+  const db = getDb(env)
+
+  const body = (await request.json()) as { notificationId?: string; markAllRead?: boolean }
+  const now = new Date()
+
+  if (body.markAllRead) {
+    await db
+      .update(schema.notifications)
+      .set({ readAt: now })
+      .where(and(eq(schema.notifications.userId, user.id), isNull(schema.notifications.readAt)))
+    return Response.json({ ok: true })
+  }
+
+  if (body.notificationId) {
+    await db
+      .update(schema.notifications)
+      .set({ readAt: now })
+      .where(
+        and(
+          eq(schema.notifications.id, body.notificationId),
+          eq(schema.notifications.userId, user.id),
+        ),
+      )
+    return Response.json({ ok: true })
+  }
+
+  return Response.json({ error: "Invalid request" }, { status: 400 })
 }

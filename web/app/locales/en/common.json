@@ -134,6 +134,13 @@
     "clarification_submit": "Submit and continue",
     "clarification_hint": "Please provide the following information to generate more accurate wiki pages",
     "nothing_in_particular": "Nothing in particular",
+    "url_selection_heading": "External URLs Found",
+    "url_selection_hint": "Select URLs to fetch and include as additional context for AI page generation.",
+    "url_selection_submit": "Fetch selected URLs and continue",
+    "url_selection_skip": "Skip and continue",
+    "url_selection_fetching": "Fetching external URLs...",
+    "url_source_user_text": "From your text",
+    "url_source_google_doc": "From Google Doc",
     "error_heading": "An error occurred during processing",
     "retry": "Try again",
     "draft_not_found": "Draft not found.",
@@ -281,11 +288,8 @@
   },
   "notifications": {
     "title": "Notifications",
-    "empty": "No active tasks",
-    "status_processing": "AI is processing...",
-    "status_done": "Draft ready for review",
-    "status_error": "Processing failed",
-    "status_clarification": "Clarification needed"
+    "empty": "No notifications",
+    "mark_all_read": "Mark all read"
   },
   "time": {
     "just_now": "just now",

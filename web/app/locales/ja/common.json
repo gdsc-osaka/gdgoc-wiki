@@ -134,6 +134,13 @@
     "clarification_submit": "回答して続ける",
     "clarification_hint": "より正確なWikiページを生成するために、以下の情報をお聞かせください",
     "nothing_in_particular": "特になし",
+    "url_selection_heading": "外部URLが見つかりました",
+    "url_selection_hint": "AIページ生成の参考として取得するURLを選択してください。",
+    "url_selection_submit": "選択したURLを取得して続ける",
+    "url_selection_skip": "スキップして続ける",
+    "url_selection_fetching": "外部URLを取得中...",
+    "url_source_user_text": "テキスト入力から",
+    "url_source_google_doc": "Googleドキュメントから",
     "error_heading": "処理中にエラーが発生しました",
     "retry": "もう一度試す",
     "draft_not_found": "下書きが見つかりません。",
@@ -281,11 +288,8 @@
   },
   "notifications": {
     "title": "通知",
-    "empty": "アクティブなタスクはありません",
-    "status_processing": "AIが処理中...",
-    "status_done": "下書きの確認準備完了",
-    "status_error": "処理に失敗しました",
-    "status_clarification": "確認事項があります"
+    "empty": "通知はありません",
+    "mark_all_read": "すべて既読にする"
   },
   "time": {
     "just_now": "たった今",

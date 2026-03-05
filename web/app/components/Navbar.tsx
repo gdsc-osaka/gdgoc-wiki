@@ -8,7 +8,7 @@ interface NavbarProps {
   user: { name: string; email: string; image?: string | null; role: string } | null
   sidebarOpen?: boolean
   onToggleSidebar?: () => void
-  activeIngestionCount?: number
+  unreadNotificationCount?: number
 }
 
 function UiLangSwitcher() {
@@ -148,7 +148,7 @@ export default function Navbar({
   user,
   sidebarOpen,
   onToggleSidebar,
-  activeIngestionCount,
+  unreadNotificationCount,
 }: NavbarProps) {
   const { t } = useTranslation()
   const [searchParams] = useSearchParams()
@@ -196,7 +196,7 @@ export default function Navbar({
           </Link>
         )}
 
-        {user && <NotificationBell initialCount={activeIngestionCount ?? 0} />}
+        {user && <NotificationBell initialCount={unreadNotificationCount ?? 0} />}
 
         <UiLangSwitcher />
 

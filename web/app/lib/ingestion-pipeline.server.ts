@@ -32,6 +32,7 @@ import {
   refreshAccessToken,
 } from "./google-drive.server"
 import { tiptapToMarkdown } from "./tiptap-convert"
+import { type ExtractedUrl, extractUrls, fetchUrlViaJina } from "./url-extract"
 
 // ---------------------------------------------------------------------------
 // Input / output types
@@ -62,6 +63,13 @@ export type AiDraftJson =
       phase: "clarification"
       questions: ClarificationQuestion[]
       summary: string
+      fileUris: { uri: string; mimeType: string }[]
+      googleDocText?: string
+      fetchedUrlContent?: string
+    }
+  | {
+      phase: "url_selection"
+      urls: ExtractedUrl[]
       fileUris: { uri: string; mimeType: string }[]
       googleDocText?: string
     }
@@ -101,6 +109,8 @@ export async function runIngestionPipeline(
     fileUris: { uri: string; mimeType: string }[]
     clarificationAnswers: string
     googleDocText?: string
+    selectedUrls?: string[]
+    fetchedUrlContent?: string
   },
 ): Promise<void> {
   const db = drizzle(env.DB, { schema })
@@ -111,8 +121,12 @@ export async function runIngestionPipeline(
     const warnings: string[] = []
     const docTexts: string[] = []
 
+    // Determine resume type
+    const isPostClarification = !!resumeContext?.clarificationAnswers
+    const isPostUrlSelection = !!resumeContext?.selectedUrls && !isPostClarification
+
     if (resumeContext) {
-      // Resuming after clarification — reuse already-uploaded files + doc text
+      // Resuming — reuse already-uploaded files + doc text
       fileUris = resumeContext.fileUris
       if (resumeContext.googleDocText) {
         docTexts.push(resumeContext.googleDocText)
@@ -198,14 +212,86 @@ export async function runIngestionPipeline(
         }
       }
 
-      // Combine base text + doc texts into userText
+      // ------------------------------------------------------------------
+      // Step 2.5: Extract URLs from user text + Google Doc text
+      // ------------------------------------------------------------------
+      const allExtractedUrls: ExtractedUrl[] = []
+      const seenUrls = new Set<string>()
+
+      for (const extracted of extractUrls(baseUserText, "user_text")) {
+        if (!seenUrls.has(extracted.url)) {
+          seenUrls.add(extracted.url)
+          allExtractedUrls.push(extracted)
+        }
+      }
+      for (const docText of docTexts) {
+        for (const extracted of extractUrls(docText, "google_doc")) {
+          if (!seenUrls.has(extracted.url)) {
+            seenUrls.add(extracted.url)
+            allExtractedUrls.push(extracted)
+          }
+        }
+      }
+
+      // Cap at 5 URLs total
+      const urlsToShow = allExtractedUrls.slice(0, 5)
+
+      if (urlsToShow.length > 0) {
+        const aiDraftJson: AiDraftJson = {
+          phase: "url_selection",
+          urls: urlsToShow,
+          fileUris,
+          googleDocText: docTexts.join("\n\n---\n\n"),
+        }
+        await db
+          .update(schema.ingestionSessions)
+          .set({
+            aiDraftJson: JSON.stringify(aiDraftJson),
+            status: "awaiting_url_selection",
+            phaseMessage: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(schema.ingestionSessions.id, sessionId))
+        return
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // Step 2.6: Fetch selected URLs via Jina.ai (if resuming from URL selection)
+    // ------------------------------------------------------------------
+    let fetchedUrlContent = resumeContext?.fetchedUrlContent ?? ""
+
+    if (
+      isPostUrlSelection &&
+      resumeContext?.selectedUrls &&
+      resumeContext.selectedUrls.length > 0
+    ) {
+      await updatePhase(db, sessionId, "fetching_urls")
+      const parts: string[] = []
+      for (const url of resumeContext.selectedUrls) {
+        const result = await fetchUrlViaJina(url)
+        if (result.error) {
+          parts.push(`### ${url}\n(取得失敗: ${result.error})`)
+        } else {
+          const suffix = result.truncated ? "\n\n(... 10,000文字で切り詰めました)" : ""
+          parts.push(`### ${url}\n${result.markdown}${suffix}`)
+        }
+      }
+      fetchedUrlContent = parts.join("\n\n")
+    }
+
+    // ------------------------------------------------------------------
+    // Phase 0: Clarifier (runs on first run OR after URL selection)
+    // ------------------------------------------------------------------
+    if (!isPostClarification) {
       const combinedTexts = [baseUserText, ...docTexts].filter((t) => t.trim().length > 0)
       const userText = combinedTexts.join("\n\n---\n\n")
+      let clarifierText = userText
+      if (fetchedUrlContent) {
+        clarifierText += `\n\n---\n## 参考URL（ユーザーが選択した外部ページ）\n${fetchedUrlContent}`
+      }
 
-      // ------------------------------------------------------------------
-      // Step 0: Phase 0 — Clarifier
-      // ------------------------------------------------------------------
-      const clarifierResult = await runPhase0Clarifier(env.GEMINI_API_KEY, userText, fileUris)
+      const clarifierResult = await runPhase0Clarifier(env.GEMINI_API_KEY, clarifierText, fileUris)
 
       if (clarifierResult.needsClarification) {
         const aiDraftJson: AiDraftJson = {
@@ -214,6 +300,7 @@ export async function runIngestionPipeline(
           summary: clarifierResult.summary,
           fileUris,
           googleDocText: docTexts.join("\n\n---\n\n"),
+          fetchedUrlContent: fetchedUrlContent || undefined,
         }
         await db
           .update(schema.ingestionSessions)
@@ -231,9 +318,14 @@ export async function runIngestionPipeline(
     // Build final user text (prepend clarification answers if resuming)
     const combinedTexts = [baseUserText, ...docTexts].filter((t) => t.trim().length > 0)
     const userText = combinedTexts.join("\n\n---\n\n")
-    const effectiveUserText = resumeContext
-      ? `${resumeContext.clarificationAnswers}\n\n${userText}`
+
+    let effectiveUserText = isPostClarification
+      ? `${resumeContext?.clarificationAnswers}\n\n${userText}`
       : userText
+
+    if (fetchedUrlContent) {
+      effectiveUserText += `\n\n---\n## 参考URL（ユーザーが選択した外部ページ）\n${fetchedUrlContent}`
+    }
 
     // ------------------------------------------------------------------
     // Step 3: Fetch page index from D1 (FTS5, max 200)
@@ -369,32 +461,50 @@ export async function runIngestionPipeline(
       })
       .where(eq(schema.ingestionSessions.id, sessionId))
 
-    // Send completion email (best-effort — never block pipeline)
+    // Create notification + best-effort email (never block pipeline)
     try {
-      const userRow = await db
-        .select({ name: schema.user.name, email: schema.user.email })
-        .from(schema.user)
-        .where(eq(schema.user.id, userId))
-        .get()
+      const reviewUrl = `/ingest/${sessionId}`
+      const notificationId = crypto.randomUUID()
+      await db.insert(schema.notifications).values({
+        id: notificationId,
+        userId,
+        type: "ingestion_done",
+        titleJa: "下書きの確認準備完了",
+        titleEn: "Draft ready for review",
+        refId: sessionId,
+        refUrl: reviewUrl,
+      })
 
-      if (userRow) {
-        const siteUrl = (env.BETTER_AUTH_URL ?? "").replace(/\/$/, "")
-        const reviewUrl = `${siteUrl}/ingest/${sessionId}`
-        await sendIngestionCompleteEmail(env, {
-          to: userRow.email,
-          userName: userRow.name,
-          sessionId,
-          reviewUrl,
-        })
-        await db
-          .update(schema.ingestionSessions)
-          .set({ notifiedAt: new Date() })
-          .where(eq(schema.ingestionSessions.id, sessionId))
+      try {
+        const userRow = await db
+          .select({ name: schema.user.name, email: schema.user.email })
+          .from(schema.user)
+          .where(eq(schema.user.id, userId))
+          .get()
+
+        if (userRow) {
+          const siteUrl = (env.BETTER_AUTH_URL ?? "").replace(/\/$/, "")
+          await sendIngestionCompleteEmail(env, {
+            to: userRow.email,
+            userName: userRow.name,
+            sessionId,
+            reviewUrl: `${siteUrl}${reviewUrl}`,
+          })
+          await db
+            .update(schema.notifications)
+            .set({ emailedAt: new Date() })
+            .where(eq(schema.notifications.id, notificationId))
+        }
+      } catch (emailErr) {
+        console.error(
+          `[ingestion-pipeline] email notification failed for session=${sessionId}:`,
+          emailErr,
+        )
       }
-    } catch (emailErr) {
+    } catch (notifErr) {
       console.error(
-        `[ingestion-pipeline] email notification failed for session=${sessionId}:`,
-        emailErr,
+        `[ingestion-pipeline] notification insert failed for session=${sessionId}:`,
+        notifErr,
       )
     }
   } catch (err) {
@@ -406,7 +516,8 @@ export async function runIngestionPipeline(
     const errorMessage = isGoogleDriveError
       ? rawMessage
       : "Ingestion failed due to an internal error."
-    await drizzle(env.DB, { schema })
+    const errorDb = drizzle(env.DB, { schema })
+    await errorDb
       .update(schema.ingestionSessions)
       .set({
         status: "error",
@@ -415,6 +526,21 @@ export async function runIngestionPipeline(
         updatedAt: new Date(),
       })
       .where(eq(schema.ingestionSessions.id, sessionId))
+
+    // Create error notification (best-effort)
+    try {
+      await errorDb.insert(schema.notifications).values({
+        id: crypto.randomUUID(),
+        userId,
+        type: "ingestion_error",
+        titleJa: "処理に失敗しました",
+        titleEn: "Processing failed",
+        refId: sessionId,
+        refUrl: `/ingest/${sessionId}`,
+      })
+    } catch {
+      // never block error handling
+    }
   }
 }
 

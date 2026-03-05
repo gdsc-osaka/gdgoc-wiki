@@ -1,4 +1,4 @@
-import { and, eq, notInArray, sql } from "drizzle-orm"
+import { and, eq, isNull, sql } from "drizzle-orm"
 import { useState } from "react"
 import { Outlet, useLoaderData, useParams } from "react-router"
 import type { LoaderFunctionArgs } from "react-router"
@@ -37,18 +37,13 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
 
   const countResult = await db
     .select({ count: sql<number>`count(*)` })
-    .from(schema.ingestionSessions)
-    .where(
-      and(
-        eq(schema.ingestionSessions.userId, user.id),
-        notInArray(schema.ingestionSessions.status, ["archived", "pending"]),
-      ),
-    )
+    .from(schema.notifications)
+    .where(and(eq(schema.notifications.userId, user.id), isNull(schema.notifications.readAt)))
     .get()
 
-  const activeIngestionCount = countResult?.count ?? 0
+  const unreadNotificationCount = countResult?.count ?? 0
 
-  return { user, pageTree: buildTree(treeRows), activeIngestionCount }
+  return { user, pageTree: buildTree(treeRows), unreadNotificationCount }
 }
 
 // ---------------------------------------------------------------------------
@@ -56,7 +51,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
 // ---------------------------------------------------------------------------
 
 export default function AppLayout() {
-  const { user, pageTree, activeIngestionCount } = useLoaderData<typeof loader>()
+  const { user, pageTree, unreadNotificationCount } = useLoaderData<typeof loader>()
   const { slug } = useParams()
 
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
@@ -79,7 +74,7 @@ export default function AppLayout() {
         user={user}
         sidebarOpen={sidebarOpen}
         onToggleSidebar={toggleSidebar}
-        activeIngestionCount={activeIngestionCount}
+        unreadNotificationCount={unreadNotificationCount}
       />
 
       <div className="flex flex-1 pt-14">

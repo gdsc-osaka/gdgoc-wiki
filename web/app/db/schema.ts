@@ -117,7 +117,25 @@ export const ingestionSessions = sqliteTable("ingestion_sessions", {
   phaseMessage: text("phase_message"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
-  notifiedAt: integer("notified_at", { mode: "timestamp" }),
+})
+
+// ---------------------------------------------------------------------------
+// notifications
+// ---------------------------------------------------------------------------
+export const notifications = sqliteTable("notifications", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  type: text("type").notNull(),
+  // "ingestion_done" | "ingestion_error" | ...
+  titleJa: text("title_ja").notNull(),
+  titleEn: text("title_en").notNull(),
+  refId: text("ref_id"),
+  refUrl: text("ref_url"),
+  readAt: integer("read_at", { mode: "timestamp" }),
+  emailedAt: integer("emailed_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
 })
 
 // ---------------------------------------------------------------------------
