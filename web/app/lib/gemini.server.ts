@@ -814,17 +814,33 @@ ${contentJa}`
 // ---------------------------------------------------------------------------
 // Prompt re-generation with feedback
 // ---------------------------------------------------------------------------
-const FILE_ATTACHMENT_HINT =
-  "【添付ファイルについて】以下の添付ファイルは補足資料（画像・表・レイアウト情報）です。メインのテキスト内容は上記「ユーザー入力」に含まれています。添付ファイルは視覚的な情報の参照用としてのみ使用してください。"
+const PDF_ATTACHMENT_HINT =
+  "【添付PDFについて】以下のPDFドキュメントは一次資料です。PDFの全内容（テキスト・図表・レイアウト）を読み込み、Wikiページ作成の主要な情報源として使用してください。"
+
+const IMAGE_ATTACHMENT_HINT =
+  "【添付画像について】以下の画像は補足資料（視覚的なレイアウト・図表情報）です。テキスト内容は上記「ユーザー入力」に含まれています。画像は視覚的な情報の参照用としてのみ使用してください。"
 
 function pushFilePartsWithHint(
   parts: Array<{ text: string } | { fileData: { mimeType: string; fileUri: string } }>,
   fileUris: { uri: string; mimeType: string }[],
 ): void {
   if (fileUris.length === 0) return
-  parts.push({ text: FILE_ATTACHMENT_HINT })
-  for (const f of fileUris) {
-    parts.push({ fileData: { mimeType: f.mimeType, fileUri: f.uri } })
+
+  const pdfs = fileUris.filter((f) => f.mimeType === "application/pdf")
+  const images = fileUris.filter((f) => f.mimeType !== "application/pdf")
+
+  if (pdfs.length > 0) {
+    parts.push({ text: PDF_ATTACHMENT_HINT })
+    for (const f of pdfs) {
+      parts.push({ fileData: { mimeType: f.mimeType, fileUri: f.uri } })
+    }
+  }
+
+  if (images.length > 0) {
+    parts.push({ text: IMAGE_ATTACHMENT_HINT })
+    for (const f of images) {
+      parts.push({ fileData: { mimeType: f.mimeType, fileUri: f.uri } })
+    }
   }
 }
 
