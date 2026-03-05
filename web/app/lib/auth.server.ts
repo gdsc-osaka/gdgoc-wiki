@@ -5,10 +5,22 @@ import { drizzle } from "drizzle-orm/d1"
 import * as schema from "../db/schema"
 
 /**
- * Creates a better-auth instance bound to the request-scoped Cloudflare env.
- * Must be called per-request because D1 bindings are request-scoped in Workers.
+ * Returns the singleton better-auth instance for this Worker isolate.
+ *
+ * better-auth's internal AsyncLocalStorage state is global (stored on globalThis),
+ * so creating multiple instances per request causes a race condition on cold starts:
+ * two concurrent requests both see the ALS as uninitialised, each creates a new
+ * AsyncLocalStorage, and the second one overwrites the first.  The first request
+ * then calls als_A.run() but getCurrentRequestState() looks up the now-overwritten
+ * als_B, finds no store, and throws "No request state found."
+ *
+ * Cloudflare D1 bindings are valid for the entire isolate lifetime, so caching the
+ * auth instance (and the drizzle client it wraps) across requests is safe.
+ *
+ * initAuth is extracted so ReturnType<typeof initAuth> preserves the specific
+ * betterAuth generic inference (including additionalFields) for downstream types.
  */
-export function createAuth(env: Env) {
+function initAuth(env: Env) {
   const db = drizzle(env.DB)
   return betterAuth({
     database: drizzleAdapter(db, { provider: "sqlite", schema }),
@@ -85,6 +97,14 @@ export function createAuth(env: Env) {
       },
     },
   })
+}
+
+let _auth: ReturnType<typeof initAuth> | null = null
+
+export function createAuth(env: Env): ReturnType<typeof initAuth> {
+  if (_auth) return _auth
+  _auth = initAuth(env)
+  return _auth
 }
 
 export type Auth = ReturnType<typeof createAuth>
