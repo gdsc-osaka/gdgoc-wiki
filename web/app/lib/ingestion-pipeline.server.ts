@@ -151,6 +151,18 @@ export async function runIngestionPipeline(
     fetchedUrlContent?: string
   },
 ): Promise<void> {
+  console.log("[ingestion-pipeline] runIngestionPipeline start", {
+    sessionId,
+    userId,
+    hasResumeContext: !!resumeContext,
+    resumeMode:
+      resumeContext?.clarificationAnswers !== undefined
+        ? resumeContext.selectedUrls
+          ? "post_url_selection"
+          : "post_clarification"
+        : "fresh",
+  })
+
   const db = drizzle(env.DB, { schema })
 
   const currentDatetime = `${new Date().toLocaleString("ja-JP", {
@@ -576,6 +588,7 @@ export async function runIngestionPipeline(
     // ------------------------------------------------------------------
     // Step 8: Save to DB
     // ------------------------------------------------------------------
+    console.log("[ingestion-pipeline] reached step 8 (saving) for session", sessionId)
     await updatePhase(db, sessionId, "saving")
     await db
       .update(schema.ingestionSessions)
@@ -633,6 +646,10 @@ export async function runIngestionPipeline(
         notifErr,
       )
     }
+    console.log(
+      "[ingestion-pipeline] runIngestionPipeline completed successfully for session",
+      sessionId,
+    )
   } catch (err) {
     console.error(`[ingestion-pipeline] session=${sessionId} error:`, err)
     const rawMessage = err instanceof Error ? err.message : String(err)

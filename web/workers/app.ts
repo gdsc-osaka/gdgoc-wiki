@@ -50,9 +50,11 @@ export default {
 
   // Queue consumer for background translation and ingestion jobs.
   async queue(batch: MessageBatch<unknown>, env: Env, _ctx: ExecutionContext): Promise<void> {
+    console.log("[queue] handler invoked, queue:", batch.queue, "messages:", batch.messages.length)
     const db = drizzle(env.DB, { schema })
 
     for (const message of batch.messages) {
+      console.log("[queue] processing message", message.id, "body:", JSON.stringify(message.body))
       const body = message.body
       try {
         if (isIngestionQueueMessage(body)) {

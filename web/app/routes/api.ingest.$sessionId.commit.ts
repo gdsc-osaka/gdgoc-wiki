@@ -6,6 +6,7 @@ import { z } from "zod"
 import * as schema from "~/db/schema"
 import { requireRole } from "~/lib/auth-utils.server"
 import { generateSlug } from "~/lib/ingestion-pipeline.server"
+import { sendOrRunTranslation } from "~/lib/queue-processors.server"
 
 // ---------------------------------------------------------------------------
 // Validation
@@ -154,9 +155,7 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
         )
       }
 
-      if (publishStatus === "published") {
-        translationPageIds.push(pageId)
-      }
+      translationPageIds.push(pageId)
     } else if (op.type === "update" && op.pageId) {
       pageIds.push(op.pageId)
 
@@ -208,9 +207,7 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
         ),
       )
 
-      if (publishStatus === "published") {
-        translationPageIds.push(op.pageId)
-      }
+      translationPageIds.push(op.pageId)
     }
   }
 
@@ -274,8 +271,9 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
   // Run all statements atomically — send translation jobs only after success
   await env.DB.batch(statements)
 
+  const { ctx } = context.cloudflare
   for (const pid of translationPageIds) {
-    await env.TRANSLATION_QUEUE.send({ pageId: pid })
+    await sendOrRunTranslation(env, ctx, pid)
   }
 
   return Response.json({ pageIds })
