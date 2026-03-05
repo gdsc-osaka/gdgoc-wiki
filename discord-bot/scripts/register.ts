@@ -19,7 +19,8 @@ if (!APP_ID || !BOT_TOKEN) {
 const commands = [
   {
     name: "wiki-ingest",
-    description: "Collect channel messages in a time range and send to the GDGoC Wiki ingestion pipeline",
+    description:
+      "Collect channel messages in a time range and send to the GDGoC Wiki ingestion pipeline",
     options: [
       {
         name: "since",

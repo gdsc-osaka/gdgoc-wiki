@@ -1,0 +1,40 @@
+name: CD — Discord Bot
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "discord-bot/**"
+      - ".github/workflows/cd-discord-bot.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: cd-discord-bot
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Cloudflare Workers
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      deployments: write
+    defaults:
+      run:
+        working-directory: discord-bot
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: discord-bot/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

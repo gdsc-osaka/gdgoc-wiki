@@ -2,10 +2,14 @@
   "name": "gdgoc-wiki-discord-bot",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.0.0",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit",
+    "check": "biome check .",
+    "lint": "biome lint .",
+    "format": "biome format . --write",
     "register": "npx tsx scripts/register.ts"
   },
   "dependencies": {
@@ -13,13 +17,14 @@
     "hono": "^4.7.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
     "@cloudflare/workers-types": "^4.20250224.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
     "wrangler": "^3.109.3"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "workerd"],
+    "onlyBuiltDependencies": ["@biomejs/biome", "esbuild", "workerd"],
     "supportedArchitectures": {
       "cpu": ["x64", "arm64"],
       "os": ["darwin"]

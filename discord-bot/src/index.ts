@@ -38,9 +38,9 @@ function parseDateTime(str: string): Date | null {
   const trimmed = str.trim()
   // If no timezone designator, append JST offset
   const hasZone = /Z$|[+-]\d{2}:?\d{2}$/.test(trimmed)
-  const iso = hasZone ? trimmed : trimmed.replace(" ", "T") + "+09:00"
+  const iso = hasZone ? trimmed : `${trimmed.replace(" ", "T")}+09:00`
   const d = new Date(iso)
-  return isNaN(d.getTime()) ? null : d
+  return Number.isNaN(d.getTime()) ? null : d
 }
 
 async function fetchMessages(
@@ -58,9 +58,7 @@ async function fetchMessages(
   }
   const messages = (await res.json()) as DiscordMessage[]
   // Messages come newest-first; reverse to chronological, then filter by until
-  return messages
-    .reverse()
-    .filter((m) => new Date(m.timestamp) <= untilDate)
+  return messages.reverse().filter((m) => new Date(m.timestamp) <= untilDate)
 }
 
 function formatMessages(messages: DiscordMessage[], since: Date, until: Date): string {
