@@ -550,9 +550,7 @@ export async function runPhase0Clarifier(
   const parts: Array<{ text: string } | { fileData: { mimeType: string; fileUri: string } }> = [
     { text: `## ユーザー入力\n\n${userText}` },
   ]
-  for (const f of fileUris) {
-    parts.push({ fileData: { mimeType: f.mimeType, fileUri: f.uri } })
-  }
+  pushFilePartsWithHint(parts, fileUris)
   parts.push({
     text: "\n\n---\n上記の入力を分析し、高品質なWikiページを作成するために必要な情報が十分かどうか判断してください。",
   })
@@ -623,9 +621,7 @@ export async function runPhase1Planner(
   const parts: Array<{ text: string } | { fileData: { mimeType: string; fileUri: string } }> = [
     { text: `## ユーザー入力\n\n### テキスト\n${userText}` },
   ]
-  for (const f of fileUris) {
-    parts.push({ fileData: { mimeType: f.mimeType, fileUri: f.uri } })
-  }
+  pushFilePartsWithHint(parts, fileUris)
   parts.push({
     text: `\n\n## 既存Wikiページ一覧（最大200件、ツリー形式）\n${formatPageIndexAsTree(pageIndex)}\n※ FTS5で関連性の高いページを上位に並べ替え済み\n※ [id:xxx] の値をsuggestedParentIdに使用できます\n\n---\n上記をもとに、OperationPlan JSONを出力してください。`,
   })
@@ -697,9 +693,7 @@ export async function runPhase2Creator(
   const parts: Array<{ text: string } | { fileData: { mimeType: string; fileUri: string } }> = [
     { text: `## ユーザー入力\n\n### テキスト\n${userText}` },
   ]
-  for (const f of fileUris) {
-    parts.push({ fileData: { mimeType: f.mimeType, fileUri: f.uri } })
-  }
+  pushFilePartsWithHint(parts, fileUris)
   const siblingContext =
     siblingOps.length > 0
       ? `\n\n## 同時に生成される他のページ（内容の重複を避けてください）\n${JSON.stringify(siblingOps.map((s) => ({ tempId: s.tempId, title: s.suggestedTitle.ja, pageType: s.pageType })))}\n\nあなたが担当するページ: "${op.suggestedTitle.ja}"\n上記の他ページと内容が重複しないようにしてください。`
@@ -739,9 +733,7 @@ export async function runPhase2Patcher(
   const parts: Array<{ text: string } | { fileData: { mimeType: string; fileUri: string } }> = [
     { text: `## ユーザー入力\n\n### テキスト\n${userText}` },
   ]
-  for (const f of fileUris) {
-    parts.push({ fileData: { mimeType: f.mimeType, fileUri: f.uri } })
-  }
+  pushFilePartsWithHint(parts, fileUris)
   parts.push({
     text: `\n\n## 更新対象ページの現在の内容（Markdown変換済み）\n# ${op.pageTitle}\n${existingMarkdown}\n\n## 操作計画\n${JSON.stringify(op)}\n\n---\n既存ページの構造・文体・見出しレベルに従い、SectionPatch JSONを出力してください。\n既存のコンテンツは削除・置換せず、追記のみ行ってください。`,
   })
@@ -810,6 +802,20 @@ ${contentJa}`
 // ---------------------------------------------------------------------------
 // Prompt re-generation with feedback
 // ---------------------------------------------------------------------------
+const FILE_ATTACHMENT_HINT =
+  "【添付ファイルについて】以下の添付ファイルは補足資料（画像・表・レイアウト情報）です。メインのテキスト内容は上記「ユーザー入力」に含まれています。添付ファイルは視覚的な情報の参照用としてのみ使用してください。"
+
+function pushFilePartsWithHint(
+  parts: Array<{ text: string } | { fileData: { mimeType: string; fileUri: string } }>,
+  fileUris: { uri: string; mimeType: string }[],
+): void {
+  if (fileUris.length === 0) return
+  parts.push({ text: FILE_ATTACHMENT_HINT })
+  for (const f of fileUris) {
+    parts.push({ fileData: { mimeType: f.mimeType, fileUri: f.uri } })
+  }
+}
+
 export function buildFeedbackSuffix(feedback: string): string {
   return `\n\n## 前回の出力に対するフィードバック\n${feedback}\n\n上記フィードバックを反映して、再度JSONを出力してください。\n前回の出力を改善し、フィードバックで指摘された点を修正してください。`
 }

@@ -24,7 +24,12 @@ import {
   runPhase2Patcher,
   uploadFileToGemini,
 } from "./gemini.server"
-import { exportDocAsPdf, extractFileId, refreshAccessToken } from "./google-drive.server"
+import {
+  exportDocAsPdf,
+  exportDocAsText,
+  extractFileId,
+  refreshAccessToken,
+} from "./google-drive.server"
 import { tiptapToMarkdown } from "./tiptap-convert"
 
 // ---------------------------------------------------------------------------
@@ -57,6 +62,7 @@ export type AiDraftJson =
       questions: ClarificationQuestion[]
       summary: string
       fileUris: { uri: string; mimeType: string }[]
+      googleDocText?: string
     }
   | {
       phase?: "result"
@@ -93,18 +99,23 @@ export async function runIngestionPipeline(
   resumeContext?: {
     fileUris: { uri: string; mimeType: string }[]
     clarificationAnswers: string
+    googleDocText?: string
   },
 ): Promise<void> {
   const db = drizzle(env.DB, { schema })
 
   try {
-    const userText = inputs.texts.join("\n\n")
+    const baseUserText = inputs.texts.join("\n\n")
     let fileUris: { uri: string; mimeType: string }[]
     const warnings: string[] = []
+    const docTexts: string[] = []
 
     if (resumeContext) {
-      // Resuming after clarification — reuse already-uploaded files
+      // Resuming after clarification — reuse already-uploaded files + doc text
       fileUris = resumeContext.fileUris
+      if (resumeContext.googleDocText) {
+        docTexts.push(resumeContext.googleDocText)
+      }
     } else {
       fileUris = []
 
@@ -126,42 +137,48 @@ export async function runIngestionPipeline(
       }
 
       // ------------------------------------------------------------------
-      // Step 2: If Google Doc URL, export + upload to Gemini
+      // Step 2: If Google Doc URL, export text (required) + PDF (best-effort)
       // ------------------------------------------------------------------
       for (const docUrl of inputs.googleDocUrls) {
-        try {
-          const fileId = extractFileId(docUrl)
+        const fileId = extractFileId(docUrl)
 
-          const tokenRow = await db
-            .select()
-            .from(schema.googleDriveTokens)
+        const tokenRow = await db
+          .select()
+          .from(schema.googleDriveTokens)
+          .where(eq(schema.googleDriveTokens.userId, userId))
+          .get()
+
+        if (!tokenRow) {
+          throw new Error(
+            `Google Driveの認証が見つかりません。設定画面からGoogle Driveを再接続してください。(URL: ${docUrl})`,
+          )
+        }
+
+        let accessToken = tokenRow.accessToken
+        const now = new Date()
+        if (tokenRow.expiresAt < now && tokenRow.refreshToken) {
+          const refreshed = await refreshAccessToken(
+            tokenRow.refreshToken,
+            env.GOOGLE_DOCS_CLIENT_ID,
+            env.GOOGLE_DOCS_CLIENT_SECRET,
+          )
+          accessToken = refreshed.accessToken
+          await db
+            .update(schema.googleDriveTokens)
+            .set({
+              accessToken: refreshed.accessToken,
+              expiresAt: refreshed.expiresAt,
+              updatedAt: now,
+            })
             .where(eq(schema.googleDriveTokens.userId, userId))
-            .get()
+        }
 
-          if (!tokenRow) {
-            warnings.push(`Google Drive token not found. Skipping doc: ${docUrl}`)
-            continue
-          }
+        // Primary: extract plain text (must succeed)
+        const docText = await exportDocAsText(fileId, accessToken)
+        docTexts.push(docText)
 
-          let accessToken = tokenRow.accessToken
-          const now = new Date()
-          if (tokenRow.expiresAt < now && tokenRow.refreshToken) {
-            const refreshed = await refreshAccessToken(
-              tokenRow.refreshToken,
-              env.GOOGLE_DOCS_CLIENT_ID,
-              env.GOOGLE_DOCS_CLIENT_SECRET,
-            )
-            accessToken = refreshed.accessToken
-            await db
-              .update(schema.googleDriveTokens)
-              .set({
-                accessToken: refreshed.accessToken,
-                expiresAt: refreshed.expiresAt,
-                updatedAt: now,
-              })
-              .where(eq(schema.googleDriveTokens.userId, userId))
-          }
-
+        // Best-effort: upload PDF for rich content (images, tables)
+        try {
           const exported = await exportDocAsPdf(fileId, accessToken)
           if (exported.warning) warnings.push(exported.warning)
 
@@ -174,9 +191,13 @@ export async function runIngestionPipeline(
           fileUris.push({ uri, mimeType: exported.mimeType })
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err)
-          warnings.push(`Google Doc export failed: ${msg}`)
+          warnings.push(`Google DocのPDFアップロードに失敗しました（テキストは取得済み）: ${msg}`)
         }
       }
+
+      // Combine base text + doc texts into userText
+      const combinedTexts = [baseUserText, ...docTexts].filter((t) => t.trim().length > 0)
+      const userText = combinedTexts.join("\n\n---\n\n")
 
       // ------------------------------------------------------------------
       // Step 0: Phase 0 — Clarifier
@@ -189,6 +210,7 @@ export async function runIngestionPipeline(
           questions: clarifierResult.questions,
           summary: clarifierResult.summary,
           fileUris,
+          googleDocText: docTexts.join("\n\n---\n\n"),
         }
         await db
           .update(schema.ingestionSessions)
@@ -204,6 +226,8 @@ export async function runIngestionPipeline(
     }
 
     // Build final user text (prepend clarification answers if resuming)
+    const combinedTexts = [baseUserText, ...docTexts].filter((t) => t.trim().length > 0)
+    const userText = combinedTexts.join("\n\n---\n\n")
     const effectiveUserText = resumeContext
       ? `${resumeContext.clarificationAnswers}\n\n${userText}`
       : userText
@@ -343,11 +367,18 @@ export async function runIngestionPipeline(
       .where(eq(schema.ingestionSessions.id, sessionId))
   } catch (err) {
     console.error(`[ingestion-pipeline] session=${sessionId} error:`, err)
+    const rawMessage = err instanceof Error ? err.message : String(err)
+    // Surface Google Doc / Drive errors directly to the user
+    const isGoogleDocError =
+      rawMessage.includes("Google Doc") || rawMessage.includes("Google Drive")
+    const errorMessage = isGoogleDocError
+      ? rawMessage
+      : "Ingestion failed due to an internal error."
     await drizzle(env.DB, { schema })
       .update(schema.ingestionSessions)
       .set({
         status: "error",
-        errorMessage: "Ingestion failed due to an internal error.",
+        errorMessage,
         phaseMessage: null,
         updatedAt: new Date(),
       })

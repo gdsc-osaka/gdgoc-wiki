@@ -53,6 +53,7 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
   }
 
   const fileUris = storedDraft.fileUris
+  const googleDocText = storedDraft.googleDocText ?? ""
 
   // Build clarification answers string
   const clarificationAnswers = [
@@ -89,7 +90,11 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
     .where(eq(schema.ingestionSessions.id, session.id))
 
   ctx.waitUntil(
-    runIngestionPipeline(env, session.id, user.id, inputs, { fileUris, clarificationAnswers }),
+    runIngestionPipeline(env, session.id, user.id, inputs, {
+      fileUris,
+      clarificationAnswers,
+      googleDocText,
+    }),
   )
 
   return Response.json({ ok: true })

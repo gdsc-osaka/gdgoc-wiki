@@ -182,6 +182,30 @@ export async function exportDocAsPdf(fileId: string, accessToken: string): Promi
 }
 
 // ---------------------------------------------------------------------------
+// Google Doc export as plain text (for inline content in prompts)
+// ---------------------------------------------------------------------------
+
+export async function exportDocAsText(fileId: string, accessToken: string): Promise<string> {
+  const textUrl = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}/export?mimeType=text/plain`
+  const response = await fetchWithTimeout(
+    textUrl,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+    EXPORT_TIMEOUT_MS,
+  )
+
+  if (!response.ok) {
+    const err = await response.text()
+    throw new Error(`Google Doc text export failed (${response.status}): ${err}`)
+  }
+
+  let text = await response.text()
+  if (text.length > MAX_TEXT_CHARS) {
+    text = text.slice(0, MAX_TEXT_CHARS)
+  }
+  return text
+}
+
+// ---------------------------------------------------------------------------
 // Extract file ID from Google Doc URL
 // ---------------------------------------------------------------------------
 
