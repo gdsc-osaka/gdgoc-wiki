@@ -59,7 +59,25 @@
     "history_empty": "編集履歴はまだありません",
     "history_current": "現在",
     "archive": "アーカイブ",
-    "archive_confirm": "「{{title}}」をアーカイブしますか？後から復元できます。"
+    "archive_confirm": "「{{title}}」をアーカイブしますか？後から復元できます。",
+    "comment": {
+      "heading": "コメント",
+      "placeholder": "コメントを追加…",
+      "reply_placeholder": "返信を書く…",
+      "submit": "コメントする",
+      "reply": "返信",
+      "cancel": "キャンセル",
+      "delete": "削除",
+      "delete_confirm_title": "コメントを削除しますか？",
+      "delete_confirm_message": "このコメントは完全に削除されます。この操作は元に戻せません。",
+      "deleted": "このコメントは削除されました。",
+      "discard_title": "コメントを破棄しますか？",
+      "discard_message": "保存されていないコメントは削除されます。",
+      "discard_confirm": "破棄する",
+      "discard_cancel": "編集を続ける",
+      "reply_to": "返信",
+      "reply_count": "{{count}} 件の返信"
+    }
   },
   "archived": {
     "title": "アーカイブ済みページ",
@@ -148,7 +166,23 @@
       "you": "（自分）",
       "empty": "ユーザーが見つかりません。",
       "error_own_role": "自分の役割は変更できません",
-      "error_invalid_role": "無効な役割です"
+      "error_invalid_role": "無効な役割です",
+      "error_invalid_email": "メールアドレスが無効です。",
+      "error_chapter_not_found": "選択されたチャプターが存在しません。",
+      "error_already_member": "このメールアドレスはすでにアカウントを持っています。",
+      "error_pending_exists": "このメールアドレスへの招待がすでに存在します。",
+      "invite_heading": "ユーザーを招待",
+      "pending_heading": "招待待ち",
+      "col_invited_at": "招待日",
+      "col_expires_at": "有効期限",
+      "invite_sent": "{{email}} に招待メールを送信しました",
+      "no_chapter": "— なし —",
+      "form": {
+        "email": "メールアドレス",
+        "role": "役割",
+        "chapter": "チャプター（任意）",
+        "submit": "招待を送信"
+      }
     },
     "tags": {
       "heading": "タグ",
@@ -157,7 +191,25 @@
       "col_label_ja": "ラベル（日本語）",
       "col_label_en": "ラベル（英語）",
       "col_pages": "ページ数",
-      "empty": "タグが見つかりません。"
+      "col_actions": "操作",
+      "empty": "タグが見つかりません。",
+      "new_tag": "新規タグ",
+      "edit": "編集",
+      "delete": "削除",
+      "delete_confirm": "タグ「{{slug}}」を削除しますか？すべてのページから削除され、元に戻せません。",
+      "created": "タグ「{{slug}}」を作成しました。",
+      "updated": "タグ「{{slug}}」を更新しました。",
+      "deleted": "タグを削除しました。",
+      "error_slug_taken": "スラッグ「{{slug}}」のタグはすでに存在します。",
+      "error_slug_invalid": "スラッグは小文字・数字・ハイフンのみ使用できます。",
+      "form": {
+        "slug": "スラッグ",
+        "label_ja": "ラベル（日本語）",
+        "label_en": "ラベル（英語）",
+        "color": "カラー",
+        "submit": "タグを作成",
+        "update": "変更を保存"
+      }
     },
     "stats": {
       "heading": "統計",

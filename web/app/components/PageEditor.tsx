@@ -155,9 +155,9 @@ export default function PageEditor({ page, canPublish, canChangeVisibility }: Pa
       {/* ------------------------------------------------------------------ */}
       {/* Mini-header                                                          */}
       {/* ------------------------------------------------------------------ */}
-      <div className="sticky top-14 z-10 grid grid-cols-2 items-center gap-x-2 gap-y-1 border-b border-gray-200 bg-white px-3 py-2 shadow-sm sm:flex sm:flex-wrap sm:gap-2">
-        {/* Row 1 col 1 (mobile) / inline (desktop): back + title */}
-        <div className="flex min-w-0 items-center gap-1 sm:flex-1">
+      <div className="sticky top-14 z-10 flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-gray-200 bg-white px-3 py-2 shadow-sm">
+        {/* Back + title */}
+        <div className="flex min-w-0 flex-1 items-center gap-1">
           <Link
             to={`/wiki/${page.slug}`}
             className="shrink-0 rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
@@ -186,8 +186,8 @@ export default function PageEditor({ page, canPublish, canChangeVisibility }: Pa
           />
         </div>
 
-        {/* Row 1 col 2 (mobile) / inline (desktop): lang switcher + actions */}
-        <div className="flex shrink-0 items-center justify-end gap-2 sm:ml-auto">
+        {/* Actions */}
+        <div className="flex shrink-0 items-center justify-end gap-2 ml-auto">
           {/* Autosave status */}
           {statusText && (
             <span
@@ -242,24 +242,27 @@ export default function PageEditor({ page, canPublish, canChangeVisibility }: Pa
               <option value="private_to_lead">{t("wiki.visibility_lead")}</option>
             </select>
           )}
-          <button
-            type="submit"
-            name="intent"
-            value="save"
-            className="shrink-0 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <span className="hidden sm:inline">{t("editor.save_draft")}</span>
-            <span className="sm:hidden">{t("editor.save")}</span>
-          </button>
-          {canPublish && (
+          {page.status === "draft" ? (
             <button
               type="submit"
               name="intent"
-              value="publish"
-              className="shrink-0 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value="save"
+              className="shrink-0 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              {t("editor.publish")} ↗
+              <span className="hidden sm:inline">{t("editor.save_draft")}</span>
+              <span className="sm:hidden">{t("editor.save")}</span>
             </button>
+          ) : (
+            canPublish && (
+              <button
+                type="submit"
+                name="intent"
+                value="publish"
+                className="shrink-0 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {t("editor.publish")} ↗
+              </button>
+            )
           )}
         </div>
       </div>

@@ -59,7 +59,25 @@
     "history_empty": "No edit history yet",
     "history_current": "Current",
     "archive": "Archive",
-    "archive_confirm": "Archive \"{{title}}\"? You can restore it later."
+    "archive_confirm": "Archive \"{{title}}\"? You can restore it later.",
+    "comment": {
+      "heading": "Comments",
+      "placeholder": "Add a comment…",
+      "reply_placeholder": "Write a reply…",
+      "submit": "Comment",
+      "reply": "Reply",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "delete_confirm_title": "Delete comment?",
+      "delete_confirm_message": "This comment will be permanently removed. This cannot be undone.",
+      "deleted": "This comment was deleted.",
+      "discard_title": "Discard comment?",
+      "discard_message": "Your unsaved comment will be lost.",
+      "discard_confirm": "Discard",
+      "discard_cancel": "Keep editing",
+      "reply_to": "Reply",
+      "reply_count": "{{count}} replies"
+    }
   },
   "archived": {
     "title": "Archived Pages",
@@ -148,7 +166,23 @@
       "you": "(you)",
       "empty": "No users found.",
       "error_own_role": "You cannot change your own role",
-      "error_invalid_role": "Invalid role"
+      "error_invalid_role": "Invalid role",
+      "error_invalid_email": "Invalid email address.",
+      "error_chapter_not_found": "Selected chapter does not exist.",
+      "error_already_member": "This email already has an account.",
+      "error_pending_exists": "A pending invitation already exists for this email.",
+      "invite_heading": "Invite User",
+      "pending_heading": "Pending Invitations",
+      "col_invited_at": "Invited",
+      "col_expires_at": "Expires",
+      "invite_sent": "Invitation sent to {{email}}",
+      "no_chapter": "— None —",
+      "form": {
+        "email": "Email",
+        "role": "Role",
+        "chapter": "Chapter (optional)",
+        "submit": "Send Invite"
+      }
     },
     "tags": {
       "heading": "Tags",
@@ -157,7 +191,25 @@
       "col_label_ja": "Label (JA)",
       "col_label_en": "Label (EN)",
       "col_pages": "Pages",
-      "empty": "No tags found."
+      "col_actions": "Actions",
+      "empty": "No tags found.",
+      "new_tag": "New Tag",
+      "edit": "Edit",
+      "delete": "Delete",
+      "delete_confirm": "Delete tag \"{{slug}}\"? This will remove it from all pages and cannot be undone.",
+      "created": "Tag \"{{slug}}\" created.",
+      "updated": "Tag \"{{slug}}\" updated.",
+      "deleted": "Tag deleted.",
+      "error_slug_taken": "A tag with slug \"{{slug}}\" already exists.",
+      "error_slug_invalid": "Slug must contain only lowercase letters, numbers, and hyphens.",
+      "form": {
+        "slug": "Slug",
+        "label_ja": "Label (Japanese)",
+        "label_en": "Label (English)",
+        "color": "Color",
+        "submit": "Create Tag",
+        "update": "Save Changes"
+      }
     },
     "stats": {
       "heading": "Stats",

@@ -1,11 +1,12 @@
-import { and, eq } from "drizzle-orm"
+import { and, asc, eq, inArray } from "drizzle-orm"
 import { MdPreview } from "md-editor-rt"
 import "md-editor-rt/lib/preview.css"
-import { Archive, History, List, Pencil, Share2, Star, X } from "lucide-react"
+import { Archive, History, List, MoreHorizontal, Pencil, Share2, Star, X } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react-router"
 import { Link, redirect, useFetcher, useLoaderData, useLocation } from "react-router"
+import CommentSection from "~/components/CommentSection"
 import ConfirmDialog from "~/components/ConfirmDialog"
 import TagChip from "~/components/TagChip"
 import type { TocItem } from "~/components/WikiRightSidebar"
@@ -113,6 +114,73 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
   const langParam = url.searchParams.get("lang")
   const lang: "ja" | "en" = langParam === "ja" || langParam === "en" ? langParam : "ja"
 
+  // Fetch comments + reactions
+  const commentsRaw = await db
+    .select({
+      id: schema.pageComments.id,
+      authorId: schema.pageComments.authorId,
+      authorName: schema.user.name,
+      authorImage: schema.user.image,
+      parentId: schema.pageComments.parentId,
+      contentJson: schema.pageComments.contentJson,
+      deletedAt: schema.pageComments.deletedAt,
+      createdAt: schema.pageComments.createdAt,
+    })
+    .from(schema.pageComments)
+    .innerJoin(schema.user, eq(schema.pageComments.authorId, schema.user.id))
+    .where(eq(schema.pageComments.pageId, page.id))
+    .orderBy(asc(schema.pageComments.createdAt))
+    .all()
+
+  const commentIds = commentsRaw.map((c) => c.id)
+  const reactionsRaw =
+    commentIds.length > 0
+      ? await db
+          .select()
+          .from(schema.commentReactions)
+          .where(inArray(schema.commentReactions.commentId, commentIds))
+          .orderBy(asc(schema.commentReactions.createdAt))
+          .all()
+      : []
+
+  // Build reaction groups per comment
+  const reactionsByComment = new Map<
+    string,
+    { emoji: string; count: number; reactedByMe: boolean }[]
+  >()
+  for (const r of reactionsRaw) {
+    const list = reactionsByComment.get(r.commentId) ?? []
+    const existing = list.find((x) => x.emoji === r.emoji)
+    if (existing) {
+      existing.count++
+      if (r.userId === sessionUser.id) existing.reactedByMe = true
+    } else {
+      list.push({ emoji: r.emoji, count: 1, reactedByMe: r.userId === sessionUser.id })
+    }
+    reactionsByComment.set(r.commentId, list)
+  }
+
+  // Build flat list with reactions, then nest replies under top-level
+  type ReactionGroup = { emoji: string; count: number; reactedByMe: boolean }
+  type FlatComment = (typeof commentsRaw)[number] & {
+    reactions: ReactionGroup[]
+    replies: FlatComment[]
+  }
+  const flatComments: FlatComment[] = commentsRaw.map((c) => ({
+    ...c,
+    reactions: reactionsByComment.get(c.id) ?? [],
+    replies: [],
+  }))
+  const commentMap = new Map<string, FlatComment>(flatComments.map((c) => [c.id, c]))
+  const topLevelComments: FlatComment[] = []
+  for (const c of flatComments) {
+    if (c.parentId) {
+      commentMap.get(c.parentId)?.replies.push(c)
+    } else {
+      topLevelComments.push(c)
+    }
+  }
+
   // Fire-and-forget view tracking
   context.cloudflare.ctx.waitUntil(
     db
@@ -137,11 +205,13 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
     lang,
     userRole: sessionUser.role,
     isAuthor: sessionUser.id === page.authorId,
+    currentUserId: sessionUser.id,
     visibility: page.visibility,
     canChangeVisibility: canUserChangeVisibility(sessionUser, page),
     isStarred: !!fav,
     sources,
     attachments,
+    comments: topLevelComments,
   }
 }
 
@@ -269,8 +339,20 @@ function parseMdHeadings(md: string): TocItem[] {
 }
 
 export default function WikiPage() {
-  const { page, tags, author, editor, lang, userRole, isAuthor, isStarred, sources, attachments } =
-    useLoaderData<typeof loader>()
+  const {
+    page,
+    tags,
+    author,
+    editor,
+    lang,
+    userRole,
+    isAuthor,
+    isStarred,
+    sources,
+    attachments,
+    comments,
+    currentUserId,
+  } = useLoaderData<typeof loader>()
   const { t } = useTranslation("common")
   const theme = useThemeMode()
   const location = useLocation()
@@ -318,6 +400,8 @@ export default function WikiPage() {
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false)
   const [currentStarred, setCurrentStarred] = useState(isStarred)
   const [copied, setCopied] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const moreRef = useRef<HTMLDivElement>(null)
   const [mobileContentsOpen, setMobileContentsOpen] = useState(false)
   const mobileContentsTriggerRef = useRef<HTMLButtonElement>(null)
   const mobileContentsSheetRef = useRef<HTMLDivElement>(null)
@@ -379,6 +463,15 @@ export default function WikiPage() {
     favFetcher.submit({ intent: "toggleFavorite", pageId: page.id }, { method: "post" })
   }
 
+  useEffect(() => {
+    if (!moreOpen) return
+    const handler = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false)
+    }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [moreOpen])
+
   function handleShare() {
     navigator.clipboard.writeText(window.location.href).then(() => {
       setCopied(true)
@@ -430,7 +523,8 @@ export default function WikiPage() {
             )
           })}
         </div>
-        <div className="flex items-center gap-1">
+        {/* Desktop action buttons (md+) */}
+        <div className="hidden items-center gap-1 md:flex">
           {canEdit && (
             <Link to={`/wiki/${page.slug}/edit`} className={btnBase}>
               <Pencil size={14} />
@@ -462,6 +556,79 @@ export default function WikiPage() {
               <Archive size={14} />
               {t("wiki.archive")}
             </button>
+          )}
+        </div>
+
+        {/* Mobile "more" dropdown (<md) */}
+        <div ref={moreRef} className="relative md:hidden">
+          <button
+            type="button"
+            onClick={() => setMoreOpen((o) => !o)}
+            className={btnBase}
+            aria-label="More actions"
+          >
+            <MoreHorizontal size={16} />
+          </button>
+          {moreOpen && (
+            <div className="absolute right-0 top-full z-50 mt-1 min-w-[160px] rounded-md border border-gray-200 bg-white py-1 shadow-lg">
+              {canEdit && (
+                <Link
+                  to={`/wiki/${page.slug}/edit`}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"
+                  onClick={() => setMoreOpen(false)}
+                >
+                  <Pencil size={14} />
+                  {t("wiki.edit")}
+                </Link>
+              )}
+              <Link
+                to={`/wiki/${page.slug}/history`}
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"
+                onClick={() => setMoreOpen(false)}
+              >
+                <History size={14} />
+                {t("wiki.history")}
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  handleToggleStar()
+                  setMoreOpen(false)
+                }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"
+                style={optimisticStarred ? { color: "#E06C00" } : undefined}
+              >
+                <Star
+                  size={14}
+                  style={optimisticStarred ? { fill: "#E06C00", color: "#E06C00" } : undefined}
+                />
+                {optimisticStarred ? t("wiki.unstar") : t("wiki.starred")}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleShare()
+                  setMoreOpen(false)
+                }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"
+              >
+                <Share2 size={14} />
+                {copied ? t("wiki.share_copied") : t("wiki.share")}
+              </button>
+              {canArchive && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setArchiveDialogOpen(true)
+                    setMoreOpen(false)
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"
+                >
+                  <Archive size={14} />
+                  {t("wiki.archive")}
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -531,6 +698,17 @@ export default function WikiPage() {
             attachments={attachments}
           />
         )}
+      </div>
+
+      {/* Comments section — full article width below content */}
+      <div className="max-w-3xl min-w-0 flex-1 border-t border-gray-100 px-4 py-8 md:px-10">
+        <CommentSection
+          comments={comments}
+          pageId={page.id}
+          pageSlug={page.slug}
+          currentUserId={currentUserId}
+          userRole={userRole}
+        />
       </div>
 
       <ConfirmDialog

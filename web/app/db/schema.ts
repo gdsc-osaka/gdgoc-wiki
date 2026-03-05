@@ -262,6 +262,43 @@ export const pageSources = sqliteTable("page_sources", {
 })
 
 // ---------------------------------------------------------------------------
+// page_comments
+// ---------------------------------------------------------------------------
+export const pageComments = sqliteTable("page_comments", {
+  id: text("id").primaryKey(),
+  pageId: text("page_id")
+    .notNull()
+    .references(() => pages.id, { onDelete: "cascade" }),
+  authorId: text("author_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  parentId: text("parent_id"),
+  // null = top-level; self-FK defined in SQL migration to avoid circular Drizzle ref
+  contentJson: text("content_json").notNull(),
+  deletedAt: integer("deleted_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+})
+
+// ---------------------------------------------------------------------------
+// comment_reactions
+// ---------------------------------------------------------------------------
+export const commentReactions = sqliteTable(
+  "comment_reactions",
+  {
+    commentId: text("comment_id")
+      .notNull()
+      .references(() => pageComments.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    emoji: text("emoji").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  },
+  (t) => [primaryKey({ columns: [t.commentId, t.userId, t.emoji] })],
+)
+
+// ---------------------------------------------------------------------------
 // page_views (per-user view tracking for "Recently Viewed")
 // ---------------------------------------------------------------------------
 export const pageViews = sqliteTable(

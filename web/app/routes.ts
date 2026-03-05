@@ -18,6 +18,7 @@ export default [
   route("/api/google-drive/callback", "routes/api.google-drive.callback.ts"),
   route("/api/pages/reorder", "routes/api.pages.reorder.ts"),
   route("/api/notifications", "routes/api.notifications.ts"),
+  route("/api/comments", "routes/api.comments.ts"),
   route("/api/favorites", "routes/api.favorites.tsx"),
   route("/api/images/*", "routes/api.images.$.ts"),
   route("/api/wiki/:slug/upload-image", "routes/api.wiki.$slug.upload-image.ts"),

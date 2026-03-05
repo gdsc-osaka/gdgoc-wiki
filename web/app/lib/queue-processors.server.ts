@@ -4,7 +4,7 @@ import * as schema from "~/db/schema"
 import { runTranslation } from "./gemini.server"
 import type { IngestionQueueMessage } from "./ingestion-jobs.server"
 import { parseSessionInputsJson } from "./ingestion-jobs.server"
-import type { AiDraftJson, IngestionInputs } from "./ingestion-pipeline.server"
+import type { AiDraftJson, IngestionInputs, SourceUrl } from "./ingestion-pipeline.server"
 import { runIngestionPipeline } from "./ingestion-pipeline.server"
 
 type Db = ReturnType<typeof drizzle>
@@ -88,6 +88,7 @@ export async function processIngestionMessage(
         googleDocText?: string
         selectedUrls?: string[]
         fetchedUrlContent?: string
+        priorSources?: SourceUrl[]
       }
     | undefined
 
@@ -124,6 +125,7 @@ export async function processIngestionMessage(
       clarificationAnswers: draft.clarificationAnswers,
       googleDocText: draft.googleDocText,
       fetchedUrlContent: draft.fetchedUrlContent,
+      priorSources: draft.sources,
     }
   } else if (body.resumeMode === "post_url_selection") {
     console.log(
