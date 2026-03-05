@@ -62,7 +62,8 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
   const status = data?.status
   if (status === "processing") return [{ title: "Processing… — GDGoC Japan Wiki" }]
-  if (status === "awaiting_clarification") return [{ title: "Clarification Needed — GDGoC Japan Wiki" }]
+  if (status === "awaiting_clarification")
+    return [{ title: "Clarification Needed — GDGoC Japan Wiki" }]
   if (status === "awaiting_url_selection") return [{ title: "Select URLs — GDGoC Japan Wiki" }]
   if (status === "error") return [{ title: "Ingestion Error — GDGoC Japan Wiki" }]
   return [{ title: "Review Draft — GDGoC Japan Wiki" }]
