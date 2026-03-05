@@ -41,6 +41,7 @@ export default {
           .select({
             contentJa: schema.pages.contentJa,
             titleJa: schema.pages.titleJa,
+            summaryJa: schema.pages.summaryJa,
           })
           .from(schema.pages)
           .where(eq(schema.pages.id, pageId))
@@ -52,10 +53,11 @@ export default {
           continue
         }
 
-        const { contentEn, titleEn } = await runTranslation(
+        const { contentEn, titleEn, summaryEn } = await runTranslation(
           env.GEMINI_API_KEY,
           page.contentJa,
           page.titleJa,
+          page.summaryJa,
         )
 
         await db
@@ -63,6 +65,7 @@ export default {
           .set({
             contentEn,
             titleEn,
+            summaryEn,
             translationStatusEn: "ai",
             updatedAt: new Date(),
           })

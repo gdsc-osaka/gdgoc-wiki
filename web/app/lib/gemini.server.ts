@@ -322,9 +322,10 @@ const TRANSLATION_RESPONSE_SCHEMA = {
   type: "object",
   properties: {
     titleEn: { type: "string" },
+    summaryEn: { type: "string" },
     contentEn: { type: "string" },
   },
-  required: ["titleEn", "contentEn"],
+  required: ["titleEn", "summaryEn", "contentEn"],
 }
 
 // ---------------------------------------------------------------------------
@@ -763,11 +764,13 @@ export async function runTranslation(
   apiKey: string,
   contentJa: string,
   titleJa: string,
-): Promise<{ contentEn: string; titleEn: string }> {
+  summaryJa: string,
+): Promise<{ contentEn: string; titleEn: string; summaryEn: string }> {
   const ai = new GoogleGenAI({ apiKey })
 
   const TranslationSchema = z.object({
     titleEn: z.string().min(1),
+    summaryEn: z.string(),
     contentEn: z.string().min(1),
   })
 
@@ -776,6 +779,7 @@ The content is in TipTap/ProseMirror JSON format. Translate ONLY the values of "
 Return the complete TipTap JSON with Japanese text replaced by English translations. Do not add or remove nodes.
 
 Title (Japanese): ${titleJa}
+Summary (Japanese): ${summaryJa}
 
 Content (TipTap JSON):
 ${contentJa}`
@@ -796,7 +800,11 @@ ${contentJa}`
     console.error("Translation schema validation failed:", parsed.error)
     throw new Error("Translation output failed validation")
   }
-  return { titleEn: parsed.data.titleEn, contentEn: parsed.data.contentEn }
+  return {
+    titleEn: parsed.data.titleEn,
+    summaryEn: parsed.data.summaryEn,
+    contentEn: parsed.data.contentEn,
+  }
 }
 
 // ---------------------------------------------------------------------------
