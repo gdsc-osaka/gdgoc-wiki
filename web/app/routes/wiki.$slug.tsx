@@ -26,6 +26,7 @@ import { useMediaQuery } from "~/hooks/useMediaQuery"
 import { useThemeMode } from "~/hooks/useThemeMode"
 import { requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
+import { deletePageEmbeddings } from "~/lib/embedding-pipeline.server"
 import { canUserChangeVisibility, canUserSeePage } from "~/lib/page-visibility.server"
 import { timeAgo } from "~/lib/time"
 import { tiptapToMarkdown } from "~/lib/tiptap-convert"
@@ -327,6 +328,11 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
       .update(schema.pages)
       .set({ status: "archived", updatedAt: new Date() })
       .where(eq(schema.pages.id, page.id))
+    try {
+      await deletePageEmbeddings(env, db, page.id)
+    } catch {
+      // best-effort cleanup
+    }
     return redirect("/")
   }
 

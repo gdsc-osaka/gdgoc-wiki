@@ -5,6 +5,7 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router"
 import * as schema from "~/db/schema"
 import { requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
+import { deletePageEmbeddings } from "~/lib/embedding-pipeline.server"
 
 // ---------------------------------------------------------------------------
 // Loader
@@ -49,6 +50,11 @@ export async function action({ request, context }: ActionFunctionArgs) {
   if (intent === "deletePage") {
     const pageId = form.get("pageId") as string
     const db = getDb(env)
+    try {
+      await deletePageEmbeddings(env, db, pageId)
+    } catch {
+      // best-effort cleanup
+    }
     await db.batch([
       db.delete(schema.pageTags).where(eq(schema.pageTags.pageId, pageId)),
       db.delete(schema.pageAttachments).where(eq(schema.pageAttachments.pageId, pageId)),
@@ -66,6 +72,11 @@ export async function action({ request, context }: ActionFunctionArgs) {
       .update(schema.pages)
       .set({ status: "archived", updatedAt: new Date() })
       .where(eq(schema.pages.id, pageId))
+    try {
+      await deletePageEmbeddings(env, db, pageId)
+    } catch {
+      // best-effort cleanup
+    }
   }
 
   if (intent === "restorePage") {

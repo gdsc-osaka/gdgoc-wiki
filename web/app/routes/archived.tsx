@@ -8,6 +8,7 @@ import ConfirmDialog from "~/components/ConfirmDialog"
 import * as schema from "~/db/schema"
 import { requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
+import { deletePageEmbeddings } from "~/lib/embedding-pipeline.server"
 
 export const meta: MetaFunction = () => [{ title: "Archived — GDGoC Japan Wiki" }]
 
@@ -76,6 +77,11 @@ export async function action({ request, context }: ActionFunctionArgs) {
   }
 
   if (intent === "deletePage") {
+    try {
+      await deletePageEmbeddings(env, db, pageId)
+    } catch {
+      // best-effort cleanup
+    }
     await db.batch([
       db.delete(schema.pageTags).where(eq(schema.pageTags.pageId, pageId)),
       db.delete(schema.pageAttachments).where(eq(schema.pageAttachments.pageId, pageId)),

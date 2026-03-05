@@ -69,6 +69,20 @@ max_batch_timeout = 5
 binding = "BROWSER"
 
 # ---------------------------------------------------------------------------
+# Workers AI (for bge-m3 embeddings)
+# ---------------------------------------------------------------------------
+[ai]
+binding = "AI"
+
+# ---------------------------------------------------------------------------
+# Vectorize — semantic search index for page embeddings
+# Create with: wrangler vectorize create gdgoc-wiki-production-pages --dimensions 1024 --metric cosine
+# ---------------------------------------------------------------------------
+[[vectorize]]
+binding = "VECTORIZE"
+index_name = "gdgoc-wiki-production-pages"
+
+# ---------------------------------------------------------------------------
 # Secrets (set via `wrangler secret put`)
 # RESEND_API_KEY     — Resend transactional email API key
 # WIKI_DISCORD_SECRET — shared secret for Discord bot → wiki API auth

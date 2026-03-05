@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/d1"
 import * as schema from "~/db/schema"
+import { indexPageEmbeddings } from "./embedding-pipeline.server"
 import { runTranslation } from "./gemini.server"
 import type { IngestionQueueMessage } from "./ingestion-jobs.server"
 import { parseSessionInputsJson } from "./ingestion-jobs.server"
@@ -238,6 +239,13 @@ export async function processTranslationMessage(
       updatedAt: new Date(),
     })
     .where(eq(schema.pages.id, pageId))
+
+  // Non-blocking: embedding failure should not fail translation
+  try {
+    await indexPageEmbeddings(env, db, pageId)
+  } catch (err) {
+    console.error("embedding-pipeline: failed after translation", pageId, err)
+  }
 
   console.log("translation-jobs: done", pageId)
 }

@@ -24,6 +24,8 @@ declare global {
     INGESTION_QUEUE: Queue
     ASSETS: Fetcher
     BROWSER: Fetcher
+    AI: Ai
+    VECTORIZE: VectorizeIndex
 
     // Secrets (set via `wrangler secret put` or Cloudflare dashboard)
     RESEND_API_KEY: string

@@ -1,12 +1,13 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm"
 import { useTranslation } from "react-i18next"
-import { Link, useLoaderData, useNavigate } from "react-router"
+import { Link, useLoaderData, useNavigate, useNavigation } from "react-router"
 import type { LoaderFunctionArgs, MetaFunction } from "react-router"
 import TagChip from "~/components/TagChip"
 import * as schema from "~/db/schema"
 import { requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
 import { buildVisibilityFilter } from "~/lib/page-visibility.server"
+import { type RagSearchResult, performRagSearch } from "~/lib/rag-search.server"
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
   { title: data?.q ? `"${data.q}" — Search — GDGoC Japan Wiki` : "Search — GDGoC Japan Wiki" },
@@ -25,6 +26,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
   const url = new URL(request.url)
   const q = url.searchParams.get("q")?.trim() ?? ""
   const tag = url.searchParams.get("tag")?.trim() ?? ""
+  const mode = url.searchParams.get("mode") === "ai" ? "ai" : "keyword"
 
   const { env } = context.cloudflare
   const user = await requireRole(request, env, "member")
@@ -58,6 +60,18 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
       .all()
   }
 
+  // AI search mode
+  if (mode === "ai" && q) {
+    let ragResult: RagSearchResult | null = null
+    try {
+      ragResult = await performRagSearch(env, db, q, visFilter)
+    } catch (err) {
+      console.error("search: RAG search failed", err)
+      ragResult = { answer: "", sources: [], ragAvailable: false }
+    }
+    return { q, tag, mode, allTags, results: [], ragResult }
+  }
+
   // Case A: tag only (no text query)
   if (!q && tag) {
     const pages = await db
@@ -88,17 +102,19 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
     return {
       q,
       tag,
+      mode,
       allTags,
       results: pages.map((p) => ({ ...p, tags: tagsByPage.get(p.id) ?? [] })),
+      ragResult: null,
     }
   }
 
   // Case B: no query at all
-  if (!q && !tag) return { q: "", tag: "", allTags, results: [] }
+  if (!q && !tag) return { q: "", tag: "", mode, allTags, results: [], ragResult: null }
 
   // Case B/C: text query (with or without tag)
   const sanitized = sanitizeFtsQuery(q)
-  if (!sanitized) return { q, tag, allTags, results: [] }
+  if (!sanitized) return { q, tag, mode, allTags, results: [], ragResult: null }
 
   const ftsQuery = `"${sanitized}"`
 
@@ -113,7 +129,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
         LIMIT 50`,
   )
 
-  if (matched.length === 0) return { q, tag, allTags, results: [] }
+  if (matched.length === 0) return { q, tag, mode, allTags, results: [], ragResult: null }
 
   let pageIds = matched.map((r) => r.page_id)
 
@@ -128,7 +144,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
     pageIds = pageIds.filter((id) => taggedIds.has(id))
   }
 
-  if (pageIds.length === 0) return { q, tag, allTags, results: [] }
+  if (pageIds.length === 0) return { q, tag, mode, allTags, results: [], ragResult: null }
 
   // Fetch full page data for matched IDs, filtered to published + visibility
   const pages = await db
@@ -160,8 +176,10 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
   return {
     q,
     tag,
+    mode,
     allTags,
     results: orderedPages.map((p) => ({ ...p, tags: tagsByPage.get(p.id) ?? [] })),
+    ragResult: null,
   }
 }
 
@@ -185,10 +203,13 @@ function timeAgo(date: Date, t: (key: string, opts?: Record<string, unknown>) =>
 // ---------------------------------------------------------------------------
 
 export default function SearchPage() {
-  const { q, tag, allTags, results } = useLoaderData<typeof loader>()
+  const { q, tag, mode, allTags, results, ragResult } = useLoaderData<typeof loader>()
   const { t, i18n } = useTranslation()
   const isJa = i18n.language === "ja"
   const navigate = useNavigate()
+  const navigation = useNavigation()
+
+  const isNavigating = navigation.state === "loading"
 
   const activeTagLabel = allTags.find((tg) => tg.slug === tag)
   const activeTagName = activeTagLabel
@@ -202,45 +223,97 @@ export default function SearchPage() {
     const params = new URLSearchParams()
     if (q) params.set("q", q)
     if (value) params.set("tag", value)
+    if (mode === "ai") params.set("mode", "ai")
+    navigate(`/search${params.size > 0 ? `?${params}` : ""}`)
+  }
+
+  function handleModeSwitch(newMode: "keyword" | "ai") {
+    const params = new URLSearchParams()
+    if (q) params.set("q", q)
+    if (tag) params.set("tag", tag)
+    if (newMode === "ai") params.set("mode", "ai")
     navigate(`/search${params.size > 0 ? `?${params}` : ""}`)
   }
 
   return (
     <div className="max-w-3xl px-4 py-6 md:px-8 md:py-8">
-      <h1 className="mb-4 text-lg font-semibold text-gray-900">{t("search.title")}</h1>
+      <h1 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+        {t("search.title")}
+      </h1>
 
-      {/* Tag filter dropdown */}
-      <div className="mb-6 flex items-center gap-2">
-        <label htmlFor="tag-filter" className="text-sm font-medium text-gray-600 whitespace-nowrap">
-          {t("search.filter_by_tag")}
-        </label>
-        <select
-          id="tag-filter"
-          value={tag}
-          onChange={handleTagSelect}
-          className="rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-sm text-gray-700 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+      {/* Mode toggle tabs */}
+      <div className="mb-4 flex gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
+        <button
+          type="button"
+          onClick={() => handleModeSwitch("keyword")}
+          className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+            mode !== "ai"
+              ? "bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-gray-100"
+              : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          }`}
         >
-          <option value="">{t("search.all_tags")}</option>
-          {allTags.map((tg) => (
-            <option key={tg.slug} value={tg.slug}>
-              {isJa ? tg.labelJa : tg.labelEn}
-            </option>
-          ))}
-        </select>
-
-        {/* Active filter badge with clear button */}
-        {tag && (
-          <Link
-            to={q ? `/search?q=${encodeURIComponent(q)}` : "/search"}
-            className="text-xs text-gray-400 hover:text-gray-600"
-            aria-label={t("search.clear_tag")}
-          >
-            ✕
-          </Link>
-        )}
+          {t("search.mode_keyword")}
+        </button>
+        <button
+          type="button"
+          onClick={() => handleModeSwitch("ai")}
+          className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+            mode === "ai"
+              ? "bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-gray-100"
+              : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          }`}
+        >
+          {t("search.mode_ai")}
+        </button>
       </div>
 
-      {!q && !tag ? (
+      {/* Tag filter dropdown */}
+      {mode !== "ai" && (
+        <div className="mb-6 flex items-center gap-2">
+          <label
+            htmlFor="tag-filter"
+            className="text-sm font-medium text-gray-600 whitespace-nowrap"
+          >
+            {t("search.filter_by_tag")}
+          </label>
+          <select
+            id="tag-filter"
+            value={tag}
+            onChange={handleTagSelect}
+            className="rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-sm text-gray-700 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+          >
+            <option value="">{t("search.all_tags")}</option>
+            {allTags.map((tg) => (
+              <option key={tg.slug} value={tg.slug}>
+                {isJa ? tg.labelJa : tg.labelEn}
+              </option>
+            ))}
+          </select>
+
+          {tag && (
+            <Link
+              to={q ? `/search?q=${encodeURIComponent(q)}` : "/search"}
+              className="text-xs text-gray-400 hover:text-gray-600"
+              aria-label={t("search.clear_tag")}
+            >
+              ✕
+            </Link>
+          )}
+        </div>
+      )}
+
+      {/* AI search results */}
+      {mode === "ai" ? (
+        <AiSearchResults
+          q={q}
+          ragResult={ragResult}
+          isNavigating={isNavigating}
+          isJa={isJa}
+          t={t}
+          navigate={navigate}
+        />
+      ) : /* Keyword search results */
+      !q && !tag ? (
         <p className="text-sm text-gray-500">{t("search.empty_query")}</p>
       ) : results.length === 0 ? (
         <p className="text-sm text-gray-500">
@@ -307,6 +380,117 @@ export default function SearchPage() {
             })}
           </ul>
         </>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// AI Search Results sub-component
+// ---------------------------------------------------------------------------
+
+function AiSearchResults({
+  q,
+  ragResult,
+  isNavigating,
+  isJa,
+  t,
+  navigate,
+}: {
+  q: string
+  ragResult: RagSearchResult | null
+  isNavigating: boolean
+  isJa: boolean
+  t: (key: string, opts?: Record<string, unknown>) => string
+  navigate: (to: string) => void
+}) {
+  if (!q) {
+    return <p className="text-sm text-gray-500">{t("search.empty_query")}</p>
+  }
+
+  if (isNavigating) {
+    return (
+      <div className="flex items-center gap-2 py-8 text-sm text-gray-500">
+        <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+        {t("search.ai_searching")}
+      </div>
+    )
+  }
+
+  if (!ragResult) {
+    return <p className="text-sm text-gray-500">{t("search.ai_error")}</p>
+  }
+
+  if (!ragResult.ragAvailable) {
+    return <p className="text-sm text-gray-500">{t("search.ai_unavailable")}</p>
+  }
+
+  if (!ragResult.answer && ragResult.sources.length === 0) {
+    return <p className="text-sm text-gray-500">{t("search.ai_no_results")}</p>
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* AI Answer card */}
+      {ragResult.answer && (
+        <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4 dark:border-blue-800 dark:bg-blue-950/30">
+          <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-blue-700 dark:text-blue-300">
+            <span className="text-base">&#10022;</span>
+            {t("search.ai_answer")}
+          </div>
+          <div className="prose prose-sm max-w-none whitespace-pre-wrap text-gray-800 dark:text-gray-200">
+            {ragResult.answer}
+          </div>
+        </div>
+      )}
+
+      {/* Source pages */}
+      {ragResult.sources.length > 0 && (
+        <div>
+          <h2 className="mb-3 text-sm font-medium text-gray-600 dark:text-gray-400">
+            {t("search.ai_sources")}
+          </h2>
+          <ul className="flex flex-col gap-3">
+            {ragResult.sources.map((source) => {
+              const title = isJa
+                ? source.titleJa || source.titleEn
+                : source.titleEn || source.titleJa
+              const summary = isJa
+                ? source.summaryJa || source.summaryEn
+                : source.summaryEn || source.summaryJa
+
+              return (
+                <li key={source.pageId}>
+                  <div
+                    className="block cursor-pointer rounded-lg border border-gray-200 bg-white p-4 transition-all hover:border-blue-500/40 hover:shadow-sm dark:border-gray-700 dark:bg-gray-800"
+                    onClick={() => navigate(`/wiki/${source.slug}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") navigate(`/wiki/${source.slug}`)
+                    }}
+                  >
+                    <Link
+                      to={`/wiki/${source.slug}`}
+                      className="font-medium text-gray-900 hover:text-blue-600 dark:text-gray-100"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {title}
+                    </Link>
+
+                    {summary && (
+                      <p className="mt-1 line-clamp-2 text-sm text-gray-500 dark:text-gray-400">
+                        {summary}
+                      </p>
+                    )}
+
+                    <div className="mt-2 text-xs text-gray-400">
+                      {Math.round(source.relevanceScore * 100)}% match
+                    </div>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
       )}
     </div>
   )
