@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p scripts/tsconfig.json --noEmit",
     "check": "biome check .",
     "lint": "biome lint .",
     "format": "biome format . --write",
@@ -19,6 +19,7 @@
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@cloudflare/workers-types": "^4.20250224.0",
+    "@types/node": "^25.3.3",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
     "wrangler": "^3.109.3"

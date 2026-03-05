@@ -10,6 +10,7 @@ interface Env {
   DISCORD_APP_ID: string
   WIKI_BASE_URL: string
   WIKI_API_SECRET: string
+  [key: string]: unknown
 }
 
 interface DiscordMessage {
@@ -88,7 +89,7 @@ function formatMessages(messages: DiscordMessage[], since: Date, until: Date): s
 // App
 // ---------------------------------------------------------------------------
 
-const app = new DiscordHono<{ Bindings: Env }>()
+const app = new DiscordHono<{ Bindings: Env; Variables: { since: string; until?: string } }>()
 
 app.command("wiki-ingest", (c) => {
   const discordUserId =
@@ -123,7 +124,7 @@ app.command("wiki-ingest", (c) => {
   return c.resDefer(async (c) => {
     const channelId = (c.interaction as { channel_id?: string }).channel_id
     if (!channelId) {
-      return c.followup("Could not determine the channel.", { ephemeral: true })
+      return c.ephemeral().followup("Could not determine the channel.")
     }
 
     let messages: DiscordMessage[]
@@ -136,15 +137,16 @@ app.command("wiki-ingest", (c) => {
       )
     } catch (err) {
       console.error("Failed to fetch Discord messages", err)
-      return c.followup(
-        "Failed to fetch messages. Make sure the bot has Read Message History permission.",
-        { ephemeral: true },
-      )
+      return c
+        .ephemeral()
+        .followup(
+          "Failed to fetch messages. Make sure the bot has Read Message History permission.",
+        )
     }
 
     const nonEmpty = messages.filter((m) => m.content.trim())
     if (nonEmpty.length === 0) {
-      return c.followup("No messages found in the specified time range.", { ephemeral: true })
+      return c.ephemeral().followup("No messages found in the specified time range.")
     }
 
     const text = formatMessages(nonEmpty, since, until)
@@ -160,28 +162,26 @@ app.command("wiki-ingest", (c) => {
 
     if (!wikiRes.ok) {
       console.error("Wiki ingest API error", wikiRes.status)
-      return c.followup("Wiki ingestion request failed. Please try again later.", {
-        ephemeral: true,
-      })
+      return c.ephemeral().followup("Wiki ingestion request failed. Please try again later.")
     }
 
     const data = (await wikiRes.json()) as { sessionId?: string; error?: string }
 
     if (data.error === "no_linked_account") {
-      return c.followup(
-        `Please link your Discord account at ${c.env.WIKI_BASE_URL}/settings first.`,
-        { ephemeral: true },
-      )
+      return c
+        .ephemeral()
+        .followup(`Please link your Discord account at ${c.env.WIKI_BASE_URL}/settings first.`)
     }
 
     if (!data.sessionId) {
-      return c.followup("Unexpected error from wiki API.", { ephemeral: true })
+      return c.ephemeral().followup("Unexpected error from wiki API.")
     }
 
-    return c.followup(
-      `Ingestion started (${nonEmpty.length} messages)! Review and commit at:\n${c.env.WIKI_BASE_URL}/ingest/${data.sessionId}`,
-      { ephemeral: true },
-    )
+    return c
+      .ephemeral()
+      .followup(
+        `Ingestion started (${nonEmpty.length} messages)! Review and commit at:\n${c.env.WIKI_BASE_URL}/ingest/${data.sessionId}`,
+      )
   })
 })
 
