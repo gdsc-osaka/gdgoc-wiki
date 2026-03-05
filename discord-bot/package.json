@@ -28,7 +28,7 @@
     "onlyBuiltDependencies": ["@biomejs/biome", "esbuild", "workerd"],
     "supportedArchitectures": {
       "cpu": ["x64", "arm64"],
-      "os": ["darwin"]
+      "os": ["darwin", "linux"]
     }
   }
 }
