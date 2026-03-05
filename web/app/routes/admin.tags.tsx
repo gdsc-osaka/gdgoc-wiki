@@ -221,7 +221,7 @@ export default function AdminTags() {
           <tbody className="divide-y divide-gray-100">
             {tags.map((tag) =>
               editingSlug === tag.slug ? (
-                <tr key={tag.slug} className="bg-blue-50">
+                <tr key={tag.slug} className="bg-blue-50 dark:bg-blue-950/40">
                   {/* Color cell — color picker input associated with edit-form */}
                   <td className="px-4 py-3">
                     <input
