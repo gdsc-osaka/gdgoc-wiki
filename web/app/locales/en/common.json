@@ -308,7 +308,8 @@
       "invalid_name": "Name must be 1–100 characters.",
       "invalid_lang": "Invalid language selection.",
       "invalid_chapter": "Selected chapter does not exist.",
-      "invalid_discord_id": "Please enter a valid Discord User ID (17–20 digit number)."
+      "invalid_discord_id": "Please enter a valid Discord User ID (17–20 digit number).",
+      "discord_id_taken": "This Discord ID is already linked to another account."
     }
   },
   "chapter": {
@@ -418,7 +419,13 @@
     "how_step3_desc": "Review the draft, make edits, and publish to your chapter's knowledge base.",
     "signin_modal_title": "Sign in to GDGoC Japan Wiki",
     "signin_modal_subtitle": "Access is for GDGoC Japan chapter members only.",
-    "go_home": "Go to Home"
+    "go_home": "Go to Home",
+    "badge": "For GDGoC Japan",
+    "features_title": "Everything your chapter needs",
+    "features_subtitle": "A purpose-built wiki for Google Developer Groups on Campus Japan chapters.",
+    "how_subtitle": "From raw notes to a polished bilingual wiki page in minutes.",
+    "cta_title": "Ready to get started?",
+    "cta_subtitle": "Join GDGoC Japan's shared knowledge base and keep your chapter's know-how organized."
   },
   "footer": {
     "privacy": "Privacy",

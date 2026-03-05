@@ -58,7 +58,9 @@ export async function action({ request, context }: ActionFunctionArgs) {
   }
 
   if (intent === "archivePage") {
-    const pageId = form.get("pageId") as string
+    const pageId = form.get("pageId")
+    if (!pageId || typeof pageId !== "string")
+      return new Response("Missing pageId", { status: 400 })
     const db = getDb(env)
     await db
       .update(schema.pages)
@@ -67,7 +69,9 @@ export async function action({ request, context }: ActionFunctionArgs) {
   }
 
   if (intent === "restorePage") {
-    const pageId = form.get("pageId") as string
+    const pageId = form.get("pageId")
+    if (!pageId || typeof pageId !== "string")
+      return new Response("Missing pageId", { status: 400 })
     const db = getDb(env)
     await db
       .update(schema.pages)

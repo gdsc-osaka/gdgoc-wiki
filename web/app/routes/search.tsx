@@ -263,10 +263,12 @@ export default function SearchPage() {
 
               return (
                 <li key={page.id}>
-                  {/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard navigation handled via title link */}
                   <div
                     className="block cursor-pointer rounded-lg border border-gray-200 bg-white p-4 transition-all hover:border-blue-500/40 hover:shadow-sm"
                     onClick={() => navigate(`/wiki/${page.slug}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") navigate(`/wiki/${page.slug}`)
+                    }}
                   >
                     <Link
                       to={`/wiki/${page.slug}`}

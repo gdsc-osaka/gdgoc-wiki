@@ -3,7 +3,7 @@ import { drizzle } from "drizzle-orm/d1"
 import { nanoid } from "nanoid"
 import type { ActionFunctionArgs } from "react-router"
 import * as schema from "~/db/schema"
-import { requireRole } from "~/lib/auth-utils.server"
+import { hasRole, requireRole } from "~/lib/auth-utils.server"
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024 // 10 MB
 
@@ -13,18 +13,27 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
   }
 
   const { env } = context.cloudflare
-  await requireRole(request, env, "member")
+  const user = await requireRole(request, env, "member")
   const db = drizzle(env.DB, { schema })
 
   const slug = params.slug ?? ""
   const page = await db
-    .select({ id: schema.pages.id })
+    .select({ id: schema.pages.id, status: schema.pages.status, authorId: schema.pages.authorId })
     .from(schema.pages)
     .where(eq(schema.pages.slug, slug))
     .get()
 
   if (!page) {
     return new Response("Not Found", { status: 404 })
+  }
+
+  if (page.status === "archived") {
+    return new Response("Not Found", { status: 404 })
+  }
+
+  const canEditAny = hasRole(user.role as string, "lead")
+  if (!canEditAny && page.authorId !== user.id) {
+    return new Response("Forbidden", { status: 403 })
   }
 
   const formData = await request.formData()
@@ -43,7 +52,6 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
   }
 
   const buffer = await file.arrayBuffer()
-  const ext = file.name.split(".").at(-1) ?? "bin"
   const safeName = `${nanoid(8)}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`
   const r2Key = `wiki/${page.id}/${safeName}`
 

@@ -308,7 +308,8 @@
       "invalid_name": "名前は1〜100文字で入力してください。",
       "invalid_lang": "無効な言語が選択されています。",
       "invalid_chapter": "選択されたチャプターは存在しません。",
-      "invalid_discord_id": "有効な Discord ユーザーID（17〜20桁の数字）を入力してください。"
+      "invalid_discord_id": "有効な Discord ユーザーID（17〜20桁の数字）を入力してください。",
+      "discord_id_taken": "この Discord ID はすでに別のアカウントに連携されています。"
     }
   },
   "chapter": {
@@ -418,7 +419,13 @@
     "how_step3_desc": "下書きを確認・編集してチャプターのナレッジベースに公開します。",
     "signin_modal_title": "GDGoC Japan Wikiにサインイン",
     "signin_modal_subtitle": "アクセスはGDGoC Japanチャプターメンバー限定です。",
-    "go_home": "ホームへ戻る"
+    "go_home": "ホームへ戻る",
+    "badge": "GDGoC Japan向け",
+    "features_title": "チャプターに必要なすべてが揃う",
+    "features_subtitle": "GDGoC Japan チャプター専用のwikiプラットフォーム。",
+    "how_subtitle": "生のメモからバイリンガルwikiページの完成まで、わずか数分。",
+    "cta_title": "さっそく始めましょう",
+    "cta_subtitle": "GDGoC Japanの共有ナレッジベースに参加して、チャプターのノウハウを整理しましょう。"
   },
   "footer": {
     "privacy": "プライバシー",

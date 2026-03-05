@@ -59,7 +59,13 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
   ])
 
   // Batch-fetch tags for all pages in both lists
-  type PageTag = { pageId: string; tagSlug: string; labelEn: string; color: string }
+  type PageTag = {
+    pageId: string
+    tagSlug: string
+    labelJa: string
+    labelEn: string
+    color: string
+  }
   let pageTags: PageTag[] = []
   const allIds = [...new Set([...recentUpdated.map((p) => p.id), ...recentViewed.map((p) => p.id)])]
   if (allIds.length > 0) {
@@ -67,6 +73,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
       .select({
         pageId: schema.pageTags.pageId,
         tagSlug: schema.pageTags.tagSlug,
+        labelJa: schema.tags.labelJa,
         labelEn: schema.tags.labelEn,
         color: schema.tags.color,
       })
@@ -115,12 +122,13 @@ type PageCard = {
   titleEn: string
   summaryJa: string
   summaryEn: string
-  tags: { tagSlug: string; labelEn: string; color: string }[]
+  tags: { tagSlug: string; labelJa: string; labelEn: string; color: string }[]
   timeLabel: string | null
 }
 
 function PageGrid({ pages, emptyKey }: { pages: PageCard[]; emptyKey: string }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const isJa = i18n.language !== "en"
 
   if (pages.length === 0) {
     return <p className="text-sm text-gray-400">{t(emptyKey)}</p>
@@ -152,7 +160,7 @@ function PageGrid({ pages, emptyKey }: { pages: PageCard[]; emptyKey: string }) 
                   className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium text-white"
                   style={{ backgroundColor: tag.color }}
                 >
-                  {tag.labelEn}
+                  {isJa ? tag.labelJa : tag.labelEn}
                 </span>
               ))}
             </div>

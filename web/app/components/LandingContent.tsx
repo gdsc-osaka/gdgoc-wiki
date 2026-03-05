@@ -295,8 +295,7 @@ export default function LandingContent({ ctaSlot }: LandingContentProps) {
       <section
         className="relative overflow-hidden"
         style={{
-          background:
-            "linear-gradient(135deg, #e8f0fe 0%, #fef7e0 35%, #fce8e6 65%, #e6f4ea 100%)",
+          background: "linear-gradient(135deg, #e8f0fe 0%, #fef7e0 35%, #fce8e6 65%, #e6f4ea 100%)",
           minHeight: "88vh",
         }}
       >
@@ -362,34 +361,90 @@ export default function LandingContent({ ctaSlot }: LandingContentProps) {
         <div
           aria-hidden="true"
           className="absolute"
-          style={{ top: "18%", left: "8%", width: 18, height: 18, borderRadius: "50%", background: "#4285f4", opacity: 0.7, animation: "lp-float 6s ease-in-out infinite" }}
+          style={{
+            top: "18%",
+            left: "8%",
+            width: 18,
+            height: 18,
+            borderRadius: "50%",
+            background: "#4285f4",
+            opacity: 0.7,
+            animation: "lp-float 6s ease-in-out infinite",
+          }}
         />
         <div
           aria-hidden="true"
           className="absolute"
-          style={{ top: "25%", right: "12%", width: 14, height: 14, borderRadius: "50%", background: "#ea4335", opacity: 0.7, animation: "lp-float 7s ease-in-out infinite reverse" }}
+          style={{
+            top: "25%",
+            right: "12%",
+            width: 14,
+            height: 14,
+            borderRadius: "50%",
+            background: "#ea4335",
+            opacity: 0.7,
+            animation: "lp-float 7s ease-in-out infinite reverse",
+          }}
         />
         <div
           aria-hidden="true"
           className="absolute"
-          style={{ bottom: "28%", left: "15%", width: 12, height: 12, borderRadius: "50%", background: "#34a853", opacity: 0.7, animation: "lp-float 8s ease-in-out infinite" }}
+          style={{
+            bottom: "28%",
+            left: "15%",
+            width: 12,
+            height: 12,
+            borderRadius: "50%",
+            background: "#34a853",
+            opacity: 0.7,
+            animation: "lp-float 8s ease-in-out infinite",
+          }}
         />
         <div
           aria-hidden="true"
           className="absolute"
-          style={{ bottom: "22%", right: "18%", width: 16, height: 16, borderRadius: "50%", background: "#f9ab00", opacity: 0.7, animation: "lp-float 5s ease-in-out infinite reverse" }}
+          style={{
+            bottom: "22%",
+            right: "18%",
+            width: 16,
+            height: 16,
+            borderRadius: "50%",
+            background: "#f9ab00",
+            opacity: 0.7,
+            animation: "lp-float 5s ease-in-out infinite reverse",
+          }}
         />
 
         {/* Tiny squares */}
         <div
           aria-hidden="true"
           className="absolute"
-          style={{ top: "40%", left: "5%", width: 10, height: 10, borderRadius: 3, background: "#f9ab00", opacity: 0.5, transform: "rotate(15deg)", animation: "lp-float 11s ease-in-out infinite" }}
+          style={{
+            top: "40%",
+            left: "5%",
+            width: 10,
+            height: 10,
+            borderRadius: 3,
+            background: "#f9ab00",
+            opacity: 0.5,
+            transform: "rotate(15deg)",
+            animation: "lp-float 11s ease-in-out infinite",
+          }}
         />
         <div
           aria-hidden="true"
           className="absolute"
-          style={{ top: "55%", right: "6%", width: 10, height: 10, borderRadius: 3, background: "#4285f4", opacity: 0.5, transform: "rotate(-20deg)", animation: "lp-float 9s ease-in-out infinite reverse" }}
+          style={{
+            top: "55%",
+            right: "6%",
+            width: 10,
+            height: 10,
+            borderRadius: 3,
+            background: "#4285f4",
+            opacity: 0.5,
+            transform: "rotate(-20deg)",
+            animation: "lp-float 9s ease-in-out infinite reverse",
+          }}
         />
 
         {/* Content */}
@@ -406,11 +461,43 @@ export default function LandingContent({ ctaSlot }: LandingContentProps) {
             }}
           >
             {/* GDG colored dots */}
-            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#4285f4", display: "inline-block" }} />
-            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#ea4335", display: "inline-block" }} />
-            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#f9ab00", display: "inline-block" }} />
-            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#34a853", display: "inline-block" }} />
-            <span className="ml-1">For GDGoC Japan</span>
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: "#4285f4",
+                display: "inline-block",
+              }}
+            />
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: "#ea4335",
+                display: "inline-block",
+              }}
+            />
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: "#f9ab00",
+                display: "inline-block",
+              }}
+            />
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: "#34a853",
+                display: "inline-block",
+              }}
+            />
+            <span className="ml-1">{t("lp.badge")}</span>
           </div>
 
           <h1
@@ -420,7 +507,10 @@ export default function LandingContent({ ctaSlot }: LandingContentProps) {
             {t("lp.hero_title")}
           </h1>
 
-          <p className="mx-auto mb-10 max-w-xl text-lg text-gray-600 sm:text-xl" style={{ lineHeight: 1.65 }}>
+          <p
+            className="mx-auto mb-10 max-w-xl text-lg text-gray-600 sm:text-xl"
+            style={{ lineHeight: 1.65 }}
+          >
             {t("lp.hero_subtitle")}
           </p>
 
@@ -449,11 +539,9 @@ export default function LandingContent({ ctaSlot }: LandingContentProps) {
       <section className="mx-auto max-w-6xl px-6 py-24">
         <div className="mb-14 text-center">
           <h2 className="mb-3 text-3xl font-bold text-gray-900 sm:text-4xl">
-            Everything your chapter needs
+            {t("lp.features_title")}
           </h2>
-          <p className="mx-auto max-w-xl text-base text-gray-500">
-            A purpose-built wiki for Google Developer Groups on Campus Japan chapters.
-          </p>
+          <p className="mx-auto max-w-xl text-base text-gray-500">{t("lp.features_subtitle")}</p>
         </div>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -467,10 +555,7 @@ export default function LandingContent({ ctaSlot }: LandingContentProps) {
               }}
             >
               {/* Colored top stripe */}
-              <div
-                className="mb-1 h-1 w-12 rounded-full"
-                style={{ background: f.color.accent }}
-              />
+              <div className="mb-1 h-1 w-12 rounded-full" style={{ background: f.color.accent }} />
 
               {/* Icon */}
               <div
@@ -499,9 +584,7 @@ export default function LandingContent({ ctaSlot }: LandingContentProps) {
             <h2 className="mb-3 text-3xl font-bold text-gray-900 sm:text-4xl">
               {t("lp.how_title")}
             </h2>
-            <p className="mx-auto max-w-lg text-base text-gray-500">
-              From raw notes to a polished bilingual wiki page in minutes.
-            </p>
+            <p className="mx-auto max-w-lg text-base text-gray-500">{t("lp.how_subtitle")}</p>
           </div>
 
           <div className="relative flex flex-col gap-10 lg:flex-row lg:gap-0 lg:items-start">
@@ -562,12 +645,8 @@ export default function LandingContent({ ctaSlot }: LandingContentProps) {
             boxShadow: "0 24px 64px rgba(66,133,244,0.30)",
           }}
         >
-          <h2 className="mb-3 text-3xl font-bold text-white sm:text-4xl">
-            Ready to get started?
-          </h2>
-          <p className="mx-auto mb-10 max-w-md text-base text-white/80">
-            Join GDGoC Japan's shared knowledge base and keep your chapter's know-how organized.
-          </p>
+          <h2 className="mb-3 text-3xl font-bold text-white sm:text-4xl">{t("lp.cta_title")}</h2>
+          <p className="mx-auto mb-10 max-w-md text-base text-white/80">{t("lp.cta_subtitle")}</p>
           {ctaSlot}
         </div>
       </section>
@@ -577,10 +656,42 @@ export default function LandingContent({ ctaSlot }: LandingContentProps) {
       {/* ------------------------------------------------------------------ */}
       <footer className="border-t border-gray-100 px-6 py-8 text-center">
         <div className="mb-4 flex items-center justify-center gap-2">
-          <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#4285f4", display: "inline-block" }} />
-          <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#ea4335", display: "inline-block" }} />
-          <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#f9ab00", display: "inline-block" }} />
-          <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#34a853", display: "inline-block" }} />
+          <span
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: "50%",
+              background: "#4285f4",
+              display: "inline-block",
+            }}
+          />
+          <span
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: "50%",
+              background: "#ea4335",
+              display: "inline-block",
+            }}
+          />
+          <span
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: "50%",
+              background: "#f9ab00",
+              display: "inline-block",
+            }}
+          />
+          <span
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: "50%",
+              background: "#34a853",
+              display: "inline-block",
+            }}
+          />
         </div>
         <div className="flex justify-center gap-6 text-sm text-gray-400">
           <Link to="/privacy" className="transition-colors hover:text-blue-500">

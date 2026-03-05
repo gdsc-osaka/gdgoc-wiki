@@ -16,85 +16,63 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   return { user, chapters }
 }
 
-type ActionResult = { intent: string | null; ok: boolean; error?: string; uiLang?: string }
+type ActionErrors = { name?: string; lang?: string; discordId?: string; chapterId?: string }
+type ActionResult = { ok: boolean; errors?: ActionErrors; uiLang?: string }
 
 export async function action({ request, context }: Route.ActionArgs): Promise<ActionResult> {
   const { cloudflare } = context
   const user = await requireRole(request, cloudflare.env, "viewer")
   const db = getDb(cloudflare.env)
   const form = await request.formData()
-  const intent = form.get("intent") as string
 
-  if (intent === "updateName") {
-    const name = (form.get("name") as string | null)?.trim() ?? ""
-    if (!name || name.length > 100) {
-      return { intent, ok: false, error: "invalid_name" }
-    }
-    await db
-      .update(schema.user)
-      .set({ name, updatedAt: new Date() })
-      .where(eq(schema.user.id, user.id))
-    return { intent, ok: true }
+  const name = (form.get("name") as string | null)?.trim() ?? ""
+  const uiLang = form.get("uiLang") as string | null
+  const contentLang = form.get("contentLang") as string | null
+  const discordId = (form.get("discordId") as string | null)?.trim() ?? ""
+  const chapterId = (form.get("chapterId") as string | null) ?? ""
+
+  const errors: ActionErrors = {}
+
+  if (!name || name.length > 100) errors.name = "invalid_name"
+  if (!uiLang || !supportedLngs.includes(uiLang as never)) errors.lang = "invalid_lang"
+  if (!contentLang || !supportedLngs.includes(contentLang as never)) errors.lang = "invalid_lang"
+  if (discordId && !/^\d{17,20}$/.test(discordId)) errors.discordId = "invalid_discord_id"
+
+  if (chapterId) {
+    const [chapter] = await db
+      .select({ id: schema.chapters.id })
+      .from(schema.chapters)
+      .where(eq(schema.chapters.id, chapterId))
+      .all()
+    if (!chapter) errors.chapterId = "invalid_chapter"
   }
 
-  if (intent === "updateLanguage") {
-    const uiLang = form.get("uiLang") as string | null
-    const contentLang = form.get("contentLang") as string | null
-    if (
-      !uiLang ||
-      !contentLang ||
-      !supportedLngs.includes(uiLang as never) ||
-      !supportedLngs.includes(contentLang as never)
-    ) {
-      return { intent, ok: false, error: "invalid_lang" }
-    }
+  if (Object.keys(errors).length > 0) return { ok: false, errors }
+
+  try {
     await db
       .update(schema.user)
       .set({
-        preferredUiLanguage: uiLang,
-        preferredContentLanguage: contentLang,
+        name,
+        preferredUiLanguage: uiLang as string,
+        preferredContentLanguage: contentLang as string,
+        discordId: discordId || null,
+        chapterId: chapterId || null,
         updatedAt: new Date(),
       })
       .where(eq(schema.user.id, user.id))
-    return { intent, ok: true, uiLang }
-  }
-
-  if (intent === "updateDiscord") {
-    const discordId = (form.get("discordId") as string | null)?.trim() ?? ""
-    if (discordId && !/^\d{17,20}$/.test(discordId)) {
-      return { intent, ok: false, error: "invalid_discord_id" }
+  } catch (err) {
+    if (err instanceof Error && err.message.includes("UNIQUE")) {
+      return { ok: false, errors: { discordId: "discord_id_taken" } }
     }
-    await db
-      .update(schema.user)
-      .set({ discordId: discordId || null, updatedAt: new Date() })
-      .where(eq(schema.user.id, user.id))
-    return { intent, ok: true }
+    throw err
   }
 
-  if (intent === "updateChapter") {
-    const chapterId = (form.get("chapterId") as string | null) ?? ""
-    if (chapterId) {
-      const [chapter] = await db
-        .select({ id: schema.chapters.id })
-        .from(schema.chapters)
-        .where(eq(schema.chapters.id, chapterId))
-        .all()
-      if (!chapter) {
-        return { intent, ok: false, error: "invalid_chapter" }
-      }
-    }
-    await db
-      .update(schema.user)
-      .set({ chapterId: chapterId || null, updatedAt: new Date() })
-      .where(eq(schema.user.id, user.id))
-    return { intent, ok: true }
-  }
-
-  return { intent: null, ok: false }
+  return { ok: true, uiLang: uiLang as string }
 }
 
 // ---------------------------------------------------------------------------
-// SaveButton: Save → Saving... → ✓ Saved (auto-clears after 3s)
+// SaveButton: Save → Saving... → Saved (auto-clears after 3s)
 // ---------------------------------------------------------------------------
 function SaveButton({
   state,
@@ -114,7 +92,7 @@ function SaveButton({
     <button
       type="submit"
       disabled={submitting}
-      className="rounded-md bg-blue-500 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-600 disabled:opacity-60"
+      className="shrink-0 rounded-md bg-blue-500 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-600 disabled:opacity-60"
     >
       {label}
     </button>
@@ -122,9 +100,9 @@ function SaveButton({
 }
 
 // ---------------------------------------------------------------------------
-// SectionCard
+// SettingsSection
 // ---------------------------------------------------------------------------
-function SectionCard({
+function SettingsSection({
   title,
   description,
   children,
@@ -134,12 +112,12 @@ function SectionCard({
   children: React.ReactNode
 }) {
   return (
-    <section className="rounded-lg border border-gray-200 bg-white">
-      <div className="border-b border-gray-100 px-6 py-4">
-        <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+    <section className="px-6 py-6">
+      <div className="mb-4">
+        <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
         <p className="mt-0.5 text-sm text-gray-500">{description}</p>
       </div>
-      <div className="px-6 py-5">{children}</div>
+      {children}
     </section>
   )
 }
@@ -151,100 +129,65 @@ export default function SettingsPage() {
   const { user, chapters } = useLoaderData<typeof loader>()
   const { t, i18n } = useTranslation()
 
-  // ── Display Name ──────────────────────────────────────────────────────────
-  const nameFetcher = useFetcher<typeof action>()
-  const [nameSaved, setNameSaved] = useState(false)
+  const fetcher = useFetcher<typeof action>()
+  const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    if (nameFetcher.state === "idle" && nameFetcher.data?.ok === true) {
-      setNameSaved(true)
-      const timer = setTimeout(() => setNameSaved(false), 3000)
-      return () => clearTimeout(timer)
-    }
-  }, [nameFetcher.state, nameFetcher.data])
-
-  // ── Language Preferences ─────────────────────────────────────────────────
-  const langFetcher = useFetcher<typeof action>()
-  const [langSaved, setLangSaved] = useState(false)
-
-  useEffect(() => {
-    if (langFetcher.state === "idle" && langFetcher.data?.ok === true) {
-      if (langFetcher.data.uiLang) {
-        i18n.changeLanguage(langFetcher.data.uiLang)
-        localStorage.setItem("ui_lang", langFetcher.data.uiLang)
+    if (fetcher.state === "idle" && fetcher.data?.ok === true) {
+      if (fetcher.data.uiLang) {
+        i18n.changeLanguage(fetcher.data.uiLang)
+        localStorage.setItem("ui_lang", fetcher.data.uiLang)
       }
-      setLangSaved(true)
-      const timer = setTimeout(() => setLangSaved(false), 3000)
+      setSaved(true)
+      const timer = setTimeout(() => setSaved(false), 3000)
       return () => clearTimeout(timer)
     }
-  }, [langFetcher.state, langFetcher.data, i18n])
+  }, [fetcher.state, fetcher.data, i18n])
 
-  // ── Discord ───────────────────────────────────────────────────────────────
-  const discordFetcher = useFetcher<typeof action>()
-  const [discordSaved, setDiscordSaved] = useState(false)
-
-  useEffect(() => {
-    if (discordFetcher.state === "idle" && discordFetcher.data?.ok === true) {
-      setDiscordSaved(true)
-      const timer = setTimeout(() => setDiscordSaved(false), 3000)
-      return () => clearTimeout(timer)
-    }
-  }, [discordFetcher.state, discordFetcher.data])
-
-  // ── Chapter Affiliation ───────────────────────────────────────────────────
-  const chapterFetcher = useFetcher<typeof action>()
-  const [chapterSaved, setChapterSaved] = useState(false)
-
-  useEffect(() => {
-    if (chapterFetcher.state === "idle" && chapterFetcher.data?.ok === true) {
-      setChapterSaved(true)
-      const timer = setTimeout(() => setChapterSaved(false), 3000)
-      return () => clearTimeout(timer)
-    }
-  }, [chapterFetcher.state, chapterFetcher.data])
-
+  const errors = fetcher.data?.ok === false ? fetcher.data.errors : undefined
   const isJa = i18n.language !== "en"
 
   return (
     <div className="max-w-2xl px-8 py-8">
-      <h1 className="mb-1 text-2xl font-bold text-gray-900">{t("settings.title")}</h1>
-      <p className="mb-8 text-sm text-gray-500">{t("settings.subtitle")}</p>
+      <fetcher.Form method="post">
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="mb-1 text-2xl font-bold text-gray-900">{t("settings.title")}</h1>
+            <p className="text-sm text-gray-500">{t("settings.subtitle")}</p>
+          </div>
+          <SaveButton state={fetcher.state} saved={saved} />
+        </div>
 
-      <div className="flex flex-col gap-6">
-        {/* Display Name */}
-        <SectionCard title={t("settings.name.title")} description={t("settings.name.description")}>
-          <nameFetcher.Form method="post">
-            <input type="hidden" name="intent" value="updateName" />
-            <div className="mb-4">
-              <label htmlFor="name" className="mb-1 block text-sm font-medium text-gray-700">
-                {t("settings.name.label")}
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                defaultValue={user.name}
-                maxLength={100}
-                className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-              {nameFetcher.data?.ok === false && nameFetcher.data.error && (
-                <p className="mt-1 text-xs text-red-500">
-                  {t(`settings.errors.${nameFetcher.data.error}`, t("settings.save_error"))}
-                </p>
-              )}
-            </div>
-            <SaveButton state={nameFetcher.state} saved={nameSaved} />
-          </nameFetcher.Form>
-        </SectionCard>
+        <div className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white">
+          {/* Display Name */}
+          <SettingsSection
+            title={t("settings.name.title")}
+            description={t("settings.name.description")}
+          >
+            <label htmlFor="name" className="mb-1 block text-sm font-medium text-gray-700">
+              {t("settings.name.label")}
+            </label>
+            <input
+              id="name"
+              name="name"
+              type="text"
+              defaultValue={user.name}
+              maxLength={100}
+              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+            {errors?.name && (
+              <p className="mt-1 text-xs text-red-500">
+                {t(`settings.errors.${errors.name}`, t("settings.save_error"))}
+              </p>
+            )}
+          </SettingsSection>
 
-        {/* Language Preferences */}
-        <SectionCard
-          title={t("settings.language.title")}
-          description={t("settings.language.description")}
-        >
-          <langFetcher.Form method="post">
-            <input type="hidden" name="intent" value="updateLanguage" />
-            <div className="mb-4 grid grid-cols-2 gap-4">
+          {/* Language Preferences */}
+          <SettingsSection
+            title={t("settings.language.title")}
+            description={t("settings.language.description")}
+          >
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label htmlFor="uiLang" className="mb-1 block text-sm font-medium text-gray-700">
                   {t("settings.language.ui_label")}
@@ -283,79 +226,66 @@ export default function SettingsPage() {
                 </select>
               </div>
             </div>
-            {langFetcher.data?.ok === false && langFetcher.data.error && (
-              <p className="mb-3 text-xs text-red-500">
-                {t(`settings.errors.${langFetcher.data.error}`, t("settings.save_error"))}
+            {errors?.lang && (
+              <p className="mt-2 text-xs text-red-500">
+                {t(`settings.errors.${errors.lang}`, t("settings.save_error"))}
               </p>
             )}
-            <SaveButton state={langFetcher.state} saved={langSaved} />
-          </langFetcher.Form>
-        </SectionCard>
+          </SettingsSection>
 
-        {/* Discord */}
-        <SectionCard
-          title={t("settings.discord.title")}
-          description={t("settings.discord.description")}
-        >
-          <discordFetcher.Form method="post">
-            <input type="hidden" name="intent" value="updateDiscord" />
-            <div className="mb-4">
-              <label htmlFor="discordId" className="mb-1 block text-sm font-medium text-gray-700">
-                {t("settings.discord.idLabel")}
-              </label>
-              <input
-                id="discordId"
-                name="discordId"
-                type="text"
-                defaultValue={user.discordId ?? ""}
-                placeholder="e.g. 123456789012345678"
-                className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-              <p className="mt-1 text-xs text-gray-500">{t("settings.discord.idHint")}</p>
-              {discordFetcher.data?.ok === false && discordFetcher.data.error && (
-                <p className="mt-1 text-xs text-red-500">
-                  {t(`settings.errors.${discordFetcher.data.error}`, t("settings.save_error"))}
-                </p>
-              )}
-            </div>
-            <SaveButton state={discordFetcher.state} saved={discordSaved} />
-          </discordFetcher.Form>
-        </SectionCard>
+          {/* Discord */}
+          <SettingsSection
+            title={t("settings.discord.title")}
+            description={t("settings.discord.description")}
+          >
+            <label htmlFor="discordId" className="mb-1 block text-sm font-medium text-gray-700">
+              {t("settings.discord.idLabel")}
+            </label>
+            <input
+              id="discordId"
+              name="discordId"
+              type="text"
+              defaultValue={user.discordId ?? ""}
+              placeholder="e.g. 123456789012345678"
+              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+            <p className="mt-1 text-xs text-gray-500">{t("settings.discord.idHint")}</p>
+            {errors?.discordId && (
+              <p className="mt-1 text-xs text-red-500">
+                {t(`settings.errors.${errors.discordId}`, t("settings.save_error"))}
+              </p>
+            )}
+          </SettingsSection>
 
-        {/* Chapter Affiliation */}
-        <SectionCard
-          title={t("settings.chapter.title")}
-          description={t("settings.chapter.description")}
-        >
-          <chapterFetcher.Form method="post">
-            <input type="hidden" name="intent" value="updateChapter" />
-            <div className="mb-4">
-              <label htmlFor="chapterId" className="mb-1 block text-sm font-medium text-gray-700">
-                {t("settings.chapter.label")}
-              </label>
-              <select
-                id="chapterId"
-                name="chapterId"
-                defaultValue={user.chapterId ?? ""}
-                className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              >
-                <option value="">{t("settings.chapter.none")}</option>
-                {chapters.map((ch) => (
-                  <option key={ch.id} value={ch.id}>
-                    {isJa ? ch.nameJa : ch.nameEn}
-                  </option>
-                ))}
-              </select>
-              {chapterFetcher.data?.ok === false && chapterFetcher.data.error && (
-                <p className="mt-1 text-xs text-red-500">
-                  {t(`settings.errors.${chapterFetcher.data.error}`, t("settings.save_error"))}
-                </p>
-              )}
-            </div>
-            <SaveButton state={chapterFetcher.state} saved={chapterSaved} />
-          </chapterFetcher.Form>
-        </SectionCard>
-      </div>
+          {/* Chapter Affiliation */}
+          <SettingsSection
+            title={t("settings.chapter.title")}
+            description={t("settings.chapter.description")}
+          >
+            <label htmlFor="chapterId" className="mb-1 block text-sm font-medium text-gray-700">
+              {t("settings.chapter.label")}
+            </label>
+            <select
+              id="chapterId"
+              name="chapterId"
+              defaultValue={user.chapterId ?? ""}
+              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="">{t("settings.chapter.none")}</option>
+              {chapters.map((ch) => (
+                <option key={ch.id} value={ch.id}>
+                  {isJa ? ch.nameJa : ch.nameEn}
+                </option>
+              ))}
+            </select>
+            {errors?.chapterId && (
+              <p className="mt-1 text-xs text-red-500">
+                {t(`settings.errors.${errors.chapterId}`, t("settings.save_error"))}
+              </p>
+            )}
+          </SettingsSection>
+        </div>
+      </fetcher.Form>
     </div>
   )
 }

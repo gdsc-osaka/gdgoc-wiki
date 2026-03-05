@@ -18,7 +18,7 @@ export const user = sqliteTable("user", {
   chapterId: text("chapterId"),
   preferredUiLanguage: text("preferredUiLanguage").notNull().default("ja"),
   preferredContentLanguage: text("preferredContentLanguage").notNull().default("ja"),
-  discordId: text("discord_id"),
+  discordId: text("discord_id").unique(),
 })
 
 export const session = sqliteTable("session", {
