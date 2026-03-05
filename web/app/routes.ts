@@ -15,6 +15,7 @@ export default [
   route("/api/ingest/:sessionId/regenerate", "routes/api.ingest.$sessionId.regenerate.ts"),
   route("/api/google-drive/auth", "routes/api.google-drive.auth.ts"),
   route("/api/google-drive/callback", "routes/api.google-drive.callback.ts"),
+  route("/api/pages/reorder", "routes/api.pages.reorder.ts"),
 
   // Admin routes — separate layout with admin sidebar
   route("admin", "routes/admin.tsx", [

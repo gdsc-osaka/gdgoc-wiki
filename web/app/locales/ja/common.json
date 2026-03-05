@@ -4,7 +4,10 @@
     "home": "ホーム",
     "search": "検索",
     "new_page": "新規ページ",
-    "admin": "管理"
+    "admin": "管理",
+    "github": "GitHub",
+    "recent": "最近の更新",
+    "starred": "スター付き"
   },
   "language": {
     "ja": "日本語",
@@ -100,6 +103,7 @@
     "clarification_summary_label": "AIが理解した内容",
     "clarification_submit": "回答して続ける",
     "clarification_hint": "より正確なWikiページを生成するために、以下の情報をお聞かせください",
+    "nothing_in_particular": "特になし",
     "error_heading": "処理中にエラーが発生しました",
     "retry": "もう一度試す",
     "draft_not_found": "下書きが見つかりません。",
@@ -152,6 +156,12 @@
       "invalid_lang": "無効な言語が選択されています。",
       "invalid_chapter": "選択されたチャプターは存在しません。"
     }
+  },
+  "pageTree": {
+    "noPages": "ページはまだありません",
+    "newPage": "新規ページ",
+    "collapse": "折りたたむ",
+    "expand": "展開する"
   },
   "editor": {
     "back_to_page": "ページに戻る",

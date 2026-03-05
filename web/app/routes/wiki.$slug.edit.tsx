@@ -1,12 +1,30 @@
 import { eq } from "drizzle-orm"
 import { nanoid } from "nanoid"
 import { redirect } from "react-router"
-import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react-router"
+import type {
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
+  MetaFunction,
+  ShouldRevalidateFunctionArgs,
+} from "react-router"
 import { useLoaderData } from "react-router"
 import PageEditor from "~/components/PageEditor"
 import * as schema from "~/db/schema"
 import { hasRole, requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
+
+// ---------------------------------------------------------------------------
+// Revalidation
+// ---------------------------------------------------------------------------
+
+export function shouldRevalidate({
+  actionResult,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs) {
+  // Don't revalidate after a successful save/autosave — loader data hasn't changed
+  if (actionResult && (actionResult as { ok?: boolean }).ok) return false
+  return defaultShouldRevalidate
+}
 
 // ---------------------------------------------------------------------------
 // Meta

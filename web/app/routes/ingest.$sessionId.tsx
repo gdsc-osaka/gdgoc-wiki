@@ -69,16 +69,17 @@ function isClarification(
 // ---------------------------------------------------------------------------
 
 const PHASE_STEPS = [
-  { key: "step1", prefixes: ["入力を解析中", "質問を確認中"] },
-  { key: "step2", prefixes: ["ページ構成を計画中", "重複ページを統合中"] },
-  { key: "step3", prefixes: ["ページ内容を生成中"] },
-  { key: "step4", prefixes: ["保存中"] },
+  { key: "step1", codes: ["parsing", "clarifying"] },
+  { key: "step2", codes: ["planning", "merging"] },
+  { key: "step3", codes: ["generating"] },
+  { key: "step4", codes: ["saving"] },
 ]
 
 function getActiveStep(phaseMessage: string | null): number {
   if (!phaseMessage) return 0
+  const code = phaseMessage.split(":")[0]
   for (let i = 0; i < PHASE_STEPS.length; i++) {
-    if (PHASE_STEPS[i].prefixes.some((p) => phaseMessage.startsWith(p))) return i
+    if (PHASE_STEPS[i].codes.includes(code)) return i
   }
   return 0
 }
@@ -127,7 +128,9 @@ function ProcessingScreen({
                 }
               >
                 {label}
-                {isActive && phaseMessage ? ` — ${phaseMessage}` : ""}
+                {isActive && phaseMessage?.includes(":")
+                  ? ` — ${phaseMessage.split(":").slice(1).join(":")}`
+                  : ""}
               </span>
             </div>
           )
@@ -159,9 +162,11 @@ function ClarificationScreen({
     Object.fromEntries(questions.map((q) => [q.id, ""])),
   )
   const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   async function handleSubmit() {
     setSubmitting(true)
+    setSubmitError(null)
     try {
       const res = await fetch(`/api/ingest/${sessionId}/clarify`, {
         method: "POST",
@@ -176,7 +181,12 @@ function ClarificationScreen({
       })
       if (res.ok) {
         onSubmitted()
+      } else {
+        const text = await res.text().catch(() => "")
+        setSubmitError(text || `Error ${res.status}`)
       }
+    } catch {
+      setSubmitError(t("ingest.error_heading"))
     } finally {
       setSubmitting(false)
     }
@@ -216,10 +226,15 @@ function ClarificationScreen({
               ))}
               <button
                 type="button"
-                onClick={() => setAnswers((prev) => ({ ...prev, [q.id]: "特になし" }))}
+                onClick={() =>
+                  setAnswers((prev) => ({
+                    ...prev,
+                    [q.id]: t("ingest.nothing_in_particular"),
+                  }))
+                }
                 className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-400 hover:border-gray-400 hover:text-gray-600"
               >
-                特になし
+                {t("ingest.nothing_in_particular")}
               </button>
             </div>
             <textarea
@@ -232,6 +247,12 @@ function ClarificationScreen({
           </div>
         ))}
       </div>
+
+      {submitError && (
+        <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+          {submitError}
+        </p>
+      )}
 
       <button
         type="button"

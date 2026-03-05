@@ -83,7 +83,10 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
   const tempIdMap: Record<string, string> = {}
   for (const op of body.operations) {
     if (op.type === "create") {
-      tempIdMap[op.tempId ?? ""] = nanoid()
+      if (!op.tempId) {
+        return new Response("All create operations must include a tempId", { status: 400 })
+      }
+      tempIdMap[op.tempId] = nanoid()
     }
   }
 
@@ -92,7 +95,8 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
 
   for (const op of body.operations) {
     if (op.type === "create") {
-      const pageId = tempIdMap[op.tempId ?? ""] ?? nanoid()
+      // tempId is validated above for all create ops
+      const pageId = tempIdMap[op.tempId as string]
       pageIds.push(pageId)
 
       // Generate a unique slug by checking for collisions

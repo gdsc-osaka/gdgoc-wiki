@@ -283,6 +283,42 @@ describe("applyPatchesToMarkdown", () => {
     expect(result).toContain("新しい備考")
   })
 
+  it("does not treat headings inside fenced code blocks as sections", () => {
+    const mdWithCodeFence = [
+      "## 概要",
+      "",
+      "配信ガイドラインです。",
+      "",
+      "```markdown",
+      "## 担当スタッフ",
+      "これはコードブロック内のヘッダーです",
+      "```",
+      "",
+      "## 担当スタッフ",
+      "",
+      "- Yuki Hirai (GDG Tokyo)",
+    ].join("\n")
+
+    const patches: SectionPatch[] = [
+      {
+        headingMatch: "担当スタッフ",
+        operation: "append",
+        content: "- New Person",
+      },
+    ]
+    const result = applyPatchesToMarkdown(mdWithCodeFence, patches)
+    // Code fence content should be preserved unchanged
+    expect(result).toContain(
+      "```markdown\n## 担当スタッフ\nこれはコードブロック内のヘッダーです\n```",
+    )
+    // Patch should be applied to the real section, not inside the code fence
+    expect(result).toContain("- New Person")
+    // The real 担当スタッフ section (last occurrence) has the patch appended
+    const realSectionIdx = result.lastIndexOf("## 担当スタッフ")
+    const newPersonIdx = result.indexOf("- New Person")
+    expect(newPersonIdx).toBeGreaterThan(realSectionIdx)
+  })
+
   it("renders patches as sections when no existing content", () => {
     const patches: SectionPatch[] = [
       {

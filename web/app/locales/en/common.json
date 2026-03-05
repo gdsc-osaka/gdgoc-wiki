@@ -4,7 +4,10 @@
     "home": "Home",
     "search": "Search",
     "new_page": "New Page",
-    "admin": "Admin"
+    "admin": "Admin",
+    "github": "GitHub",
+    "recent": "Recent",
+    "starred": "Starred"
   },
   "language": {
     "ja": "日本語",
@@ -100,6 +103,7 @@
     "clarification_summary_label": "What AI understood",
     "clarification_submit": "Submit and continue",
     "clarification_hint": "Please provide the following information to generate more accurate wiki pages",
+    "nothing_in_particular": "Nothing in particular",
     "error_heading": "An error occurred during processing",
     "retry": "Try again",
     "draft_not_found": "Draft not found.",
@@ -152,6 +156,12 @@
       "invalid_lang": "Invalid language selection.",
       "invalid_chapter": "Selected chapter does not exist."
     }
+  },
+  "pageTree": {
+    "noPages": "No pages yet",
+    "newPage": "New Page",
+    "collapse": "Collapse",
+    "expand": "Expand"
   },
   "editor": {
     "back_to_page": "Back to page",

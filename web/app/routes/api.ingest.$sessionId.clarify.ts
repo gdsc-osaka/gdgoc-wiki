@@ -83,7 +83,7 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
     .set({
       status: "processing",
       aiDraftJson: null,
-      phaseMessage: "入力を解析中...",
+      phaseMessage: "parsing",
       updatedAt: new Date(),
     })
     .where(eq(schema.ingestionSessions.id, session.id))

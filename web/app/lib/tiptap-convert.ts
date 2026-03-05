@@ -248,9 +248,16 @@ export function applyPatchesToMarkdown(existingMarkdown: string, patches: Sectio
   const lines = existingMarkdown.split("\n")
   const sections: { heading: string | null; lines: string[] }[] = []
   let current: { heading: string | null; lines: string[] } = { heading: null, lines: [] }
+  let inCodeFence = false
 
   for (const line of lines) {
-    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/)
+    if (/^(`{3,}|~{3,})/.test(line.trim())) {
+      inCodeFence = !inCodeFence
+      current.lines.push(line)
+      continue
+    }
+
+    const headingMatch = !inCodeFence ? line.match(/^(#{1,6})\s+(.+)$/) : null
     if (headingMatch) {
       if (current.heading !== null || current.lines.length > 0) {
         sections.push(current)

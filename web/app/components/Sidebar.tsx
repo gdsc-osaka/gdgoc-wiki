@@ -1,5 +1,6 @@
 import { Clock, Home, Settings, Star } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Link, useLocation } from "react-router"
 import PageTree from "~/components/PageTree"
 import type { PageNode } from "~/lib/page-tree"
@@ -40,6 +41,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ pages, currentSlug, userRole }: SidebarProps) {
+  const { t } = useTranslation()
   const location = useLocation()
 
   const [width, setWidth] = useState<number>(() => {
@@ -109,21 +111,21 @@ export default function Sidebar({ pages, currentSlug, userRole }: SidebarProps) 
             <NavItem
               to="/"
               icon={<Home size={16} />}
-              label="Home"
+              label={t("nav.home")}
               isCollapsed={isCollapsed}
               isActive={location.pathname === "/"}
             />
             <NavItem
               to="/recent"
               icon={<Clock size={16} />}
-              label="Recent"
+              label={t("nav.recent")}
               isCollapsed={isCollapsed}
               isActive={location.pathname === "/recent"}
             />
             <NavItem
               to="/starred"
               icon={<Star size={16} />}
-              label="Starred"
+              label={t("nav.starred")}
               isCollapsed={isCollapsed}
               isActive={location.pathname === "/starred"}
             />
@@ -131,7 +133,7 @@ export default function Sidebar({ pages, currentSlug, userRole }: SidebarProps) 
               <NavItem
                 to="/admin"
                 icon={<Settings size={16} />}
-                label="Admin"
+                label={t("nav.admin")}
                 isCollapsed={isCollapsed}
                 isActive={location.pathname.startsWith("/admin")}
               />
@@ -143,7 +145,12 @@ export default function Sidebar({ pages, currentSlug, userRole }: SidebarProps) 
 
           {/* Page tree */}
           <div className="min-h-0 flex-1">
-            <PageTree pages={pages} currentSlug={currentSlug} isCollapsed={isCollapsed} />
+            <PageTree
+              pages={pages}
+              currentSlug={currentSlug}
+              isCollapsed={isCollapsed}
+              canReorder={!isCollapsed && ["member", "lead", "admin"].includes(userRole ?? "")}
+            />
           </div>
         </div>
 

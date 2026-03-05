@@ -108,7 +108,7 @@ export async function runIngestionPipeline(
     } else {
       fileUris = []
 
-      await updatePhase(db, sessionId, "入力を解析中...")
+      await updatePhase(db, sessionId, "parsing")
 
       // ------------------------------------------------------------------
       // Step 1: Upload images to Gemini File API + R2
@@ -216,7 +216,7 @@ export async function runIngestionPipeline(
     // ------------------------------------------------------------------
     // Step 4a: Phase 1a — Planner
     // ------------------------------------------------------------------
-    await updatePhase(db, sessionId, "ページ構成を計画中...")
+    await updatePhase(db, sessionId, "planning")
     const rawPlan = await runPhase1Planner(
       env.GEMINI_API_KEY,
       effectiveUserText,
@@ -227,7 +227,7 @@ export async function runIngestionPipeline(
     // ------------------------------------------------------------------
     // Step 4b: Phase 1b — Merger (consolidate overlapping creates)
     // ------------------------------------------------------------------
-    await updatePhase(db, sessionId, "重複ページを統合中...")
+    await updatePhase(db, sessionId, "merging")
     const plan = await runPhase1Merger(env.GEMINI_API_KEY, rawPlan, effectiveUserText)
 
     // ------------------------------------------------------------------
@@ -254,7 +254,7 @@ export async function runIngestionPipeline(
     const total = createOps.length + updateOps.length
     let done = 0
 
-    await updatePhase(db, sessionId, `ページ内容を生成中... (0/${total})`)
+    await updatePhase(db, sessionId, `generating:0/${total}`)
 
     const creatorResults = await Promise.all(
       createOps.map(async (op) => {
@@ -267,7 +267,7 @@ export async function runIngestionPipeline(
           createOps.filter((o) => o.tempId !== op.tempId),
         )
         done++
-        await updatePhase(db, sessionId, `ページ内容を生成中... (${done}/${total})`)
+        await updatePhase(db, sessionId, `generating:${done}/${total}`)
         return result
       }),
     )
@@ -284,7 +284,7 @@ export async function runIngestionPipeline(
           markdown,
         )
         done++
-        await updatePhase(db, sessionId, `ページ内容を生成中... (${done}/${total})`)
+        await updatePhase(db, sessionId, `generating:${done}/${total}`)
         return result
       }),
     )
@@ -331,7 +331,7 @@ export async function runIngestionPipeline(
     // ------------------------------------------------------------------
     // Step 8: Save to DB
     // ------------------------------------------------------------------
-    await updatePhase(db, sessionId, "保存中...")
+    await updatePhase(db, sessionId, "saving")
     await db
       .update(schema.ingestionSessions)
       .set({
