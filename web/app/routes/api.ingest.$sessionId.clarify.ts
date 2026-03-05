@@ -72,6 +72,7 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
     clarificationAnswers,
     googleDocText: googleDocText || undefined,
     fetchedUrlContent,
+    sources: storedDraft.sources,
   }
 
   // Transition status back to processing

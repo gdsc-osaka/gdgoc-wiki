@@ -71,6 +71,7 @@ export type AiDraftJson =
       fileUris: { uri: string; mimeType: string }[]
       googleDocText?: string
       fetchedUrlContent?: string
+      sources?: SourceUrl[]
     }
   | {
       phase: "url_selection"
@@ -84,6 +85,7 @@ export type AiDraftJson =
       clarificationAnswers: string
       googleDocText?: string
       fetchedUrlContent?: string
+      sources?: SourceUrl[]
     }
   | {
       phase: "resume_post_url_selection"
@@ -149,6 +151,7 @@ export async function runIngestionPipeline(
     googleDocText?: string
     selectedUrls?: string[]
     fetchedUrlContent?: string
+    priorSources?: SourceUrl[]
   },
 ): Promise<void> {
   console.log("[ingestion-pipeline] runIngestionPipeline start", {
@@ -180,7 +183,7 @@ export async function runIngestionPipeline(
     let fileUris: { uri: string; mimeType: string }[]
     const warnings: string[] = []
     const docTexts: string[] = []
-    const sources: SourceUrl[] = []
+    const sources: SourceUrl[] = resumeContext?.priorSources ? [...resumeContext.priorSources] : []
 
     // Determine resume type
     const isPostClarification = !!resumeContext?.clarificationAnswers
@@ -196,6 +199,7 @@ export async function runIngestionPipeline(
       // Sources collected in a prior run are discarded when the run returns early
       // (url_selection or clarification phase), so we always re-fetch them on any resume.
       if (inputs.googleDocUrls.length > 0) {
+        const seenSourceUrls = new Set(sources.map((s) => s.url))
         const tokenRow = await db
           .select()
           .from(schema.googleDriveTokens)
@@ -217,6 +221,7 @@ export async function runIngestionPipeline(
             }
           }
           for (const docUrl of inputs.googleDocUrls) {
+            if (seenSourceUrls.has(docUrl)) continue
             const fileId = extractFileId(docUrl)
             try {
               const fileName = await getDriveFileName(fileId, accessToken)
@@ -224,10 +229,13 @@ export async function runIngestionPipeline(
             } catch {
               sources.push({ url: docUrl, title: fileId })
             }
+            seenSourceUrls.add(docUrl)
           }
         } else {
           for (const docUrl of inputs.googleDocUrls) {
+            if (seenSourceUrls.has(docUrl)) continue
             sources.push({ url: docUrl, title: extractFileId(docUrl) })
+            seenSourceUrls.add(docUrl)
           }
         }
       }
@@ -445,6 +453,7 @@ export async function runIngestionPipeline(
           fileUris,
           googleDocText: docTexts.join("\n\n---\n\n"),
           fetchedUrlContent: fetchedUrlContent || undefined,
+          sources: sources.length > 0 ? sources : undefined,
         }
         await db
           .update(schema.ingestionSessions)
