@@ -216,11 +216,11 @@ function ClarificationScreen({
       <p className="mb-6 text-sm text-gray-500">{t("ingest.clarification_hint")}</p>
 
       {summary && (
-        <div className="mb-8 rounded-lg border border-blue-100 bg-blue-50 p-4">
-          <p className="mb-1 text-xs font-medium uppercase tracking-wide text-blue-700">
+        <div className="mb-8 rounded-lg border border-blue-100 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950/50">
+          <p className="mb-1 text-xs font-medium uppercase tracking-wide text-blue-700 dark:text-blue-300">
             {t("ingest.clarification_summary_label")}
           </p>
-          <p className="text-sm text-gray-700">{summary}</p>
+          <p className="text-sm text-gray-700 dark:text-gray-300">{summary}</p>
         </div>
       )}
 
