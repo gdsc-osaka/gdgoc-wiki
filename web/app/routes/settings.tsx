@@ -148,7 +148,7 @@ export default function SettingsPage() {
   const isJa = i18n.language !== "en"
 
   return (
-    <div className="max-w-2xl px-8 py-8">
+    <div className="px-8 py-8">
       <fetcher.Form method="post">
         <div className="mb-8 flex items-start justify-between gap-4">
           <div>
