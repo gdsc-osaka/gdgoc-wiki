@@ -139,11 +139,15 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
           .select()
           .from(schema.commentReactions)
           .where(inArray(schema.commentReactions.commentId, commentIds))
+          .orderBy(asc(schema.commentReactions.createdAt))
           .all()
       : []
 
   // Build reaction groups per comment
-  const reactionsByComment = new Map<string, { emoji: string; count: number; reactedByMe: boolean }[]>()
+  const reactionsByComment = new Map<
+    string,
+    { emoji: string; count: number; reactedByMe: boolean }[]
+  >()
   for (const r of reactionsRaw) {
     const list = reactionsByComment.get(r.commentId) ?? []
     const existing = list.find((x) => x.emoji === r.emoji)
@@ -157,12 +161,16 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
   }
 
   // Build flat list with reactions, then nest replies under top-level
-  const flatComments = commentsRaw.map((c) => ({
+  type ReactionGroup = { emoji: string; count: number; reactedByMe: boolean }
+  type FlatComment = (typeof commentsRaw)[number] & {
+    reactions: ReactionGroup[]
+    replies: FlatComment[]
+  }
+  const flatComments: FlatComment[] = commentsRaw.map((c) => ({
     ...c,
     reactions: reactionsByComment.get(c.id) ?? [],
-    replies: [] as typeof flatComments,
+    replies: [],
   }))
-  type FlatComment = (typeof flatComments)[number]
   const commentMap = new Map<string, FlatComment>(flatComments.map((c) => [c.id, c]))
   const topLevelComments: FlatComment[] = []
   for (const c of flatComments) {
@@ -690,6 +698,17 @@ export default function WikiPage() {
             attachments={attachments}
           />
         )}
+      </div>
+
+      {/* Comments section — full article width below content */}
+      <div className="max-w-3xl min-w-0 flex-1 border-t border-gray-100 px-4 py-8 md:px-10">
+        <CommentSection
+          comments={comments}
+          pageId={page.id}
+          pageSlug={page.slug}
+          currentUserId={currentUserId}
+          userRole={userRole}
+        />
       </div>
 
       <ConfirmDialog

@@ -127,6 +127,20 @@
   background-color: var(--color-gray-100);
 }
 
+/* Emoji reaction chip — active (reacted) state */
+.reaction-active {
+  background-color: var(--color-blue-100);
+}
+.reaction-active .reaction-count {
+  color: var(--color-blue-600);
+}
+.dark .reaction-active {
+  background-color: var(--color-blue-800);
+}
+.dark .reaction-active .reaction-count {
+  color: var(--color-blue-200);
+}
+
 /* Force light mode for landing page sections regardless of user theme */
 .force-light {
   color-scheme: light;

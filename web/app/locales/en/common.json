@@ -59,7 +59,25 @@
     "history_empty": "No edit history yet",
     "history_current": "Current",
     "archive": "Archive",
-    "archive_confirm": "Archive \"{{title}}\"? You can restore it later."
+    "archive_confirm": "Archive \"{{title}}\"? You can restore it later.",
+    "comment": {
+      "heading": "Comments",
+      "placeholder": "Add a comment…",
+      "reply_placeholder": "Write a reply…",
+      "submit": "Comment",
+      "reply": "Reply",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "delete_confirm_title": "Delete comment?",
+      "delete_confirm_message": "This comment will be permanently removed. This cannot be undone.",
+      "deleted": "This comment was deleted.",
+      "discard_title": "Discard comment?",
+      "discard_message": "Your unsaved comment will be lost.",
+      "discard_confirm": "Discard",
+      "discard_cancel": "Keep editing",
+      "reply_to": "Reply",
+      "reply_count": "{{count}} replies"
+    }
   },
   "archived": {
     "title": "Archived Pages",
