@@ -23,6 +23,7 @@ export default function InputPanel({ driveConnected, serverError }: InputPanelPr
   const fileInputRef = useRef<HTMLInputElement>(null)
   const pdfInputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
+  const [draggingPdf, setDraggingPdf] = useState(false)
 
   function validate(): string[] {
     const errs: string[] = []
@@ -100,6 +101,14 @@ export default function InputPanel({ driveConnected, serverError }: InputPanelPr
     setDragging(false)
     if (e.dataTransfer.files.length > 0) {
       handleAddImages(e.dataTransfer.files)
+    }
+  }
+
+  function handlePdfDrop(e: React.DragEvent) {
+    e.preventDefault()
+    setDraggingPdf(false)
+    if (e.dataTransfer.files.length > 0) {
+      handleAddPdfs(e.dataTransfer.files)
     }
   }
 
@@ -225,8 +234,18 @@ export default function InputPanel({ driveConnected, serverError }: InputPanelPr
         )}
         <button
           type="button"
+          onDrop={handlePdfDrop}
+          onDragOver={(e) => {
+            e.preventDefault()
+            setDraggingPdf(true)
+          }}
+          onDragLeave={() => setDraggingPdf(false)}
           onClick={() => pdfInputRef.current?.click()}
-          className={`w-full cursor-pointer rounded-lg border-2 border-dashed border-gray-200 p-4 text-center text-sm text-gray-500 transition-colors hover:border-gray-300 hover:bg-gray-50 ${pdfs.length >= MAX_PDFS ? "hidden" : ""}`}
+          className={`w-full cursor-pointer rounded-lg border-2 border-dashed p-4 text-center text-sm transition-colors ${pdfs.length >= MAX_PDFS ? "hidden" : ""} ${
+            draggingPdf
+              ? "border-blue-400 bg-blue-50 text-blue-500"
+              : "border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50"
+          }`}
         >
           {t("ingest.form.pdfs_drop_hint")}
           <input
