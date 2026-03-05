@@ -1,4 +1,5 @@
 import { desc, eq } from "drizzle-orm"
+import { useTranslation } from "react-i18next"
 import { useFetcher, useLoaderData } from "react-router"
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router"
 import * as schema from "~/db/schema"
@@ -78,6 +79,7 @@ type UserRow = {
 
 function RoleSelect({ user, currentUserId }: { user: UserRow; currentUserId: string }) {
   const fetcher = useFetcher()
+  const { t } = useTranslation()
   const isSelf = user.id === currentUserId
 
   return (
@@ -100,26 +102,35 @@ function RoleSelect({ user, currentUserId }: { user: UserRow; currentUserId: str
           </option>
         ))}
       </select>
-      {isSelf && <span className="ml-2 text-xs text-gray-400">(you)</span>}
+      {isSelf && <span className="ml-2 text-xs text-gray-400">{t("admin.users.you")}</span>}
     </fetcher.Form>
   )
 }
 
 export default function AdminUsers() {
   const { users, currentUserId } = useLoaderData<typeof loader>()
+  const { t } = useTranslation()
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold text-gray-900">Users</h1>
+      <h1 className="mb-6 text-2xl font-bold text-gray-900">{t("admin.users.heading")}</h1>
 
       <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
         <table className="w-full text-sm">
           <thead className="border-b border-gray-200 bg-gray-50">
             <tr>
-              <th className="px-4 py-3 text-left font-medium text-gray-500">User</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-500">Email</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-500">Role</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-500">Chapter</th>
+              <th className="px-4 py-3 text-left font-medium text-gray-500">
+                {t("admin.users.col_user")}
+              </th>
+              <th className="px-4 py-3 text-left font-medium text-gray-500">
+                {t("admin.users.col_email")}
+              </th>
+              <th className="px-4 py-3 text-left font-medium text-gray-500">
+                {t("admin.users.col_role")}
+              </th>
+              <th className="px-4 py-3 text-left font-medium text-gray-500">
+                {t("admin.users.col_chapter")}
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -148,7 +159,7 @@ export default function AdminUsers() {
         </table>
 
         {users.length === 0 && (
-          <p className="px-4 py-8 text-center text-sm text-gray-400">No users found.</p>
+          <p className="px-4 py-8 text-center text-sm text-gray-400">{t("admin.users.empty")}</p>
         )}
       </div>
     </div>

@@ -31,10 +31,72 @@
     "sign_in": "サインイン",
     "sign_out": "サインアウト"
   },
+  "login": {
+    "title": "GDGoC Japan Wiki",
+    "subtitle": "続けるにはサインインしてください",
+    "google_signin": "Googleでサインイン",
+    "access_restricted": "GDGoC Japanメンバー限定のアクセスです。"
+  },
+  "admin": {
+    "label": "管理",
+    "nav": {
+      "users": "ユーザー",
+      "pages": "ページ",
+      "tags": "タグ",
+      "stats": "統計"
+    },
+    "pages": {
+      "heading": "ページ",
+      "col_title": "タイトル",
+      "col_status": "ステータス",
+      "col_author": "投稿者",
+      "col_updated": "更新日",
+      "edit": "編集",
+      "delete": "削除",
+      "delete_confirm": "「{{title}}」を削除しますか？この操作は元に戻せません。",
+      "empty": "ページが見つかりません。"
+    },
+    "users": {
+      "heading": "ユーザー",
+      "col_user": "ユーザー",
+      "col_email": "メールアドレス",
+      "col_role": "役割",
+      "col_chapter": "チャプター",
+      "you": "（自分）",
+      "empty": "ユーザーが見つかりません。",
+      "error_own_role": "自分の役割は変更できません",
+      "error_invalid_role": "無効な役割です"
+    },
+    "tags": {
+      "heading": "タグ",
+      "col_color": "カラー",
+      "col_slug": "スラッグ",
+      "col_label_ja": "ラベル（日本語）",
+      "col_label_en": "ラベル（英語）",
+      "col_pages": "ページ数",
+      "empty": "タグが見つかりません。"
+    },
+    "stats": {
+      "heading": "統計",
+      "total_users": "総ユーザー数",
+      "total_pages": "総ページ数",
+      "pages_sub": "{{published}} 件公開 · {{drafts}} 件下書き",
+      "published": "公開済み",
+      "bilingual_coverage": "バイリンガル対応率",
+      "bilingual_coverage_sub": "日英両コンテンツあり"
+    }
+  },
   "ingest": {
     "title": "コンテンツを追加する",
     "description": "テキスト・画像・Google ドキュメントをもとに、AIがWikiページの下書きを作成します。",
     "complete_toast": "AIによる取り込みが完了しました！下書きを確認してください。",
+    "processing_message": "AIが分析中です...",
+    "processing_hint": "しばらくお待ちください。自動的に更新されます。",
+    "error_heading": "処理中にエラーが発生しました",
+    "retry": "もう一度試す",
+    "draft_not_found": "下書きが見つかりません。",
+    "review_heading": "下書きを確認する",
+    "review_subtitle": "AIが作成した下書きを確認・編集してから保存または公開してください。",
     "form": {
       "text_label": "テキスト入力",
       "text_placeholder": "イベントや活動について自由に書いてください（最低50文字）\n例: 先日のTech Talkは参加者45名で盛況でした。スピーカーの田中さんは...",

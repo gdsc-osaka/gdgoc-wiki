@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { redirect } from "react-router"
 import type { LoaderFunctionArgs } from "react-router"
 import { authClient } from "~/lib/auth.client"
@@ -11,6 +12,8 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
 }
 
 export default function LoginPage() {
+  const { t } = useTranslation()
+
   async function handleGoogleSignIn() {
     await authClient.signIn.social({ provider: "google", callbackURL: "/" })
   }
@@ -19,8 +22,8 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
       <div className="w-full max-w-sm rounded-2xl bg-white px-8 py-10 shadow-sm ring-1 ring-gray-100">
         <div className="mb-8 text-center">
-          <h1 className="text-xl font-semibold text-gray-900">GDGoC Japan Wiki</h1>
-          <p className="mt-1 text-sm text-gray-500">Sign in to continue</p>
+          <h1 className="text-xl font-semibold text-gray-900">{t("login.title")}</h1>
+          <p className="mt-1 text-sm text-gray-500">{t("login.subtitle")}</p>
         </div>
 
         <button
@@ -29,12 +32,10 @@ export default function LoginPage() {
           className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
         >
           <GoogleIcon />
-          Sign in with Google
+          {t("login.google_signin")}
         </button>
 
-        <p className="mt-6 text-center text-xs text-gray-400">
-          Access is restricted to GDGoC Japan members.
-        </p>
+        <p className="mt-6 text-center text-xs text-gray-400">{t("login.access_restricted")}</p>
       </div>
     </div>
   )

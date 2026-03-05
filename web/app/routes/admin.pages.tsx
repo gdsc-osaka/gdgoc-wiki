@@ -1,4 +1,5 @@
 import { desc, eq } from "drizzle-orm"
+import { useTranslation } from "react-i18next"
 import { Form, Link, useLoaderData } from "react-router"
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router"
 import * as schema from "~/db/schema"
@@ -78,19 +79,28 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function AdminPages() {
   const { pages } = useLoaderData<typeof loader>()
+  const { t } = useTranslation()
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold text-gray-900">Pages</h1>
+      <h1 className="mb-6 text-2xl font-bold text-gray-900">{t("admin.pages.heading")}</h1>
 
       <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
         <table className="w-full text-sm">
           <thead className="border-b border-gray-200 bg-gray-50">
             <tr>
-              <th className="px-4 py-3 text-left font-medium text-gray-500">Title</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-500">Status</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-500">Author</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-500">Updated</th>
+              <th className="px-4 py-3 text-left font-medium text-gray-500">
+                {t("admin.pages.col_title")}
+              </th>
+              <th className="px-4 py-3 text-left font-medium text-gray-500">
+                {t("admin.pages.col_status")}
+              </th>
+              <th className="px-4 py-3 text-left font-medium text-gray-500">
+                {t("admin.pages.col_author")}
+              </th>
+              <th className="px-4 py-3 text-left font-medium text-gray-500">
+                {t("admin.pages.col_updated")}
+              </th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
@@ -118,12 +128,14 @@ export default function AdminPages() {
                       to={`/wiki/${p.slug}/edit`}
                       className="rounded px-2 py-1 text-xs text-blue-600 hover:bg-blue-50"
                     >
-                      Edit
+                      {t("admin.pages.edit")}
                     </Link>
                     <Form
                       method="post"
                       onSubmit={(e) => {
-                        if (!window.confirm(`Delete "${p.titleJa}"? This cannot be undone.`)) {
+                        if (
+                          !window.confirm(t("admin.pages.delete_confirm", { title: p.titleJa }))
+                        ) {
                           e.preventDefault()
                         }
                       }}
@@ -134,7 +146,7 @@ export default function AdminPages() {
                         type="submit"
                         className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50"
                       >
-                        Delete
+                        {t("admin.pages.delete")}
                       </button>
                     </Form>
                   </div>
@@ -145,7 +157,7 @@ export default function AdminPages() {
         </table>
 
         {pages.length === 0 && (
-          <p className="px-4 py-8 text-center text-sm text-gray-400">No pages found.</p>
+          <p className="px-4 py-8 text-center text-sm text-gray-400">{t("admin.pages.empty")}</p>
         )}
       </div>
     </div>

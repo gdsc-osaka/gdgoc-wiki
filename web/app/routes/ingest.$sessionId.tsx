@@ -97,10 +97,8 @@ export default function IngestSessionPage() {
       <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-gray-50">
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600" />
         <div className="text-center">
-          <p className="text-lg font-medium text-gray-800">AIが分析中です...</p>
-          <p className="mt-1 text-sm text-gray-500">
-            しばらくお待ちください。自動的に更新されます。
-          </p>
+          <p className="text-lg font-medium text-gray-800">{t("ingest.processing_message")}</p>
+          <p className="mt-1 text-sm text-gray-500">{t("ingest.processing_hint")}</p>
         </div>
       </div>
     )
@@ -111,13 +109,13 @@ export default function IngestSessionPage() {
     return (
       <div className="mx-auto max-w-xl px-4 py-16 text-center">
         <div className="mb-4 text-4xl">⚠️</div>
-        <h1 className="text-lg font-semibold text-gray-900">処理中にエラーが発生しました</h1>
+        <h1 className="text-lg font-semibold text-gray-900">{t("ingest.error_heading")}</h1>
         {errorMessage && <p className="mt-2 text-sm text-gray-500">{errorMessage}</p>}
         <a
           href="/ingest"
           className="mt-6 inline-block rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
         >
-          もう一度試す
+          {t("ingest.retry")}
         </a>
       </div>
     )
@@ -127,7 +125,7 @@ export default function IngestSessionPage() {
   if (!draft) {
     return (
       <div className="mx-auto max-w-xl px-4 py-16 text-center">
-        <p className="text-gray-500">下書きが見つかりません。</p>
+        <p className="text-gray-500">{t("ingest.draft_not_found")}</p>
       </div>
     )
   }
@@ -149,10 +147,8 @@ export default function IngestSessionPage() {
         <Toast message={t("ingest.complete_toast")} onDismiss={() => setShowToast(false)} />
       )}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">下書きを確認する</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          AIが作成した下書きを確認・編集してから保存または公開してください。
-        </p>
+        <h1 className="text-2xl font-bold text-gray-900">{t("ingest.review_heading")}</h1>
+        <p className="mt-1 text-sm text-gray-500">{t("ingest.review_subtitle")}</p>
       </div>
 
       {hasSensitive && !sensitiveResolved && (

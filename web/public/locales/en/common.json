@@ -31,10 +31,72 @@
     "sign_in": "Sign in",
     "sign_out": "Sign out"
   },
+  "login": {
+    "title": "GDGoC Japan Wiki",
+    "subtitle": "Sign in to continue",
+    "google_signin": "Sign in with Google",
+    "access_restricted": "Access is restricted to GDGoC Japan members."
+  },
+  "admin": {
+    "label": "Admin",
+    "nav": {
+      "users": "Users",
+      "pages": "Pages",
+      "tags": "Tags",
+      "stats": "Stats"
+    },
+    "pages": {
+      "heading": "Pages",
+      "col_title": "Title",
+      "col_status": "Status",
+      "col_author": "Author",
+      "col_updated": "Updated",
+      "edit": "Edit",
+      "delete": "Delete",
+      "delete_confirm": "Delete \"{{title}}\"? This cannot be undone.",
+      "empty": "No pages found."
+    },
+    "users": {
+      "heading": "Users",
+      "col_user": "User",
+      "col_email": "Email",
+      "col_role": "Role",
+      "col_chapter": "Chapter",
+      "you": "(you)",
+      "empty": "No users found.",
+      "error_own_role": "You cannot change your own role",
+      "error_invalid_role": "Invalid role"
+    },
+    "tags": {
+      "heading": "Tags",
+      "col_color": "Color",
+      "col_slug": "Slug",
+      "col_label_ja": "Label (JA)",
+      "col_label_en": "Label (EN)",
+      "col_pages": "Pages",
+      "empty": "No tags found."
+    },
+    "stats": {
+      "heading": "Stats",
+      "total_users": "Total Users",
+      "total_pages": "Total Pages",
+      "pages_sub": "{{published}} published · {{drafts}} drafts",
+      "published": "Published",
+      "bilingual_coverage": "Bilingual Coverage",
+      "bilingual_coverage_sub": "Both JA + EN content"
+    }
+  },
   "ingest": {
     "title": "Add Content",
     "description": "AI will create a draft wiki page from your text, images, and Google Docs.",
     "complete_toast": "AI ingestion complete! Review your draft below.",
+    "processing_message": "AI is analyzing...",
+    "processing_hint": "Please wait. The page will refresh automatically.",
+    "error_heading": "An error occurred during processing",
+    "retry": "Try again",
+    "draft_not_found": "Draft not found.",
+    "review_heading": "Review Draft",
+    "review_subtitle": "Review and edit the AI-generated draft before saving or publishing.",
     "form": {
       "text_label": "Text input",
       "text_placeholder": "Write freely about an event or activity (min. 50 chars)\nE.g. Our Tech Talk last week had 45 attendees. Speaker Tanaka-san shared...",
