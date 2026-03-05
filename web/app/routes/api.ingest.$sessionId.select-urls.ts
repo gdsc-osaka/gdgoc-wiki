@@ -28,7 +28,13 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
     return new Response("Session is not awaiting URL selection", { status: 409 })
   }
 
-  const parseResult = SelectUrlsBodySchema.safeParse(await request.json())
+  let parseResult: ReturnType<typeof SelectUrlsBodySchema.safeParse>
+  try {
+    const body = await request.json()
+    parseResult = SelectUrlsBodySchema.safeParse(body)
+  } catch (err) {
+    return new Response(String((err as Error)?.message ?? "Invalid JSON"), { status: 400 })
+  }
   if (!parseResult.success) {
     return new Response(parseResult.error.message, { status: 400 })
   }
@@ -44,6 +50,13 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
 
   if (!storedDraft || storedDraft.phase !== "url_selection") {
     return new Response("Invalid stored draft state", { status: 500 })
+  }
+
+  // Validate that every selected URL was in the pipeline-extracted whitelist
+  const whitelistedUrls = new Set(storedDraft.urls.map((u) => u.url))
+  const invalidUrls = selectedUrls.filter((url) => !whitelistedUrls.has(url))
+  if (invalidUrls.length > 0) {
+    return new Response("Selected URLs are not in the allowed list", { status: 400 })
   }
 
   const fileUris = storedDraft.fileUris

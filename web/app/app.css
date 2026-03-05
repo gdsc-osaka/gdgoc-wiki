@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* md-editor-rt: keep code block headers below the navbar (z-50) when sticky-scrolling */
+.md-editor-preview .md-editor-code .md-editor-code-head {
+  top: 3.5rem; /* navbar height (h-14) */
+  z-index: 10;
+}
+
 @font-face {
   font-family: "Google Sans";
   src: url("/fonts/GoogleSans-Variable.ttf") format("truetype");

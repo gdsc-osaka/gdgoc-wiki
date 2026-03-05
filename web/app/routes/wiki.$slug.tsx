@@ -265,6 +265,7 @@ export default function WikiPage() {
     [],
   )
 
+  const favFetcher = useFetcher<{ ok: boolean; starred: boolean }>()
   const [starredDialogOpen, setStarredDialogOpen] = useState(false)
   const [currentStarred, setCurrentStarred] = useState(isStarred)
   const [copied, setCopied] = useState(false)
@@ -273,6 +274,13 @@ export default function WikiPage() {
   useEffect(() => {
     setCurrentStarred(isStarred)
   }, [isStarred])
+
+  // Optimistic star state for the action bar toggle
+  const optimisticStarred = favFetcher.state !== "idle" ? !currentStarred : currentStarred
+
+  function handleToggleStar() {
+    favFetcher.submit({ intent: "toggleFavorite", pageId: page.id }, { method: "post" })
+  }
 
   function handleShare() {
     navigator.clipboard.writeText(window.location.href).then(() => {
@@ -296,13 +304,15 @@ export default function WikiPage() {
         )}
         <button
           type="button"
-          onClick={() => setStarredDialogOpen(true)}
-          className={[btnBase, currentStarred ? "text-yellow-500 hover:text-yellow-600" : ""].join(
-            " ",
-          )}
+          onClick={handleToggleStar}
+          className={btnBase}
+          style={optimisticStarred ? { color: "#E06C00" } : undefined}
         >
-          <Star size={14} className={currentStarred ? "fill-yellow-400 text-yellow-400" : ""} />
-          {t("wiki.starred")}
+          <Star
+            size={14}
+            style={optimisticStarred ? { fill: "#E06C00", color: "#E06C00" } : undefined}
+          />
+          {optimisticStarred ? t("wiki.unstar") : t("wiki.starred")}
         </button>
         <button type="button" onClick={handleShare} className={btnBase}>
           <Share2 size={14} />

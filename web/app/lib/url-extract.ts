@@ -51,7 +51,7 @@ export function extractUrls(
     const context = text.slice(start, end).replace(/\n/g, " ").trim()
 
     results.push({
-      id: `url-${results.length}`,
+      id: globalThis.crypto?.randomUUID() ?? `url-${Date.now()}-${results.length}`,
       url,
       source,
       context,

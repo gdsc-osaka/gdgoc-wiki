@@ -301,14 +301,14 @@ function UrlSelectionScreen({
     })
   }
 
-  async function handleSubmit() {
+  async function postSelectedUrls(selectedUrls: string[]) {
     setSubmitting(true)
     setSubmitError(null)
     try {
       const res = await fetch(`/api/ingest/${sessionId}/select-urls`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ selectedUrls: [...selected] }),
+        body: JSON.stringify({ selectedUrls }),
       })
       if (res.ok) {
         onSubmitted()
@@ -323,26 +323,12 @@ function UrlSelectionScreen({
     }
   }
 
+  async function handleSubmit() {
+    await postSelectedUrls([...selected])
+  }
+
   async function handleSkip() {
-    setSubmitting(true)
-    setSubmitError(null)
-    try {
-      const res = await fetch(`/api/ingest/${sessionId}/select-urls`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ selectedUrls: [] }),
-      })
-      if (res.ok) {
-        onSubmitted()
-      } else {
-        const text = await res.text().catch(() => "")
-        setSubmitError(text || `Error ${res.status}`)
-      }
-    } catch {
-      setSubmitError(t("ingest.error_heading"))
-    } finally {
-      setSubmitting(false)
-    }
+    await postSelectedUrls([])
   }
 
   return (

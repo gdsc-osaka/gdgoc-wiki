@@ -30,7 +30,18 @@
     "visibility": "公開範囲",
     "visibility_public": "全体公開",
     "visibility_chapter": "チャプターのみ",
-    "visibility_lead": "リードのみ"
+    "visibility_lead": "リードのみ",
+    "edit": "編集",
+    "starred": "お気に入り",
+    "share": "共有",
+    "share_copied": "コピーしました",
+    "starred_dialog_title": "お気に入りページ",
+    "starred_empty": "お気に入りページはまだありません",
+    "search_starred": "お気に入りを検索...",
+    "this_page": "このページ",
+    "star_add": "追加",
+    "star_remove": "削除",
+    "unstar": "お気に入りを外す"
   },
   "home": {
     "recently_updated": "最近の更新",

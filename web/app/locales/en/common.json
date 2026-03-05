@@ -30,7 +30,18 @@
     "visibility": "Visibility",
     "visibility_public": "Public",
     "visibility_chapter": "Chapter Only",
-    "visibility_lead": "Lead Only"
+    "visibility_lead": "Lead Only",
+    "edit": "Edit",
+    "starred": "Starred",
+    "share": "Share",
+    "share_copied": "Copied!",
+    "starred_dialog_title": "Starred Pages",
+    "starred_empty": "No starred pages yet",
+    "search_starred": "Search starred...",
+    "this_page": "This page",
+    "star_add": "Add",
+    "star_remove": "Remove",
+    "unstar": "Unstar"
   },
   "home": {
     "recently_updated": "Recently Updated",

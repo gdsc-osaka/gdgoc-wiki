@@ -510,9 +510,11 @@ export async function runIngestionPipeline(
   } catch (err) {
     console.error(`[ingestion-pipeline] session=${sessionId} error:`, err)
     const rawMessage = err instanceof Error ? err.message : String(err)
-    // Surface Google Drive errors directly to the user
+    // Surface Google Drive / auth errors directly to the user
     const isGoogleDriveError =
-      rawMessage.includes("Google Drive") || rawMessage.includes("Google Doc")
+      /google\s*(drive|doc)|invalid_grant|invalid_token|refresh.?token|drive\.googleapis\.com|drive\s*api|oauth|access.?token/i.test(
+        rawMessage,
+      ) || rawMessage.includes("401")
     const errorMessage = isGoogleDriveError
       ? rawMessage
       : "Ingestion failed due to an internal error."

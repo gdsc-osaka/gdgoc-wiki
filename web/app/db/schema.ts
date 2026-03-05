@@ -229,3 +229,20 @@ export const pageVersions = sqliteTable("page_versions", {
   editedBy: text("edited_by").notNull(),
   savedAt: integer("saved_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
 })
+
+// ---------------------------------------------------------------------------
+// page_favorites
+// ---------------------------------------------------------------------------
+export const pageFavorites = sqliteTable(
+  "page_favorites",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    pageId: text("page_id")
+      .notNull()
+      .references(() => pages.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.pageId] })],
+)

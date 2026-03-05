@@ -93,11 +93,12 @@ export default function NotificationBell({ initialCount }: { initialCount: numbe
     )
     setUnreadCount((c) => Math.max(0, c - 1))
     try {
-      await fetch("/api/notifications", {
+      const res = await fetch("/api/notifications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ notificationId }),
       })
+      if (!res.ok) fetchNotifications()
     } catch {
       // revert on failure
       fetchNotifications()
@@ -110,11 +111,12 @@ export default function NotificationBell({ initialCount }: { initialCount: numbe
     )
     setUnreadCount(0)
     try {
-      await fetch("/api/notifications", {
+      const res = await fetch("/api/notifications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ markAllRead: true }),
       })
+      if (!res.ok) fetchNotifications()
     } catch {
       fetchNotifications()
     }

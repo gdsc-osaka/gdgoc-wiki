@@ -12,3 +12,5 @@ CREATE TABLE IF NOT EXISTS "notifications" (
 );
 CREATE INDEX IF NOT EXISTS "idx_notifications_user_unread"
   ON "notifications" ("user_id", "read_at");
+CREATE INDEX IF NOT EXISTS "idx_notifications_user_created_at"
+  ON "notifications" ("user_id", "created_at");

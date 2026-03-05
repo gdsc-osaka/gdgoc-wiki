@@ -12,6 +12,7 @@ import PageEditor from "~/components/PageEditor"
 import * as schema from "~/db/schema"
 import { hasRole, requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
+import { tiptapToMarkdown } from "~/lib/tiptap-convert"
 
 // ---------------------------------------------------------------------------
 // Revalidation
@@ -73,7 +74,11 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
   }
 
   return {
-    page,
+    page: {
+      ...page,
+      contentJa: tiptapToMarkdown(page.contentJa ?? ""),
+      contentEn: tiptapToMarkdown(page.contentEn ?? ""),
+    },
     canPublish: canEditAny,
   }
 }

@@ -1,5 +1,5 @@
 import { and, eq, isNull, sql } from "drizzle-orm"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Outlet, useLoaderData, useParams } from "react-router"
 import type { LoaderFunctionArgs } from "react-router"
 import Footer from "~/components/Footer"
@@ -54,16 +54,25 @@ export default function AppLayout() {
   const { user, pageTree, unreadNotificationCount } = useLoaderData<typeof loader>()
   const { slug } = useParams()
 
-  const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true
-    const stored = localStorage.getItem("gdgoc-sidebar-open")
-    return stored === null ? true : stored === "true"
-  })
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("gdgoc-sidebar-open")
+      if (stored !== null) setSidebarOpen(stored === "true")
+    } catch {
+      // ignore – localStorage unavailable
+    }
+  }, [])
 
   function toggleSidebar() {
     setSidebarOpen((v) => {
       const next = !v
-      localStorage.setItem("gdgoc-sidebar-open", String(next))
+      try {
+        localStorage.setItem("gdgoc-sidebar-open", String(next))
+      } catch {
+        // ignore
+      }
       return next
     })
   }
