@@ -275,7 +275,7 @@ export default function Navbar({
           value={queryInput}
           onChange={(e) => setQueryInput(e.target.value)}
           placeholder={`${t("nav.search")}…`}
-          className="w-full max-w-[400px] rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus:bg-gray-700 dark:focus:border-blue-400 dark:focus:ring-blue-400"
+          className="w-full max-w-[400px] rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:bg-white dark:focus:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
       </Form>
 
