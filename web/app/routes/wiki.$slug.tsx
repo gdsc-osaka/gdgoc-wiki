@@ -2,13 +2,14 @@ import { and, eq } from "drizzle-orm"
 import { MdPreview } from "md-editor-rt"
 import "md-editor-rt/lib/preview.css"
 import { List, Pencil, Share2, Star, X } from "lucide-react"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react-router"
 import { Link, useFetcher, useLoaderData, useLocation } from "react-router"
 import type { TocItem } from "~/components/WikiRightSidebar"
 import WikiRightSidebar from "~/components/WikiRightSidebar"
 import * as schema from "~/db/schema"
+import { useMediaQuery } from "~/hooks/useMediaQuery"
 import { requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
 import { canUserChangeVisibility, canUserSeePage } from "~/lib/page-visibility.server"
@@ -266,6 +267,10 @@ export default function WikiPage() {
   const [currentStarred, setCurrentStarred] = useState(isStarred)
   const [copied, setCopied] = useState(false)
   const [mobileContentsOpen, setMobileContentsOpen] = useState(false)
+  const mobileContentsTriggerRef = useRef<HTMLButtonElement>(null)
+  const mobileContentsSheetRef = useRef<HTMLDivElement>(null)
+  const previousFocusedElementRef = useRef<HTMLElement | null>(null)
+  const isDesktop = useMediaQuery("(min-width: 768px)")
 
   // Sync with loader when navigating to a different page
   useEffect(() => {
@@ -277,6 +282,43 @@ export default function WikiPage() {
   useEffect(() => {
     setMobileContentsOpen(false)
   }, [location.pathname])
+
+  const closeMobileContents = useCallback(() => {
+    setMobileContentsOpen(false)
+    const restoreTarget = previousFocusedElementRef.current ?? mobileContentsTriggerRef.current
+    if (restoreTarget) {
+      window.requestAnimationFrame(() => restoreTarget.focus())
+    }
+  }, [])
+
+  const openMobileContents = useCallback(() => {
+    previousFocusedElementRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null
+    setMobileContentsOpen(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mobileContentsOpen) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeMobileContents()
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [mobileContentsOpen, closeMobileContents])
+
+  useEffect(() => {
+    if (!mobileContentsOpen) return
+
+    const sheet = mobileContentsSheetRef.current
+    if (!sheet) return
+
+    const firstFocusable = sheet.querySelector<HTMLElement>(
+      'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    )
+    ;(firstFocusable ?? sheet).focus()
+  }, [mobileContentsOpen])
 
   // Optimistic star state for the action bar toggle
   const optimisticStarred = favFetcher.state !== "idle" ? !currentStarred : currentStarred
@@ -333,8 +375,9 @@ export default function WikiPage() {
           {/* Mobile "Contents" button */}
           {tocItems.length > 0 && (
             <button
+              ref={mobileContentsTriggerRef}
               type="button"
-              onClick={() => setMobileContentsOpen(true)}
+              onClick={openMobileContents}
               className="mb-4 flex items-center gap-1.5 rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-600 md:hidden"
             >
               <List size={14} />
@@ -376,7 +419,7 @@ export default function WikiPage() {
         </article>
 
         {/* Right sidebar — hidden on mobile */}
-        <div className="hidden md:block">
+        {isDesktop && (
           <WikiRightSidebar
             tocItems={tocItems}
             author={author}
@@ -390,117 +433,119 @@ export default function WikiPage() {
             visibility={visibility}
             canChangeVisibility={canChangeVisibility}
           />
-        </div>
+        )}
       </div>
 
       {/* Mobile contents bottom sheet */}
       {mobileContentsOpen && (
-        <div
-          className="fixed inset-0 top-14 z-40 bg-black/40 md:hidden"
-          onClick={() => setMobileContentsOpen(false)}
-          onKeyDown={(e) => e.key === "Escape" && setMobileContentsOpen(false)}
-          aria-hidden="true"
-        />
-      )}
-      <div
-        className={`fixed bottom-0 left-0 right-0 z-50 max-h-[70vh] overflow-y-auto rounded-t-xl bg-white shadow-xl transition-transform duration-200 ease-in-out md:hidden ${
-          mobileContentsOpen ? "translate-y-0" : "translate-y-full"
-        }`}
-      >
-        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-          <p className="font-semibold text-gray-900">{t("wiki.contents")}</p>
-          <button
-            type="button"
-            onClick={() => setMobileContentsOpen(false)}
-            className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-            aria-label="Close"
+        <>
+          {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop closes via pointer; Escape handled by window keydown */}
+          <div
+            className="fixed inset-0 top-14 z-40 bg-black/40 md:hidden"
+            onClick={closeMobileContents}
+            aria-hidden="true"
+          />
+          <div
+            ref={mobileContentsSheetRef}
+            tabIndex={-1}
+            className="fixed bottom-0 left-0 right-0 z-50 max-h-[70vh] overflow-y-auto rounded-t-xl bg-white shadow-xl md:hidden"
           >
-            <X size={18} />
-          </button>
-        </div>
+            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+              <p className="font-semibold text-gray-900">{t("wiki.contents")}</p>
+              <button
+                type="button"
+                onClick={closeMobileContents}
+                className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                aria-label={t("common:close")}
+              >
+                <X size={18} />
+              </button>
+            </div>
 
-        <div className="px-4 py-3 space-y-5">
-          {/* Language toggle */}
-          <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
-              {t("wiki.read_in")}
-            </p>
-            <div className="flex gap-1">
-              {(["ja", "en"] as const).map((l) => {
-                const status = l === "ja" ? page.translationStatusJa : page.translationStatusEn
-                const isPending = status === "missing"
-                const isActive = lang === l
-                return (
-                  <Link
-                    key={l}
-                    to={l === "ja" ? jaUrl : enUrl}
-                    onClick={() => setMobileContentsOpen(false)}
-                    aria-disabled={isPending}
-                    title={isPending ? t("wiki.translation_pending") : undefined}
-                    className={[
-                      "flex-1 rounded px-2 py-1 text-center text-sm font-medium transition-colors",
-                      isActive
-                        ? "bg-blue-500 text-white"
-                        : isPending
-                          ? "pointer-events-none text-gray-300"
-                          : "text-gray-600 hover:bg-gray-100",
-                    ].join(" ")}
-                  >
-                    {l === "ja" ? "JA" : "EN"}
-                  </Link>
-                )
-              })}
+            <div className="space-y-5 px-4 py-3">
+              {/* Language toggle */}
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  {t("wiki.read_in")}
+                </p>
+                <div className="flex gap-1">
+                  {(["ja", "en"] as const).map((l) => {
+                    const status = l === "ja" ? page.translationStatusJa : page.translationStatusEn
+                    const isPending = status === "missing"
+                    const isActive = lang === l
+                    return (
+                      <Link
+                        key={l}
+                        to={l === "ja" ? jaUrl : enUrl}
+                        onClick={closeMobileContents}
+                        aria-disabled={isPending}
+                        title={isPending ? t("wiki.translation_pending") : undefined}
+                        className={[
+                          "flex-1 rounded px-2 py-1 text-center text-sm font-medium transition-colors",
+                          isActive
+                            ? "bg-blue-500 text-white"
+                            : isPending
+                              ? "pointer-events-none text-gray-300"
+                              : "text-gray-600 hover:bg-gray-100",
+                        ].join(" ")}
+                      >
+                        {l === "ja" ? "JA" : "EN"}
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* TOC */}
+              {tocItems.length > 0 && (
+                <div>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                    {t("wiki.on_this_page")}
+                  </p>
+                  <nav aria-label="Table of contents">
+                    <ul className="space-y-1">
+                      {tocItems.map((item) => (
+                        <li
+                          key={item.id}
+                          style={{ paddingLeft: item.level === 3 ? "0.75rem" : undefined }}
+                        >
+                          <a
+                            href={`#${item.id}`}
+                            onClick={closeMobileContents}
+                            className="block truncate py-1 text-sm text-gray-600 hover:text-gray-900"
+                          >
+                            {item.text}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </nav>
+                </div>
+              )}
+
+              {/* Tags */}
+              {tags.length > 0 && (
+                <div>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                    {t("wiki.tags")}
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {tags.map((tag) => (
+                      <span
+                        key={tag.tagSlug}
+                        className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium text-white"
+                        style={{ backgroundColor: tag.color }}
+                      >
+                        {lang === "en" ? tag.labelEn : tag.labelJa}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-
-          {/* TOC */}
-          {tocItems.length > 0 && (
-            <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                {t("wiki.on_this_page")}
-              </p>
-              <nav aria-label="Table of contents">
-                <ul className="space-y-1">
-                  {tocItems.map((item) => (
-                    <li
-                      key={item.id}
-                      style={{ paddingLeft: item.level === 3 ? "0.75rem" : undefined }}
-                    >
-                      <a
-                        href={`#${item.id}`}
-                        onClick={() => setMobileContentsOpen(false)}
-                        className="block truncate py-1 text-sm text-gray-600 hover:text-gray-900"
-                      >
-                        {item.text}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
-            </div>
-          )}
-
-          {/* Tags */}
-          {tags.length > 0 && (
-            <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                {t("wiki.tags")}
-              </p>
-              <div className="flex flex-wrap gap-1">
-                {tags.map((tag) => (
-                  <span
-                    key={tag.tagSlug}
-                    className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium text-white"
-                    style={{ backgroundColor: tag.color }}
-                  >
-                    {lang === "en" ? tag.labelEn : tag.labelJa}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+        </>
+      )}
     </div>
   )
 }
