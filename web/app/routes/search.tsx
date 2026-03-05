@@ -237,19 +237,15 @@ export default function SearchPage() {
 
   return (
     <div className="max-w-3xl px-4 py-6 md:px-8 md:py-8">
-      <h1 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
-        {t("search.title")}
-      </h1>
+      <h1 className="mb-4 text-lg font-semibold text-gray-900">{t("search.title")}</h1>
 
       {/* Mode toggle tabs */}
-      <div className="mb-4 flex gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
+      <div className="mb-4 flex gap-1 rounded-lg bg-gray-100 p-1">
         <button
           type="button"
           onClick={() => handleModeSwitch("keyword")}
           className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-            mode !== "ai"
-              ? "bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-gray-100"
-              : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            mode !== "ai" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
           }`}
         >
           {t("search.mode_keyword")}
@@ -258,9 +254,7 @@ export default function SearchPage() {
           type="button"
           onClick={() => handleModeSwitch("ai")}
           className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-            mode === "ai"
-              ? "bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-gray-100"
-              : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            mode === "ai" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
           }`}
         >
           {t("search.mode_ai")}
@@ -438,7 +432,7 @@ function AiSearchResults({
             <span className="text-base">&#10022;</span>
             {t("search.ai_answer")}
           </div>
-          <div className="prose prose-sm max-w-none whitespace-pre-wrap text-gray-800 dark:text-gray-200">
+          <div className="prose prose-sm max-w-none whitespace-pre-wrap text-gray-800">
             {ragResult.answer}
           </div>
         </div>
@@ -447,9 +441,7 @@ function AiSearchResults({
       {/* Source pages */}
       {ragResult.sources.length > 0 && (
         <div>
-          <h2 className="mb-3 text-sm font-medium text-gray-600 dark:text-gray-400">
-            {t("search.ai_sources")}
-          </h2>
+          <h2 className="mb-3 text-sm font-medium text-gray-600">{t("search.ai_sources")}</h2>
           <ul className="flex flex-col gap-3">
             {ragResult.sources.map((source) => {
               const title = isJa
@@ -462,7 +454,7 @@ function AiSearchResults({
               return (
                 <li key={source.pageId}>
                   <div
-                    className="block cursor-pointer rounded-lg border border-gray-200 bg-white p-4 transition-all hover:border-blue-500/40 hover:shadow-sm dark:border-gray-700 dark:bg-gray-800"
+                    className="block cursor-pointer rounded-lg border border-gray-200 bg-white p-4 transition-all hover:border-blue-500/40 hover:shadow-sm"
                     onClick={() => navigate(`/wiki/${source.slug}`)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") navigate(`/wiki/${source.slug}`)
@@ -470,16 +462,14 @@ function AiSearchResults({
                   >
                     <Link
                       to={`/wiki/${source.slug}`}
-                      className="font-medium text-gray-900 hover:text-blue-600 dark:text-gray-100"
+                      className="font-medium text-gray-900 hover:text-blue-600"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {title}
                     </Link>
 
                     {summary && (
-                      <p className="mt-1 line-clamp-2 text-sm text-gray-500 dark:text-gray-400">
-                        {summary}
-                      </p>
+                      <p className="mt-1 line-clamp-2 text-sm text-gray-500">{summary}</p>
                     )}
 
                     <div className="mt-2 text-xs text-gray-400">
