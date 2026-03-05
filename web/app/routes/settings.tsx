@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next"
 import { useFetcher, useLoaderData } from "react-router"
 import * as schema from "~/db/schema"
 import { supportedLngs } from "~/i18n"
-import { requireRole } from "~/lib/auth-utils.server"
+import { hasRole, requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
 import type { Route } from ".react-router/types/app/routes/+types/settings"
 
@@ -31,6 +31,8 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Ac
   const discordId = (form.get("discordId") as string | null)?.trim() ?? ""
   const chapterId = (form.get("chapterId") as string | null) ?? ""
 
+  const canChangeChapter = hasRole(user.role as string, "lead")
+
   const errors: ActionErrors = {}
 
   if (!name || name.length > 100) errors.name = "invalid_name"
@@ -38,7 +40,7 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Ac
   if (!contentLang || !supportedLngs.includes(contentLang as never)) errors.lang = "invalid_lang"
   if (discordId && !/^\d{17,20}$/.test(discordId)) errors.discordId = "invalid_discord_id"
 
-  if (chapterId) {
+  if (canChangeChapter && chapterId) {
     const [chapter] = await db
       .select({ id: schema.chapters.id })
       .from(schema.chapters)
@@ -57,7 +59,7 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Ac
         preferredUiLanguage: uiLang as string,
         preferredContentLanguage: contentLang as string,
         discordId: discordId || null,
-        chapterId: chapterId || null,
+        ...(canChangeChapter ? { chapterId: chapterId || null } : {}),
         updatedAt: new Date(),
       })
       .where(eq(schema.user.id, user.id))
@@ -146,6 +148,7 @@ export default function SettingsPage() {
 
   const errors = fetcher.data?.ok === false ? fetcher.data.errors : undefined
   const isJa = i18n.language !== "en"
+  const canChangeChapter = user.role === "lead" || user.role === "admin"
 
   return (
     <div className="px-8 py-8">
@@ -265,19 +268,35 @@ export default function SettingsPage() {
             <label htmlFor="chapterId" className="mb-1 block text-sm font-medium text-gray-700">
               {t("settings.chapter.label")}
             </label>
-            <select
-              id="chapterId"
-              name="chapterId"
-              defaultValue={user.chapterId ?? ""}
-              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="">{t("settings.chapter.none")}</option>
-              {chapters.map((ch) => (
-                <option key={ch.id} value={ch.id}>
-                  {isJa ? ch.nameJa : ch.nameEn}
-                </option>
-              ))}
-            </select>
+            {canChangeChapter ? (
+              <select
+                id="chapterId"
+                name="chapterId"
+                defaultValue={user.chapterId ?? ""}
+                className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="">{t("settings.chapter.none")}</option>
+                {chapters.map((ch) => (
+                  <option key={ch.id} value={ch.id}>
+                    {isJa ? ch.nameJa : ch.nameEn}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <>
+                <input type="hidden" name="chapterId" value={user.chapterId ?? ""} />
+                <p className="rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-700">
+                  {user.chapterId
+                    ? (chapters.find((ch) => ch.id === user.chapterId)?.[
+                        isJa ? "nameJa" : "nameEn"
+                      ] ?? t("settings.chapter.none"))
+                    : t("settings.chapter.none")}
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  {t("settings.chapter.readonly_notice")}
+                </p>
+              </>
+            )}
             {errors?.chapterId && (
               <p className="mt-1 text-xs text-red-500">
                 {t(`settings.errors.${errors.chapterId}`, t("settings.save_error"))}

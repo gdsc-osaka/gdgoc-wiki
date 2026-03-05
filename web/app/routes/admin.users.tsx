@@ -91,6 +91,23 @@ export async function action({ request, context }: ActionFunctionArgs) {
     return {}
   }
 
+  if (intent === "updateChapter") {
+    const userId = form.get("userId") as string
+    const chapterId = (form.get("chapterId") as string) || null
+
+    if (chapterId) {
+      const chapter = await db
+        .select({ id: schema.chapters.id })
+        .from(schema.chapters)
+        .where(eq(schema.chapters.id, chapterId))
+        .get()
+      if (!chapter) return { error: "admin.users.error_chapter_not_found" }
+    }
+
+    await db.update(schema.user).set({ chapterId }).where(eq(schema.user.id, userId))
+    return {}
+  }
+
   if (intent === "inviteUser") {
     const emailRaw = form.get("email")
     if (typeof emailRaw !== "string") {
@@ -205,6 +222,41 @@ type UserRow = {
   createdAt: Date | null
 }
 
+function ChapterSelect({
+  user,
+  chapters,
+  isJa,
+}: {
+  user: UserRow
+  chapters: { id: string; nameJa: string; nameEn: string }[]
+  isJa: boolean
+}) {
+  const fetcher = useFetcher()
+  const { t } = useTranslation()
+  return (
+    <fetcher.Form method="post">
+      <input type="hidden" name="intent" value="updateChapter" />
+      <input type="hidden" name="userId" value={user.id} />
+      <select
+        name="chapterId"
+        defaultValue={user.chapterId ?? ""}
+        onChange={(e) => {
+          const form = e.currentTarget.form
+          if (form) fetcher.submit(form)
+        }}
+        className="rounded border border-gray-200 px-2 py-1 text-sm"
+      >
+        <option value="">{t("admin.users.no_chapter")}</option>
+        {chapters.map((ch) => (
+          <option key={ch.id} value={ch.id}>
+            {isJa ? ch.nameJa : ch.nameEn}
+          </option>
+        ))}
+      </select>
+    </fetcher.Form>
+  )
+}
+
 function RoleSelect({ user, currentUserId }: { user: UserRow; currentUserId: string }) {
   const fetcher = useFetcher()
   const { t } = useTranslation()
@@ -305,7 +357,9 @@ export default function AdminUsers() {
                 <td className="px-4 py-3">
                   <RoleSelect user={u} currentUserId={currentUserId} />
                 </td>
-                <td className="px-4 py-3 text-gray-500">{chapterLabel(u.chapterId)}</td>
+                <td className="px-4 py-3">
+                  <ChapterSelect user={u} chapters={chapters} isJa={i18n.language === "ja"} />
+                </td>
               </tr>
             ))}
           </tbody>

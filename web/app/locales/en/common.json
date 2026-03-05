@@ -349,7 +349,8 @@
       "title": "Chapter Affiliation",
       "description": "Select the GDGoC Japan chapter you belong to.",
       "label": "Chapter",
-      "none": "None"
+      "none": "None",
+      "readonly_notice": "Only leads and admins can change chapter affiliation."
     },
     "discord": {
       "title": "Discord",

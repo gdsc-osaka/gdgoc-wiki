@@ -349,7 +349,8 @@
       "title": "チャプター所属",
       "description": "所属するGDGoC Japanチャプターを選択してください。",
       "label": "チャプター",
-      "none": "なし"
+      "none": "なし",
+      "readonly_notice": "チャプター所属はリードまたは管理者のみ変更できます。"
     },
     "discord": {
       "title": "Discord",
