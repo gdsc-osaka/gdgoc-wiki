@@ -19,6 +19,10 @@
     "wrangler": "^3.109.3"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "workerd"]
+    "onlyBuiltDependencies": ["esbuild", "workerd"],
+    "supportedArchitectures": {
+      "cpu": ["x64", "arm64"],
+      "os": ["darwin"]
+    }
   }
 }
