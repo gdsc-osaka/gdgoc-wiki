@@ -267,7 +267,7 @@
       "drive_connect": "Connect Drive",
       "pdfs_label": "PDF Files (max {{max}}, up to 20 MB each)",
       "pdfs_hint": "Upload PDF documents as source material for AI analysis",
-      "pdfs_drop_hint": "Click to add PDF files",
+      "pdfs_drop_hint": "Click or drag & drop to add PDF files",
       "submit": "Organize with AI →"
     },
     "errors": {
@@ -451,7 +451,15 @@
     "tagged": "Tagged: {{tag}}",
     "clear_tag": "Clear tag filter",
     "filter_by_tag": "Tag:",
-    "all_tags": "All tags"
+    "all_tags": "All tags",
+    "mode_keyword": "Keyword",
+    "mode_ai": "AI Search",
+    "ai_answer": "AI Answer",
+    "ai_sources": "Sources",
+    "ai_searching": "Searching with AI...",
+    "ai_no_results": "AI search found no relevant pages.",
+    "ai_error": "AI search encountered an error. Please try again.",
+    "ai_unavailable": "AI search is not available in this environment."
   },
   "notifications": {
     "title": "Notifications",

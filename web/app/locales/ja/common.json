@@ -267,7 +267,7 @@
       "drive_connect": "Driveを接続",
       "pdfs_label": "PDFファイル（最大{{max}}件・各20MB以下）",
       "pdfs_hint": "AI分析のソースとしてPDFドキュメントをアップロードします",
-      "pdfs_drop_hint": "クリックしてPDFファイルを追加",
+      "pdfs_drop_hint": "クリックまたはドラッグ&ドロップでPDFファイルを追加",
       "submit": "AI で整理する →"
     },
     "errors": {
@@ -451,7 +451,15 @@
     "tagged": "タグ: {{tag}}",
     "clear_tag": "タグフィルターをクリア",
     "filter_by_tag": "タグ:",
-    "all_tags": "すべてのタグ"
+    "all_tags": "すべてのタグ",
+    "mode_keyword": "キーワード",
+    "mode_ai": "AI検索",
+    "ai_answer": "AIの回答",
+    "ai_sources": "ソース",
+    "ai_searching": "AIで検索中...",
+    "ai_no_results": "AI検索で関連するページが見つかりませんでした。",
+    "ai_error": "AI検索でエラーが発生しました。もう一度お試しください。",
+    "ai_unavailable": "AI検索はこの環境では利用できません。"
   },
   "notifications": {
     "title": "通知",
