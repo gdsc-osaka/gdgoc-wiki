@@ -46,7 +46,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
 
 const MAX_IMAGES = 5
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024 // 10 MB
-const MIN_TEXT_LENGTH = 50
+const MIN_TEXT_LENGTH = 10
 
 export async function action({ request, context }: ActionFunctionArgs) {
   const { env, ctx } = context.cloudflare
