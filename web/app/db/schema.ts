@@ -18,6 +18,7 @@ export const user = sqliteTable("user", {
   chapterId: text("chapterId"),
   preferredUiLanguage: text("preferredUiLanguage").notNull().default("ja"),
   preferredContentLanguage: text("preferredContentLanguage").notNull().default("ja"),
+  discordId: text("discord_id"),
 })
 
 export const session = sqliteTable("session", {
@@ -157,7 +158,7 @@ export const pages = sqliteTable("pages", {
   // self-reference; FK defined in migration SQL to avoid circular reference
   sortOrder: integer("sort_order").notNull().default(0),
   status: text("status").notNull().default("draft"),
-  // "draft" | "published"
+  // "draft" | "published" | "archived"
   pageType: text("page_type"),
   // "event-report" | "speaker-profile" | "project-log" | "how-to-guide" | "onboarding-guide" | null
   pageMetadata: text("page_metadata"),
@@ -259,3 +260,20 @@ export const pageSources = sqliteTable("page_sources", {
   title: text("title").notNull(),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
 })
+
+// ---------------------------------------------------------------------------
+// page_views (per-user view tracking for "Recently Viewed")
+// ---------------------------------------------------------------------------
+export const pageViews = sqliteTable(
+  "page_views",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    pageId: text("page_id")
+      .notNull()
+      .references(() => pages.id, { onDelete: "cascade" }),
+    viewedAt: integer("viewed_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.pageId] })],
+)

@@ -19,6 +19,8 @@ export default [
   route("/api/pages/reorder", "routes/api.pages.reorder.ts"),
   route("/api/notifications", "routes/api.notifications.ts"),
   route("/api/favorites", "routes/api.favorites.tsx"),
+  route("/api/images/*", "routes/api.images.$.ts"),
+  route("/api/wiki/:slug/upload-image", "routes/api.wiki.$slug.upload-image.ts"),
 
   // Admin routes — separate layout with admin sidebar
   route("admin", "routes/admin.tsx", [
@@ -51,6 +53,7 @@ export default [
     route("/wiki/:slug", "routes/wiki.$slug.tsx"),
     route("/wiki/:slug/edit", "routes/wiki.$slug.edit.tsx"),
     route("/wiki/:slug/history", "routes/wiki.$slug.history.tsx"),
+    route("/recent", "routes/recent.tsx"),
     route("/ingest", "routes/ingest.tsx"),
     route("/ingest/:sessionId", "routes/ingest.$sessionId.tsx"),
     route("/settings", "routes/settings.tsx"),

@@ -51,6 +51,7 @@
     "unstar": "Unstar",
     "contents": "Contents",
     "sources": "Sources",
+    "attached_images": "Attached Images",
     "history": "History",
     "history_empty": "No edit history yet",
     "history_current": "Current"
@@ -60,6 +61,13 @@
     "browse_by_tag": "Browse by Tag",
     "no_pages_yet": "No published pages yet.",
     "no_tags_yet": "No tags yet."
+  },
+  "recent": {
+    "title": "Recent",
+    "recently_updated": "Recently Updated",
+    "recently_viewed": "Recently Viewed",
+    "no_updated": "No published pages yet.",
+    "no_viewed": "You haven't viewed any pages yet."
   },
   "auth": {
     "sign_in": "Sign in",
@@ -110,6 +118,11 @@
       "edit": "Edit",
       "delete": "Delete",
       "delete_confirm": "Delete \"{{title}}\"? This cannot be undone.",
+      "archive": "Archive",
+      "archive_confirm": "Archive \"{{title}}\"? You can restore it later.",
+      "restore": "Restore",
+      "status_archived": "Archived",
+      "delete_archived_confirm": "Permanently delete \"{{title}}\"? This cannot be undone.",
       "empty": "No pages found."
     },
     "users": {
@@ -271,10 +284,17 @@
       "label": "Chapter",
       "none": "None"
     },
+    "discord": {
+      "title": "Discord",
+      "description": "Link your Discord account to use /wiki-ingest from your chapter server.",
+      "idLabel": "Discord User ID",
+      "idHint": "Enable Developer Mode in Discord → right-click your username → Copy User ID"
+    },
     "errors": {
       "invalid_name": "Name must be 1–100 characters.",
       "invalid_lang": "Invalid language selection.",
-      "invalid_chapter": "Selected chapter does not exist."
+      "invalid_chapter": "Selected chapter does not exist.",
+      "invalid_discord_id": "Please enter a valid Discord User ID (17–20 digit number)."
     }
   },
   "manage": {

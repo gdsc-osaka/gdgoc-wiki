@@ -59,7 +59,7 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
     throw new Response("Not Found", { status: 404 })
   }
 
-  const [pageTags, authorRow, editorRow, fav, sources] = await Promise.all([
+  const [pageTags, authorRow, editorRow, fav, sources, attachments] = await Promise.all([
     db
       .select({
         tagSlug: schema.pageTags.tagSlug,
@@ -96,11 +96,32 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
       .from(schema.pageSources)
       .where(eq(schema.pageSources.pageId, page.id))
       .all(),
+    db
+      .select({
+        r2Key: schema.pageAttachments.r2Key,
+        fileName: schema.pageAttachments.fileName,
+        mimeType: schema.pageAttachments.mimeType,
+      })
+      .from(schema.pageAttachments)
+      .where(eq(schema.pageAttachments.pageId, page.id))
+      .all(),
   ])
 
   const url = new URL(request.url)
   const langParam = url.searchParams.get("lang")
   const lang: "ja" | "en" = langParam === "ja" || langParam === "en" ? langParam : "ja"
+
+  // Fire-and-forget view tracking
+  context.cloudflare.ctx.waitUntil(
+    db
+      .insert(schema.pageViews)
+      .values({ userId: sessionUser.id, pageId: page.id, viewedAt: new Date() })
+      .onConflictDoUpdate({
+        target: [schema.pageViews.userId, schema.pageViews.pageId],
+        set: { viewedAt: new Date() },
+      })
+      .run(),
+  )
 
   return {
     page: {
@@ -117,6 +138,7 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
     canChangeVisibility: canUserChangeVisibility(sessionUser, page),
     isStarred: !!fav,
     sources,
+    attachments,
   }
 }
 
@@ -228,7 +250,7 @@ function parseMdHeadings(md: string): TocItem[] {
 }
 
 export default function WikiPage() {
-  const { page, tags, author, editor, lang, userRole, isStarred, sources } =
+  const { page, tags, author, editor, lang, userRole, isStarred, sources, attachments } =
     useLoaderData<typeof loader>()
   const { t } = useTranslation("common")
   const theme = useThemeMode()
@@ -478,6 +500,7 @@ export default function WikiPage() {
             translationStatusJa={page.translationStatusJa}
             translationStatusEn={page.translationStatusEn}
             sources={sources}
+            attachments={attachments}
           />
         )}
       </div>

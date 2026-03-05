@@ -51,6 +51,7 @@
     "unstar": "お気に入りを外す",
     "contents": "目次",
     "sources": "ソース",
+    "attached_images": "添付画像 / Attached Images",
     "history": "編集履歴",
     "history_empty": "編集履歴はまだありません",
     "history_current": "現在"
@@ -60,6 +61,13 @@
     "browse_by_tag": "タグで探す",
     "no_pages_yet": "公開済みのページはまだありません。",
     "no_tags_yet": "タグはまだありません。"
+  },
+  "recent": {
+    "title": "最近",
+    "recently_updated": "最近の更新",
+    "recently_viewed": "最近見たページ",
+    "no_updated": "まだ公開ページはありません。",
+    "no_viewed": "まだページを閲覧していません。"
   },
   "auth": {
     "sign_in": "サインイン",
@@ -110,6 +118,11 @@
       "edit": "編集",
       "delete": "削除",
       "delete_confirm": "「{{title}}」を削除しますか？この操作は元に戻せません。",
+      "archive": "アーカイブ",
+      "archive_confirm": "「{{title}}」をアーカイブしますか？後から復元できます。",
+      "restore": "復元",
+      "status_archived": "アーカイブ済み",
+      "delete_archived_confirm": "「{{title}}」を完全に削除しますか？この操作は元に戻せません。",
       "empty": "ページが見つかりません。"
     },
     "users": {
@@ -271,10 +284,17 @@
       "label": "チャプター",
       "none": "なし"
     },
+    "discord": {
+      "title": "Discord",
+      "description": "Discord アカウントを連携して、チャプターサーバーから /wiki-ingest を使えるようにします。",
+      "idLabel": "Discord ユーザーID",
+      "idHint": "Discord の開発者モードを有効化 → ユーザー名を右クリック → ユーザーIDをコピー"
+    },
     "errors": {
       "invalid_name": "名前は1〜100文字で入力してください。",
       "invalid_lang": "無効な言語が選択されています。",
-      "invalid_chapter": "選択されたチャプターは存在しません。"
+      "invalid_chapter": "選択されたチャプターは存在しません。",
+      "invalid_discord_id": "有効な Discord ユーザーID（17〜20桁の数字）を入力してください。"
     }
   },
   "manage": {
