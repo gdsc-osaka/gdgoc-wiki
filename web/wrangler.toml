@@ -3,6 +3,10 @@ main = "workers/app.ts"
 compatibility_date = "2025-03-01"
 compatibility_flags = ["nodejs_compat"]
 
+[observability.logs]
+enabled = true
+invocation_logs = true
+
 # Resolve Vite's virtual module to the React Router server build output so
 # wrangler can bundle workers/app.ts without needing Vite's dev server.
 [alias]
