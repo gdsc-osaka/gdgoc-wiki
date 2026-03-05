@@ -170,8 +170,10 @@ export async function runIngestionPipeline(
       if (resumeContext.googleDocText) {
         docTexts.push(resumeContext.googleDocText)
       }
-      // Re-collect Google Doc sources (pipeline is stateless between phases)
-      if (isPostUrlSelection && inputs.googleDocUrls.length > 0) {
+      // Re-collect Google Doc sources (pipeline is stateless between phases).
+      // Sources collected in a prior run are discarded when the run returns early
+      // (url_selection or clarification phase), so we always re-fetch them on any resume.
+      if (inputs.googleDocUrls.length > 0) {
         const tokenRow = await db
           .select()
           .from(schema.googleDriveTokens)
