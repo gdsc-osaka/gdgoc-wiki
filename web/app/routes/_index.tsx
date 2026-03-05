@@ -11,7 +11,23 @@ import { authClient } from "~/lib/auth.client"
 import { getDb } from "~/lib/db.server"
 import { buildVisibilityFilter } from "~/lib/page-visibility.server"
 
-export const meta: MetaFunction = () => [{ title: "Home — GDGoC Japan Wiki" }]
+export const meta: MetaFunction<typeof loader> = ({ matches }) => {
+  const origin = (matches.find((m) => m.id === "root")?.data as { origin?: string })?.origin ?? ""
+  return [
+    { title: "GDGoC Japan Wiki" },
+    {
+      name: "description",
+      content: "AI-powered bilingual knowledge base for GDGoC Japan chapters.",
+    },
+    { property: "og:title", content: "GDGoC Japan Wiki" },
+    {
+      property: "og:description",
+      content:
+        "AI-powered bilingual knowledge base for Google Developer Groups on Campus Japan chapters. Share chapter know-how, resources, and best practices — all in one place.",
+    },
+    { property: "og:url", content: `${origin}/` },
+  ]
+}
 
 // ---------------------------------------------------------------------------
 // Loader
