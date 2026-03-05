@@ -144,6 +144,8 @@ export const pages = sqliteTable("pages", {
   pageMetadata: text("page_metadata"),
   ingestionSessionId: text("ingestion_session_id").references(() => ingestionSessions.id),
   actionabilityScore: integer("actionability_score"),
+  visibility: text("visibility").notNull().default("public"),
+  chapterId: text("chapter_id").references(() => chapters.id, { onDelete: "set null" }),
   authorId: text("author_id").notNull(),
   lastEditedBy: text("last_edited_by").notNull(),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),

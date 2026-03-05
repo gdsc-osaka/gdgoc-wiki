@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { Outlet, useLoaderData, useParams } from "react-router"
 import type { LoaderFunctionArgs } from "react-router"
 import Navbar from "~/components/Navbar"
@@ -7,6 +7,7 @@ import * as schema from "~/db/schema"
 import { requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
 import { buildTree } from "~/lib/page-tree"
+import { buildVisibilityFilter } from "~/lib/page-visibility.server"
 
 // ---------------------------------------------------------------------------
 // Loader
@@ -17,6 +18,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
   const user = await requireRole(request, env, "viewer")
   const db = getDb(env)
 
+  const visFilter = buildVisibilityFilter(user)
   const treeRows = await db
     .select({
       id: schema.pages.id,
@@ -27,7 +29,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
       sortOrder: schema.pages.sortOrder,
     })
     .from(schema.pages)
-    .where(eq(schema.pages.status, "published"))
+    .where(and(eq(schema.pages.status, "published"), visFilter))
     .orderBy(schema.pages.sortOrder)
     .all()
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Link, useLocation } from "react-router"
+import { Link, useFetcher, useLocation } from "react-router"
 import type { TocItem } from "~/components/TipTapRenderer"
 
 interface Tag {
@@ -32,6 +32,20 @@ interface WikiRightSidebarProps {
   translationStatusEn: string
   slug: string
   canEdit: boolean
+  visibility: string
+  canChangeVisibility: boolean
+}
+
+const VISIBILITY_OPTIONS = [
+  { value: "public", icon: "🌐" },
+  { value: "private_to_chapter", icon: "👥" },
+  { value: "private_to_lead", icon: "🔒" },
+] as const
+
+const VISIBILITY_KEYS: Record<string, string> = {
+  public: "wiki.visibility_public",
+  private_to_chapter: "wiki.visibility_chapter",
+  private_to_lead: "wiki.visibility_lead",
 }
 
 function timeAgo(date: Date, t: (key: string, opts?: Record<string, unknown>) => string): string {
@@ -56,10 +70,13 @@ export default function WikiRightSidebar({
   translationStatusEn,
   slug,
   canEdit,
+  visibility,
+  canChangeVisibility,
 }: WikiRightSidebarProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
   const { t } = useTranslation()
   const location = useLocation()
+  const visibilityFetcher = useFetcher()
   const jaUrl = `${location.pathname}?lang=ja`
   const enUrl = `${location.pathname}?lang=en`
   const translationStatus = lang === "en" ? translationStatusEn : translationStatusJa
@@ -206,6 +223,42 @@ export default function WikiRightSidebar({
                   {lang === "en" ? tag.labelEn : tag.labelJa}
                 </span>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Visibility */}
+        {canChangeVisibility && (
+          <div>
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
+              {t("wiki.visibility")}
+            </p>
+            <div className="flex gap-1">
+              {VISIBILITY_OPTIONS.map((opt) => {
+                const optimistic = visibilityFetcher.formData?.get("visibility") as string | null
+                const current = optimistic ?? visibility
+                const isActive = current === opt.value
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    title={t(VISIBILITY_KEYS[opt.value])}
+                    className={[
+                      "flex-1 rounded px-1.5 py-1 text-center text-sm transition-colors",
+                      isActive ? "bg-blue-500 text-white" : "text-gray-600 hover:bg-gray-100",
+                    ].join(" ")}
+                    onClick={() => {
+                      if (opt.value === current) return
+                      visibilityFetcher.submit(
+                        { intent: "setVisibility", visibility: opt.value },
+                        { method: "post", action: `/wiki/${slug}` },
+                      )
+                    }}
+                  >
+                    {opt.icon}
+                  </button>
+                )
+              })}
             </div>
           </div>
         )}

@@ -3,7 +3,9 @@ import { useTranslation } from "react-i18next"
 import { Link, useLoaderData } from "react-router"
 import type { LoaderFunctionArgs, MetaFunction } from "react-router"
 import * as schema from "~/db/schema"
+import { requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
+import { buildVisibilityFilter } from "~/lib/page-visibility.server"
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
   { title: data?.q ? `"${data.q}" — Search — GDGoC Japan Wiki` : "Search — GDGoC Japan Wiki" },
@@ -28,6 +30,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
   if (!sanitized) return { q, results: [] }
 
   const { env } = context.cloudflare
+  const user = await requireRole(request, env, "viewer")
   const db = getDb(env)
 
   // Trigram tokenizer supports direct substring MATCH with quoted strings
@@ -48,7 +51,9 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
 
   const pageIds = matched.map((r) => r.page_id)
 
-  // Fetch full page data for matched IDs, filtered to published only
+  const visFilter = buildVisibilityFilter(user)
+
+  // Fetch full page data for matched IDs, filtered to published + visibility
   const pages = await db
     .select({
       id: schema.pages.id,
@@ -60,7 +65,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
       updatedAt: schema.pages.updatedAt,
     })
     .from(schema.pages)
-    .where(and(inArray(schema.pages.id, pageIds), eq(schema.pages.status, "published")))
+    .where(and(inArray(schema.pages.id, pageIds), eq(schema.pages.status, "published"), visFilter))
     .all()
 
   // Preserve FTS rank order

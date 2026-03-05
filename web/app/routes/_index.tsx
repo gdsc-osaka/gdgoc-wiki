@@ -1,9 +1,11 @@
-import { desc, eq, inArray } from "drizzle-orm"
+import { and, desc, eq, inArray } from "drizzle-orm"
 import { useTranslation } from "react-i18next"
 import { Link, useLoaderData } from "react-router"
 import type { LoaderFunctionArgs, MetaFunction } from "react-router"
 import * as schema from "~/db/schema"
+import { requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
+import { buildVisibilityFilter } from "~/lib/page-visibility.server"
 
 export const meta: MetaFunction = () => [{ title: "Home — GDGoC Japan Wiki" }]
 
@@ -11,9 +13,12 @@ export const meta: MetaFunction = () => [{ title: "Home — GDGoC Japan Wiki" }]
 // Loader
 // ---------------------------------------------------------------------------
 
-export async function loader({ context }: LoaderFunctionArgs) {
+export async function loader({ request, context }: LoaderFunctionArgs) {
   const { env } = context.cloudflare
+  const user = await requireRole(request, env, "viewer")
   const db = getDb(env)
+
+  const visFilter = buildVisibilityFilter(user)
 
   // Recent 6 published pages
   const recentPages = await db
@@ -27,7 +32,7 @@ export async function loader({ context }: LoaderFunctionArgs) {
       updatedAt: schema.pages.updatedAt,
     })
     .from(schema.pages)
-    .where(eq(schema.pages.status, "published"))
+    .where(and(eq(schema.pages.status, "published"), visFilter))
     .orderBy(desc(schema.pages.updatedAt))
     .limit(6)
     .all()

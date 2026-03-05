@@ -24,7 +24,11 @@
     "translation_fallback_en": "翻訳準備中 — 日本語コンテンツを表示しています。",
     "translation_fallback_ja": "翻訳準備中 — 英語コンテンツを表示しています。",
     "author": "著者",
-    "tags": "タグ"
+    "tags": "タグ",
+    "visibility": "公開範囲",
+    "visibility_public": "全体公開",
+    "visibility_chapter": "チャプターのみ",
+    "visibility_lead": "リードのみ"
   },
   "home": {
     "recently_updated": "最近の更新",

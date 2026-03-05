@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm"
 import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
-import type { LoaderFunctionArgs, MetaFunction } from "react-router"
+import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react-router"
 import { useFetcher, useLoaderData } from "react-router"
 import { TipTapRenderer, extractTocItems } from "~/components/TipTapRenderer"
 import type { TipTapDoc } from "~/components/TipTapRenderer"
@@ -9,6 +9,7 @@ import WikiRightSidebar from "~/components/WikiRightSidebar"
 import * as schema from "~/db/schema"
 import { requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
+import { canUserChangeVisibility, canUserSeePage } from "~/lib/page-visibility.server"
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
   {
@@ -35,6 +36,8 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
       summaryJa: schema.pages.summaryJa,
       summaryEn: schema.pages.summaryEn,
       pageType: schema.pages.pageType,
+      visibility: schema.pages.visibility,
+      chapterId: schema.pages.chapterId,
       authorId: schema.pages.authorId,
       lastEditedBy: schema.pages.lastEditedBy,
       updatedAt: schema.pages.updatedAt,
@@ -44,6 +47,10 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
     .get()
 
   if (!page || page.status !== "published") {
+    throw new Response("Not Found", { status: 404 })
+  }
+
+  if (!canUserSeePage(sessionUser, page)) {
     throw new Response("Not Found", { status: 404 })
   }
 
@@ -82,7 +89,68 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
     editor: editorRow ?? null,
     lang,
     userRole: sessionUser.role,
+    visibility: page.visibility,
+    canChangeVisibility: canUserChangeVisibility(sessionUser, page),
   }
+}
+
+// ---------------------------------------------------------------------------
+// Action
+// ---------------------------------------------------------------------------
+
+const VALID_VISIBILITY = ["public", "private_to_chapter", "private_to_lead"] as const
+
+export async function action({ request, context, params }: ActionFunctionArgs) {
+  const { env } = context.cloudflare
+  const sessionUser = await requireRole(request, env, "viewer")
+  const db = getDb(env)
+
+  const form = await request.formData()
+  const intent = form.get("intent")
+
+  if (intent === "setVisibility") {
+    const newVisibility = form.get("visibility") as string
+    if (!VALID_VISIBILITY.includes(newVisibility as (typeof VALID_VISIBILITY)[number])) {
+      return new Response("Invalid visibility value", { status: 400 })
+    }
+
+    const page = await db
+      .select({
+        id: schema.pages.id,
+        visibility: schema.pages.visibility,
+        chapterId: schema.pages.chapterId,
+        authorId: schema.pages.authorId,
+      })
+      .from(schema.pages)
+      .where(eq(schema.pages.slug, params.slug ?? ""))
+      .get()
+
+    if (!page) throw new Response("Not Found", { status: 404 })
+
+    if (!canUserChangeVisibility(sessionUser, page)) {
+      throw new Response("Forbidden", { status: 403 })
+    }
+
+    // Auto-assign chapterId from user when setting chapter/lead-private on a page without one
+    let chapterId = page.chapterId
+    if (newVisibility !== "public" && !chapterId) {
+      if (!sessionUser.chapterId) {
+        return new Response("Cannot set chapter-scoped visibility without a chapter", {
+          status: 400,
+        })
+      }
+      chapterId = sessionUser.chapterId
+    }
+
+    await db
+      .update(schema.pages)
+      .set({ visibility: newVisibility, chapterId })
+      .where(eq(schema.pages.id, page.id))
+
+    return { ok: true }
+  }
+
+  return new Response("Unknown intent", { status: 400 })
 }
 
 function parseDoc(json: string): TipTapDoc | null {
@@ -95,7 +163,8 @@ function parseDoc(json: string): TipTapDoc | null {
 }
 
 export default function WikiPage() {
-  const { page, tags, author, editor, lang, userRole } = useLoaderData<typeof loader>()
+  const { page, tags, author, editor, lang, userRole, visibility, canChangeVisibility } =
+    useLoaderData<typeof loader>()
   const { t } = useTranslation()
   const contentLangFetcher = useFetcher()
   const submitRef = contentLangFetcher.submit
@@ -165,6 +234,8 @@ export default function WikiPage() {
         translationStatusEn={page.translationStatusEn}
         slug={page.slug}
         canEdit={canEdit}
+        visibility={visibility}
+        canChangeVisibility={canChangeVisibility}
       />
     </div>
   )

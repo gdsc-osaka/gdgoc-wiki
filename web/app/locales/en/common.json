@@ -24,7 +24,11 @@
     "translation_fallback_en": "Translation pending — showing Japanese content instead.",
     "translation_fallback_ja": "Translation pending — showing English content instead.",
     "author": "Author",
-    "tags": "Tags"
+    "tags": "Tags",
+    "visibility": "Visibility",
+    "visibility_public": "Public",
+    "visibility_chapter": "Chapter Only",
+    "visibility_lead": "Lead Only"
   },
   "home": {
     "recently_updated": "Recently Updated",
