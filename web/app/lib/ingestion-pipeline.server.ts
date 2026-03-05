@@ -19,7 +19,6 @@ import {
   type SectionPatchResponse,
   type UpdateOperation,
   runPhase0Clarifier,
-  runPhase1Merger,
   runPhase1Planner,
   runPhase2Creator,
   runPhase2Patcher,
@@ -218,25 +217,25 @@ export async function runIngestionPipeline(
       // Step 1: Upload images to Gemini File API
       // ------------------------------------------------------------------
       if (inputs.imageFiles && inputs.imageFiles.length > 0) {
-        for (const img of inputs.imageFiles) {
-          const uri = await uploadFileToGemini(
-            img.buffer,
-            img.mimeType,
-            img.name,
-            env.GEMINI_API_KEY,
-          )
-          fileUris.push({ uri, mimeType: img.mimeType })
-        }
+        fileUris = await Promise.all(
+          inputs.imageFiles.map((img) =>
+            uploadFileToGemini(img.buffer, img.mimeType, img.name, env.GEMINI_API_KEY).then(
+              (uri) => ({ uri, mimeType: img.mimeType }),
+            ),
+          ),
+        )
       } else {
-        for (const key of inputs.imageKeys) {
-          const obj = await env.BUCKET.get(key)
-          if (!obj) throw new Error(`Uploaded image not found in R2: ${key}`)
-          const mimeType = obj.httpMetadata?.contentType ?? "application/octet-stream"
-          const name = key.split("/").at(-1) ?? key
-          const buffer = await obj.arrayBuffer()
-          const uri = await uploadFileToGemini(buffer, mimeType, name, env.GEMINI_API_KEY)
-          fileUris.push({ uri, mimeType })
-        }
+        fileUris = await Promise.all(
+          inputs.imageKeys.map(async (key) => {
+            const obj = await env.BUCKET.get(key)
+            if (!obj) throw new Error(`Uploaded image not found in R2: ${key}`)
+            const mimeType = obj.httpMetadata?.contentType ?? "application/octet-stream"
+            const name = key.split("/").at(-1) ?? key
+            const buffer = await obj.arrayBuffer()
+            const uri = await uploadFileToGemini(buffer, mimeType, name, env.GEMINI_API_KEY)
+            return { uri, mimeType }
+          }),
+        )
       }
 
       // ------------------------------------------------------------------
@@ -370,9 +369,13 @@ export async function runIngestionPipeline(
       resumeContext.selectedUrls.length > 0
     ) {
       await updatePhase(db, sessionId, "fetching_urls")
+      const fetchResults = await Promise.all(
+        resumeContext.selectedUrls.map((url) =>
+          fetchUrlViaJina(url).then((result) => ({ url, result })),
+        ),
+      )
       const parts: string[] = []
-      for (const url of resumeContext.selectedUrls) {
-        const result = await fetchUrlViaJina(url)
+      for (const { url, result } of fetchResults) {
         if (result.error) {
           parts.push(`### ${url}\n(取得失敗: ${result.error})`)
           sources.push({ url, title: url })
@@ -387,17 +390,29 @@ export async function runIngestionPipeline(
       fetchedUrlContent = parts.join("\n\n")
     }
 
+    // Build final user text (prepend clarification answers if resuming)
+    const userText = buildUserText(baseUserText, docTexts)
+
+    let effectiveUserText = isPostClarification
+      ? `${resumeContext?.clarificationAnswers}\n\n${userText}`
+      : userText
+
+    if (fetchedUrlContent) {
+      effectiveUserText += `\n\n---\n## 参考URL（ユーザーが選択した外部ページ）\n${fetchedUrlContent}`
+    }
+
     // ------------------------------------------------------------------
     // Phase 0: Clarifier (runs on first run OR after URL selection)
+    // Page index (cheap D1 query) runs concurrently with Phase 0 Clarifier.
     // ------------------------------------------------------------------
-    if (!isPostClarification) {
-      const userText = buildUserText(baseUserText, docTexts)
-      let clarifierText = userText
-      if (fetchedUrlContent) {
-        clarifierText += `\n\n---\n## 参考URL（ユーザーが選択した外部ページ）\n${fetchedUrlContent}`
-      }
+    let pageIndex: PageIndexEntry[]
 
-      const clarifierResult = await runPhase0Clarifier(env.GEMINI_API_KEY, clarifierText, fileUris)
+    if (!isPostClarification) {
+      await updatePhase(db, sessionId, "planning")
+      const [pageIndexResult, clarifierResult] = await Promise.all([
+        buildPageIndex(db, effectiveUserText),
+        runPhase0Clarifier(env.GEMINI_API_KEY, effectiveUserText, fileUris),
+      ])
 
       if (clarifierResult.needsClarification) {
         const aiDraftJson: AiDraftJson = {
@@ -419,40 +434,17 @@ export async function runIngestionPipeline(
           .where(eq(schema.ingestionSessions.id, sessionId))
         return
       }
-    }
 
-    // Build final user text (prepend clarification answers if resuming)
-    const userText = buildUserText(baseUserText, docTexts)
-
-    let effectiveUserText = isPostClarification
-      ? `${resumeContext?.clarificationAnswers}\n\n${userText}`
-      : userText
-
-    if (fetchedUrlContent) {
-      effectiveUserText += `\n\n---\n## 参考URL（ユーザーが選択した外部ページ）\n${fetchedUrlContent}`
+      pageIndex = pageIndexResult
+    } else {
+      await updatePhase(db, sessionId, "planning")
+      pageIndex = await buildPageIndex(db, effectiveUserText)
     }
 
     // ------------------------------------------------------------------
-    // Step 3: Fetch page index from D1 (FTS5, max 200)
+    // Step 4: Phase 1 — Planner (merger logic is embedded in the prompt)
     // ------------------------------------------------------------------
-    const pageIndex = await buildPageIndex(db, effectiveUserText)
-
-    // ------------------------------------------------------------------
-    // Step 4a: Phase 1a — Planner
-    // ------------------------------------------------------------------
-    await updatePhase(db, sessionId, "planning")
-    const rawPlan = await runPhase1Planner(
-      env.GEMINI_API_KEY,
-      effectiveUserText,
-      fileUris,
-      pageIndex,
-    )
-
-    // ------------------------------------------------------------------
-    // Step 4b: Phase 1b — Merger (consolidate overlapping creates)
-    // ------------------------------------------------------------------
-    await updatePhase(db, sessionId, "merging")
-    const plan = await runPhase1Merger(env.GEMINI_API_KEY, rawPlan, effectiveUserText)
+    const plan = await runPhase1Planner(env.GEMINI_API_KEY, effectiveUserText, fileUris, pageIndex)
 
     // ------------------------------------------------------------------
     // Step 5: Fetch existing page content for update ops
