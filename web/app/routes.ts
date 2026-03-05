@@ -12,6 +12,7 @@ export default [
   route("/api/ingest/:sessionId/status", "routes/api.ingest.$sessionId.status.ts"),
   route("/api/ingest/:sessionId/commit", "routes/api.ingest.$sessionId.commit.ts"),
   route("/api/ingest/:sessionId/clarify", "routes/api.ingest.$sessionId.clarify.ts"),
+  route("/api/ingest/:sessionId/select-urls", "routes/api.ingest.$sessionId.select-urls.ts"),
   route("/api/ingest/:sessionId/regenerate", "routes/api.ingest.$sessionId.regenerate.ts"),
   route("/api/google-drive/auth", "routes/api.google-drive.auth.ts"),
   route("/api/google-drive/callback", "routes/api.google-drive.callback.ts"),

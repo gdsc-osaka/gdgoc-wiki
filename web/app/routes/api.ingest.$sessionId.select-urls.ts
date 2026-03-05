@@ -7,14 +7,8 @@ import { requireRole } from "~/lib/auth-utils.server"
 import type { AiDraftJson, IngestionInputs } from "~/lib/ingestion-pipeline.server"
 import { runIngestionPipeline } from "~/lib/ingestion-pipeline.server"
 
-const ClarifyBodySchema = z.object({
-  answers: z.array(
-    z.object({
-      id: z.string(),
-      question: z.string(),
-      answer: z.string(),
-    }),
-  ),
+const SelectUrlsBodySchema = z.object({
+  selectedUrls: z.array(z.string().url()).max(5),
 })
 
 export async function action({ request, context, params }: ActionFunctionArgs) {
@@ -30,17 +24,17 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
 
   if (!session) throw new Response("Not found", { status: 404 })
   if (session.userId !== user.id) throw new Response("Forbidden", { status: 403 })
-  if (session.status !== "awaiting_clarification") {
-    return new Response("Session is not awaiting clarification", { status: 409 })
+  if (session.status !== "awaiting_url_selection") {
+    return new Response("Session is not awaiting URL selection", { status: 409 })
   }
 
-  const parseResult = ClarifyBodySchema.safeParse(await request.json())
+  const parseResult = SelectUrlsBodySchema.safeParse(await request.json())
   if (!parseResult.success) {
     return new Response(parseResult.error.message, { status: 400 })
   }
-  const { answers } = parseResult.data
+  const { selectedUrls } = parseResult.data
 
-  // Parse stored clarification data to recover file URIs
+  // Recover stored URL selection data
   let storedDraft: AiDraftJson | null = null
   try {
     storedDraft = session.aiDraftJson ? (JSON.parse(session.aiDraftJson) as AiDraftJson) : null
@@ -48,21 +42,14 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
     return new Response("Failed to parse stored draft", { status: 500 })
   }
 
-  if (!storedDraft || storedDraft.phase !== "clarification") {
+  if (!storedDraft || storedDraft.phase !== "url_selection") {
     return new Response("Invalid stored draft state", { status: 500 })
   }
 
   const fileUris = storedDraft.fileUris
   const googleDocText = storedDraft.googleDocText ?? ""
-  const fetchedUrlContent = storedDraft.fetchedUrlContent
 
-  // Build clarification answers string
-  const clarificationAnswers = [
-    "## 補足情報（ユーザーへの確認結果）",
-    ...answers.map((a) => `Q: ${a.question}\nA: ${a.answer}`),
-  ].join("\n")
-
-  // Reconstruct inputs from inputsJson (texts + googleDocUrls only; files reuse stored URIs)
+  // Reconstruct inputs from inputsJson
   let inputs: IngestionInputs
   try {
     const parsed = JSON.parse(session.inputsJson) as {
@@ -85,7 +72,7 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
     .set({
       status: "processing",
       aiDraftJson: null,
-      phaseMessage: "parsing",
+      phaseMessage: "fetching_urls",
       updatedAt: new Date(),
     })
     .where(eq(schema.ingestionSessions.id, session.id))
@@ -93,9 +80,9 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
   ctx.waitUntil(
     runIngestionPipeline(env, session.id, user.id, inputs, {
       fileUris,
-      clarificationAnswers,
+      clarificationAnswers: "",
       googleDocText,
-      fetchedUrlContent,
+      selectedUrls,
     }),
   )
 
