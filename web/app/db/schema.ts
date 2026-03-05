@@ -86,9 +86,9 @@ export const invitations = sqliteTable("invitations", {
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
   token: text("token").notNull().unique(),
-  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
-  acceptedAt: integer("accepted_at", { mode: "timestamp" }),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  expiresAt: integer("expires_at").notNull(),
+  acceptedAt: integer("accepted_at"),
+  createdAt: integer("created_at").notNull().default(sql`(unixepoch())`),
 })
 
 // ---------------------------------------------------------------------------
