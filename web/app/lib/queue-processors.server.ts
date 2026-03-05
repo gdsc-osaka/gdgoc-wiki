@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm"
-import type { drizzle } from "drizzle-orm/d1"
+import { drizzle } from "drizzle-orm/d1"
 import * as schema from "~/db/schema"
 import { runTranslation } from "./gemini.server"
 import type { IngestionQueueMessage } from "./ingestion-jobs.server"
@@ -174,4 +174,26 @@ export async function processTranslationMessage(
     .where(eq(schema.pages.id, pageId))
 
   console.log("translation-jobs: done", pageId)
+}
+
+// ---------------------------------------------------------------------------
+// Local dev fallback: send to queue or run inline if queue unavailable
+// ---------------------------------------------------------------------------
+
+/**
+ * Sends an ingestion job to the queue. In local dev where INGESTION_QUEUE is
+ * not bound, falls back to running the job inline via ctx.waitUntil().
+ */
+export async function sendOrRunIngestion(
+  env: Env,
+  ctx: ExecutionContext,
+  message: IngestionQueueMessage,
+): Promise<void> {
+  if (env.INGESTION_QUEUE) {
+    await env.INGESTION_QUEUE.send(message)
+  } else {
+    console.warn("ingest: INGESTION_QUEUE not available, running inline (local dev fallback)")
+    const db = drizzle(env.DB, { schema })
+    ctx.waitUntil(processIngestionMessage(env, db, message))
+  }
 }
