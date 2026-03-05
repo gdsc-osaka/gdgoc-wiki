@@ -782,9 +782,10 @@ export async function buildPageIndex(
 // Slug generation from title
 // ---------------------------------------------------------------------------
 
-export function generateSlug(title: string): string {
+export function generateSlug(title: string, englishHint?: string): string {
+  const source = englishHint?.trim() || title
   return (
-    title
+    source
       .toLowerCase()
       .replace(/[\s\u3000]+/g, "-")
       .replace(/[^\w-]/g, "")

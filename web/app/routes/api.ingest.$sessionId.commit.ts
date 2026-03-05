@@ -23,6 +23,7 @@ const CommitOperationSchema = z.object({
   pageMetadata: z.record(z.string(), z.string()).default({}),
   tags: z.array(z.string()).max(5).default([]),
   suggestedParentId: z.string().nullable().optional(),
+  suggestedSlug: z.string().optional(),
   actionabilityScore: z.number(),
 })
 
@@ -105,7 +106,9 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
       pageIds.push(pageId)
 
       // Generate a unique slug by checking for collisions
-      let slug = generateSlug(op.title) || nanoid(8)
+      let slug = op.suggestedSlug
+        ? generateSlug(op.suggestedSlug)
+        : generateSlug(op.title) || nanoid(8)
       const collision = await db
         .select({ id: schema.pages.id })
         .from(schema.pages)

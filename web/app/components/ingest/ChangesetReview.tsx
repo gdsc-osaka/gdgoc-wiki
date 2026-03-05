@@ -43,6 +43,7 @@ interface OperationState {
   pageType: string
   tags: string[]
   pageMetadata: Record<string, string>
+  suggestedSlug?: string
 }
 
 interface ChangesetReviewProps {
@@ -162,6 +163,7 @@ export default function ChangesetReview({
           pageType: opStates[idx].pageType,
           pageMetadata: opStates[idx].pageMetadata,
           tags: opStates[idx].tags,
+          suggestedSlug: opStates[idx].suggestedSlug,
           suggestedParentId: op.draft?.suggestedParentId ?? null,
           actionabilityScore: op.draft?.actionabilityScore ?? op.patch?.actionabilityScore ?? 2,
         })),
@@ -421,6 +423,7 @@ function initOpState(op: ChangesetOperation): OperationState {
     pageType: draft?.suggestedPageType ?? "how-to-guide",
     tags: draft?.suggestedTags ?? [],
     pageMetadata: draft?.metadata ?? {},
+    suggestedSlug: draft?.suggestedSlug,
   }
 }
 

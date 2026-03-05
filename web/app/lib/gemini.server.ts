@@ -97,6 +97,7 @@ export const PageDraftSchema = z.object({
   sections: z.array(SectionSchema),
   suggestedParentId: z.string().nullable(),
   suggestedTags: z.array(z.string()).max(5),
+  suggestedSlug: z.string().optional(),
   actionabilityScore: z.union([z.literal(1), z.literal(2), z.literal(3)]),
   actionabilityNotes: z.string(),
   sensitiveItems: z.array(SensitiveItemSchema),
@@ -233,6 +234,7 @@ const PAGE_DRAFT_RESPONSE_SCHEMA = {
     },
     suggestedParentId: { type: "string", nullable: true },
     suggestedTags: { type: "array", items: { type: "string" } },
+    suggestedSlug: { type: "string" },
     actionabilityScore: { type: "integer", enum: [1, 2, 3] },
     actionabilityNotes: { type: "string" },
     sensitiveItems: {
@@ -425,6 +427,9 @@ const PHASE2_SYSTEM_PROMPT = `あなたはGDGoC Japan（Google Developer Groups 
 2. ページタイプを判定し、推奨構成を参考にしつつ、入力内容に合ったセクションのみを出力してください。
 3. 情報ボックスに構造化メタデータを抽出してください。
 4. 個人の連絡先・財務情報・個人への批評など機微情報はsensitiveItemsに列挙してください。
+6. suggestedSlug: ページタイトルの意味を英語で表現したURLスラッグを生成してください。
+     - 小文字の英数字とハイフンのみ（例: "event-reflection-summary-2025"）
+     - 最大80文字。日本語のローマ字読みではなく、意味の英訳を使用すること
 5. 最後にactionabilityScoreとactionabilityNotesを自己評価として出力してください。
    - スコア3: 入力に日付・場所・担当者・手順など具体情報が十分に含まれており、読者がすぐ行動できる
    - スコア2: 一部の具体情報はあるが、行動するには追加情報が必要
