@@ -50,7 +50,10 @@
     "star_remove": "Remove",
     "unstar": "Unstar",
     "contents": "Contents",
-    "sources": "Sources"
+    "sources": "Sources",
+    "history": "History",
+    "history_empty": "No edit history yet",
+    "history_current": "Current"
   },
   "home": {
     "recently_updated": "Recently Updated",

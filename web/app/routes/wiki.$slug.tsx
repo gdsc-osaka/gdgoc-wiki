@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm"
 import { MdPreview } from "md-editor-rt"
 import "md-editor-rt/lib/preview.css"
-import { List, Pencil, Share2, Star, X } from "lucide-react"
+import { History, List, Pencil, Share2, Star, X } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react-router"
@@ -393,6 +393,10 @@ export default function WikiPage() {
               {t("wiki.edit")}
             </Link>
           )}
+          <Link to={`/wiki/${page.slug}/history`} className={btnBase}>
+            <History size={14} />
+            {t("wiki.history")}
+          </Link>
           <button
             type="button"
             onClick={handleToggleStar}

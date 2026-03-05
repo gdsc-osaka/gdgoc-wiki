@@ -49,6 +49,7 @@ export default [
     route("/search", "routes/search.tsx"),
     route("/wiki/:slug", "routes/wiki.$slug.tsx"),
     route("/wiki/:slug/edit", "routes/wiki.$slug.edit.tsx"),
+    route("/wiki/:slug/history", "routes/wiki.$slug.history.tsx"),
     route("/ingest", "routes/ingest.tsx"),
     route("/ingest/:sessionId", "routes/ingest.$sessionId.tsx"),
     route("/settings", "routes/settings.tsx"),

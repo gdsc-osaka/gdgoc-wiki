@@ -50,7 +50,10 @@
     "star_remove": "削除",
     "unstar": "お気に入りを外す",
     "contents": "目次",
-    "sources": "ソース"
+    "sources": "ソース",
+    "history": "編集履歴",
+    "history_empty": "編集履歴はまだありません",
+    "history_current": "現在"
   },
   "home": {
     "recently_updated": "最近の更新",
