@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm"
 import { MdPreview } from "md-editor-rt"
 import "md-editor-rt/lib/preview.css"
-import { List, Pencil, Share2, Star, X } from "lucide-react"
+import { History, List, Pencil, Share2, Star, X } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react-router"
@@ -59,7 +59,7 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
     throw new Response("Not Found", { status: 404 })
   }
 
-  const [pageTags, authorRow, editorRow, fav] = await Promise.all([
+  const [pageTags, authorRow, editorRow, fav, sources] = await Promise.all([
     db
       .select({
         tagSlug: schema.pageTags.tagSlug,
@@ -91,6 +91,11 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
         ),
       )
       .get(),
+    db
+      .select({ url: schema.pageSources.url, title: schema.pageSources.title })
+      .from(schema.pageSources)
+      .where(eq(schema.pageSources.pageId, page.id))
+      .all(),
   ])
 
   const url = new URL(request.url)
@@ -111,6 +116,7 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
     visibility: page.visibility,
     canChangeVisibility: canUserChangeVisibility(sessionUser, page),
     isStarred: !!fav,
+    sources,
   }
 }
 
@@ -222,7 +228,8 @@ function parseMdHeadings(md: string): TocItem[] {
 }
 
 export default function WikiPage() {
-  const { page, tags, author, editor, lang, userRole, isStarred } = useLoaderData<typeof loader>()
+  const { page, tags, author, editor, lang, userRole, isStarred, sources } =
+    useLoaderData<typeof loader>()
   const { t } = useTranslation("common")
   const theme = useThemeMode()
   const location = useLocation()
@@ -386,6 +393,10 @@ export default function WikiPage() {
               {t("wiki.edit")}
             </Link>
           )}
+          <Link to={`/wiki/${page.slug}/history`} className={btnBase}>
+            <History size={14} />
+            {t("wiki.history")}
+          </Link>
           <button
             type="button"
             onClick={handleToggleStar}
@@ -466,6 +477,7 @@ export default function WikiPage() {
             lang={lang}
             translationStatusJa={page.translationStatusJa}
             translationStatusEn={page.translationStatusEn}
+            sources={sources}
           />
         )}
       </div>

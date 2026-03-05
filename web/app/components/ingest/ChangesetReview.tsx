@@ -64,6 +64,9 @@ export default function ChangesetReview({ draft, sessionId, userRole }: Changese
   const [submitting, setSubmitting] = useState(false)
   const [feedback, setFeedback] = useState<string[]>(draft.operations.map(() => ""))
   const [regenerating, setRegenerating] = useState<boolean[]>(draft.operations.map(() => false))
+  const [regenerateErrors, setRegenerateErrors] = useState<(string | null)[]>(
+    draft.operations.map(() => null),
+  )
 
   function updateOp(idx: number, updates: Partial<OperationState>) {
     setOpStates((prev) => {
@@ -114,6 +117,19 @@ export default function ChangesetReview({ draft, sessionId, userRole }: Changese
           next[idx] = initOpState(data.operation)
           return next
         })
+        setRegenerateErrors((prev) => {
+          const next = [...prev]
+          next[idx] = null
+          return next
+        })
+      } else {
+        const data = (await res.json().catch(() => ({}))) as { error?: string }
+        const msg = data.error ?? t("ingest.review.regenerate_error_generic")
+        setRegenerateErrors((prev) => {
+          const next = [...prev]
+          next[idx] = msg
+          return next
+        })
       }
     } finally {
       setRegenerating((prev) => {
@@ -142,6 +158,7 @@ export default function ChangesetReview({ draft, sessionId, userRole }: Changese
           suggestedParentId: op.draft?.suggestedParentId ?? null,
           actionabilityScore: op.draft?.actionabilityScore ?? op.patch?.actionabilityScore ?? 2,
         })),
+        sources: draft.sources ?? [],
       }
 
       const res = await fetch(`/api/ingest/${sessionId}/commit`, {
@@ -348,6 +365,9 @@ export default function ChangesetReview({ draft, sessionId, userRole }: Changese
                     : t("ingest.review.regenerate")}
                 </button>
               </div>
+              {regenerateErrors[idx] && (
+                <p className="mt-2 text-xs text-red-600">{regenerateErrors[idx]}</p>
+              )}
             </div>
           </div>
         )

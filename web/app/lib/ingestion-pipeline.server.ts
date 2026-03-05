@@ -19,7 +19,6 @@ import {
   type SectionPatchResponse,
   type UpdateOperation,
   runPhase0Clarifier,
-  runPhase1Merger,
   runPhase1Planner,
   runPhase2Creator,
   runPhase2Patcher,
@@ -29,6 +28,7 @@ import {
   exportFileAsPdf,
   exportFileAsText,
   extractFileId,
+  getDriveFileName,
   refreshAccessToken,
 } from "./google-drive.server"
 import { tiptapToMarkdown } from "./tiptap-convert"
@@ -37,6 +37,11 @@ import { type ExtractedUrl, extractUrls, fetchUrlViaJina } from "./url-extract"
 // ---------------------------------------------------------------------------
 // Input / output types
 // ---------------------------------------------------------------------------
+
+export interface SourceUrl {
+  url: string
+  title: string
+}
 
 export interface IngestionInputs {
   texts: string[]
@@ -92,6 +97,7 @@ export type AiDraftJson =
       operations: ChangesetOperation[]
       sensitiveItems: import("./gemini.server").SensitiveItem[]
       warnings: string[]
+      sources: SourceUrl[]
     }
 
 export type IngestionResumePostClarificationDraft = Extract<
@@ -146,11 +152,22 @@ export async function runIngestionPipeline(
 ): Promise<void> {
   const db = drizzle(env.DB, { schema })
 
+  const currentDatetime = `${new Date().toLocaleString("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  })}（JST）`
+
   try {
     const baseUserText = inputs.texts.join("\n\n")
     let fileUris: { uri: string; mimeType: string }[]
     const warnings: string[] = []
     const docTexts: string[] = []
+    const sources: SourceUrl[] = []
 
     // Determine resume type
     const isPostClarification = !!resumeContext?.clarificationAnswers
@@ -162,6 +179,45 @@ export async function runIngestionPipeline(
       if (resumeContext.googleDocText) {
         docTexts.push(resumeContext.googleDocText)
       }
+      // Re-collect Google Doc sources (pipeline is stateless between phases).
+      // Sources collected in a prior run are discarded when the run returns early
+      // (url_selection or clarification phase), so we always re-fetch them on any resume.
+      if (inputs.googleDocUrls.length > 0) {
+        const tokenRow = await db
+          .select()
+          .from(schema.googleDriveTokens)
+          .where(eq(schema.googleDriveTokens.userId, userId))
+          .get()
+        if (tokenRow) {
+          let accessToken = tokenRow.accessToken
+          const now = new Date()
+          if (tokenRow.expiresAt < now && tokenRow.refreshToken) {
+            try {
+              const refreshed = await refreshAccessToken(
+                tokenRow.refreshToken,
+                env.GOOGLE_DOCS_CLIENT_ID,
+                env.GOOGLE_DOCS_CLIENT_SECRET,
+              )
+              accessToken = refreshed.accessToken
+            } catch {
+              // ignore refresh errors — sources are best-effort
+            }
+          }
+          for (const docUrl of inputs.googleDocUrls) {
+            const fileId = extractFileId(docUrl)
+            try {
+              const fileName = await getDriveFileName(fileId, accessToken)
+              sources.push({ url: docUrl, title: fileName })
+            } catch {
+              sources.push({ url: docUrl, title: fileId })
+            }
+          }
+        } else {
+          for (const docUrl of inputs.googleDocUrls) {
+            sources.push({ url: docUrl, title: extractFileId(docUrl) })
+          }
+        }
+      }
     } else {
       fileUris = []
 
@@ -171,25 +227,25 @@ export async function runIngestionPipeline(
       // Step 1: Upload images to Gemini File API
       // ------------------------------------------------------------------
       if (inputs.imageFiles && inputs.imageFiles.length > 0) {
-        for (const img of inputs.imageFiles) {
-          const uri = await uploadFileToGemini(
-            img.buffer,
-            img.mimeType,
-            img.name,
-            env.GEMINI_API_KEY,
-          )
-          fileUris.push({ uri, mimeType: img.mimeType })
-        }
+        fileUris = await Promise.all(
+          inputs.imageFiles.map((img) =>
+            uploadFileToGemini(img.buffer, img.mimeType, img.name, env.GEMINI_API_KEY).then(
+              (uri) => ({ uri, mimeType: img.mimeType }),
+            ),
+          ),
+        )
       } else {
-        for (const key of inputs.imageKeys) {
-          const obj = await env.BUCKET.get(key)
-          if (!obj) throw new Error(`Uploaded image not found in R2: ${key}`)
-          const mimeType = obj.httpMetadata?.contentType ?? "application/octet-stream"
-          const name = key.split("/").at(-1) ?? key
-          const buffer = await obj.arrayBuffer()
-          const uri = await uploadFileToGemini(buffer, mimeType, name, env.GEMINI_API_KEY)
-          fileUris.push({ uri, mimeType })
-        }
+        fileUris = await Promise.all(
+          inputs.imageKeys.map(async (key) => {
+            const obj = await env.BUCKET.get(key)
+            if (!obj) throw new Error(`Uploaded image not found in R2: ${key}`)
+            const mimeType = obj.httpMetadata?.contentType ?? "application/octet-stream"
+            const name = key.split("/").at(-1) ?? key
+            const buffer = await obj.arrayBuffer()
+            const uri = await uploadFileToGemini(buffer, mimeType, name, env.GEMINI_API_KEY)
+            return { uri, mimeType }
+          }),
+        )
       }
 
       // ------------------------------------------------------------------
@@ -234,6 +290,14 @@ export async function runIngestionPipeline(
               `Google Driveのアクセスが無効になりました。設定画面からGoogle Driveを再接続してください。(${msg})`,
             )
           }
+        }
+
+        // Collect source URL with display name (best-effort)
+        try {
+          const fileName = await getDriveFileName(fileId, accessToken)
+          sources.push({ url: docUrl, title: fileName })
+        } catch {
+          sources.push({ url: docUrl, title: fileId })
         }
 
         // Primary: extract plain text (must succeed)
@@ -315,30 +379,50 @@ export async function runIngestionPipeline(
       resumeContext.selectedUrls.length > 0
     ) {
       await updatePhase(db, sessionId, "fetching_urls")
+      const fetchResults = await Promise.all(
+        resumeContext.selectedUrls.map((url) =>
+          fetchUrlViaJina(url).then((result) => ({ url, result })),
+        ),
+      )
       const parts: string[] = []
-      for (const url of resumeContext.selectedUrls) {
-        const result = await fetchUrlViaJina(url)
+      for (const { url, result } of fetchResults) {
         if (result.error) {
           parts.push(`### ${url}\n(取得失敗: ${result.error})`)
+          sources.push({ url, title: url })
         } else {
           const suffix = result.truncated ? "\n\n(... 10,000文字で切り詰めました)" : ""
           parts.push(`### ${url}\n${result.markdown}${suffix}`)
+          const titleMatch = result.markdown?.match(/^(?:Title:\s*(.+)|#\s+(.+))/m)
+          const title = (titleMatch?.[1] ?? titleMatch?.[2])?.trim() || url
+          sources.push({ url, title })
         }
       }
       fetchedUrlContent = parts.join("\n\n")
     }
 
+    // Build final user text (prepend clarification answers if resuming)
+    const userText = buildUserText(baseUserText, docTexts)
+
+    let effectiveUserText = isPostClarification
+      ? `${resumeContext?.clarificationAnswers}\n\n${userText}`
+      : userText
+
+    if (fetchedUrlContent) {
+      effectiveUserText += `\n\n---\n## 参考URL（ユーザーが選択した外部ページ）\n${fetchedUrlContent}`
+    }
+
     // ------------------------------------------------------------------
     // Phase 0: Clarifier (runs on first run OR after URL selection)
+    // Page index (cheap D1 query) runs concurrently with Phase 0 Clarifier.
     // ------------------------------------------------------------------
-    if (!isPostClarification) {
-      const userText = buildUserText(baseUserText, docTexts)
-      let clarifierText = userText
-      if (fetchedUrlContent) {
-        clarifierText += `\n\n---\n## 参考URL（ユーザーが選択した外部ページ）\n${fetchedUrlContent}`
-      }
+    let pageIndex: PageIndexEntry[]
 
-      const clarifierResult = await runPhase0Clarifier(env.GEMINI_API_KEY, clarifierText, fileUris)
+    if (!isPostClarification) {
+      await updatePhase(db, sessionId, "planning")
+      const [pageIndexResult, clarifierResult] = await Promise.all([
+        buildPageIndex(db, effectiveUserText),
+        runPhase0Clarifier(env.GEMINI_API_KEY, effectiveUserText, fileUris, currentDatetime),
+      ])
 
       if (clarifierResult.needsClarification) {
         const aiDraftJson: AiDraftJson = {
@@ -360,40 +444,23 @@ export async function runIngestionPipeline(
           .where(eq(schema.ingestionSessions.id, sessionId))
         return
       }
-    }
 
-    // Build final user text (prepend clarification answers if resuming)
-    const userText = buildUserText(baseUserText, docTexts)
-
-    let effectiveUserText = isPostClarification
-      ? `${resumeContext?.clarificationAnswers}\n\n${userText}`
-      : userText
-
-    if (fetchedUrlContent) {
-      effectiveUserText += `\n\n---\n## 参考URL（ユーザーが選択した外部ページ）\n${fetchedUrlContent}`
+      pageIndex = pageIndexResult
+    } else {
+      await updatePhase(db, sessionId, "planning")
+      pageIndex = await buildPageIndex(db, effectiveUserText)
     }
 
     // ------------------------------------------------------------------
-    // Step 3: Fetch page index from D1 (FTS5, max 200)
+    // Step 4: Phase 1 — Planner (merger logic is embedded in the prompt)
     // ------------------------------------------------------------------
-    const pageIndex = await buildPageIndex(db, effectiveUserText)
-
-    // ------------------------------------------------------------------
-    // Step 4a: Phase 1a — Planner
-    // ------------------------------------------------------------------
-    await updatePhase(db, sessionId, "planning")
-    const rawPlan = await runPhase1Planner(
+    const plan = await runPhase1Planner(
       env.GEMINI_API_KEY,
       effectiveUserText,
       fileUris,
       pageIndex,
+      currentDatetime,
     )
-
-    // ------------------------------------------------------------------
-    // Step 4b: Phase 1b — Merger (consolidate overlapping creates)
-    // ------------------------------------------------------------------
-    await updatePhase(db, sessionId, "merging")
-    const plan = await runPhase1Merger(env.GEMINI_API_KEY, rawPlan, effectiveUserText)
 
     // ------------------------------------------------------------------
     // Step 5: Fetch existing page content for update ops
@@ -430,6 +497,7 @@ export async function runIngestionPipeline(
           op,
           pageIndex,
           createOps.filter((o) => o.tempId !== op.tempId),
+          currentDatetime,
         )
         done++
         await updatePhase(db, sessionId, `generating:${done}/${total}`)
@@ -447,6 +515,7 @@ export async function runIngestionPipeline(
           fileUris,
           op,
           markdown,
+          currentDatetime,
         )
         done++
         await updatePhase(db, sessionId, `generating:${done}/${total}`)
@@ -491,6 +560,7 @@ export async function runIngestionPipeline(
       operations,
       sensitiveItems: allSensitiveItems,
       warnings,
+      sources,
     }
 
     // ------------------------------------------------------------------
@@ -565,15 +635,22 @@ export async function runIngestionPipeline(
       ? rawMessage
       : "Ingestion failed due to an internal error."
     const errorDb = drizzle(env.DB, { schema })
-    await errorDb
-      .update(schema.ingestionSessions)
-      .set({
-        status: "error",
-        errorMessage,
-        phaseMessage: null,
-        updatedAt: new Date(),
-      })
-      .where(eq(schema.ingestionSessions.id, sessionId))
+    try {
+      await errorDb
+        .update(schema.ingestionSessions)
+        .set({
+          status: "error",
+          errorMessage,
+          phaseMessage: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.ingestionSessions.id, sessionId))
+    } catch (dbErr) {
+      console.error(
+        `[ingestion-pipeline] failed to write error status for session=${sessionId}:`,
+        dbErr,
+      )
+    }
 
     // Create error notification (best-effort)
     try {

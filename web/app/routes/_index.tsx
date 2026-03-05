@@ -1,9 +1,12 @@
 import { and, desc, eq, inArray } from "drizzle-orm"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, useLoaderData } from "react-router"
 import type { LoaderFunctionArgs, MetaFunction } from "react-router"
+import LandingContent, { GoogleIcon } from "~/components/LandingContent"
 import * as schema from "~/db/schema"
-import { requireRole } from "~/lib/auth-utils.server"
+import { getSessionUser } from "~/lib/auth-utils.server"
+import { authClient } from "~/lib/auth.client"
 import { getDb } from "~/lib/db.server"
 import { buildVisibilityFilter } from "~/lib/page-visibility.server"
 
@@ -15,7 +18,12 @@ export const meta: MetaFunction = () => [{ title: "Home — GDGoC Japan Wiki" }]
 
 export async function loader({ request, context }: LoaderFunctionArgs) {
   const { env } = context.cloudflare
-  const user = await requireRole(request, env, "viewer")
+  const user = await getSessionUser(request, env)
+
+  if (!user) {
+    return { mode: "lp" as const }
+  }
+
   const db = getDb(env)
 
   const visFilter = buildVisibilityFilter(user)
@@ -67,6 +75,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
   const allTags = await db.select().from(schema.tags).orderBy(desc(schema.tags.pageCount)).all()
 
   return {
+    mode: "home" as const,
     recentPages: recentPages.map((p) => ({ ...p, tags: tagsByPage.get(p.id) ?? [] })),
     allTags,
   }
@@ -88,12 +97,115 @@ function timeAgo(date: Date, t: (key: string, opts?: Record<string, unknown>) =>
 }
 
 // ---------------------------------------------------------------------------
+// Sign-in Modal
+// ---------------------------------------------------------------------------
+
+function SignInModal({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation()
+
+  async function handleGoogleSignIn() {
+    await authClient.signIn.social({ provider: "google", callbackURL: "/" })
+  }
+
+  return (
+    <div
+      className="force-light fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onClose()
+      }}
+    >
+      <dialog
+        open
+        className="relative m-0 w-full max-w-sm rounded-2xl border-2 border-black bg-white p-8 shadow-[8px_8px_0px_0px_#000]"
+        aria-labelledby="signin-modal-title"
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50"
+          aria-label={t("close")}
+        >
+          ×
+        </button>
+
+        <div className="mb-6 text-center">
+          <h2 id="signin-modal-title" className="text-lg font-semibold text-gray-900">
+            {t("lp.signin_modal_title")}
+          </h2>
+          <p className="mt-1 text-sm text-gray-500">{t("lp.signin_modal_subtitle")}</p>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleGoogleSignIn}
+          className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+        >
+          <GoogleIcon />
+          {t("lp.cta_signin")}
+        </button>
+
+        <p className="mt-4 text-center text-xs text-gray-400">{t("login.access_restricted")}</p>
+      </dialog>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// LP Header
+// ---------------------------------------------------------------------------
+
+function LpHeader({ onLoginClick }: { onLoginClick: () => void }) {
+  const { t } = useTranslation()
+  return (
+    <header className="force-light sticky top-0 z-40 flex h-14 items-center justify-between border-b border-black bg-white px-6">
+      <img src="/logo.png" alt={t("app_name")} className="h-8 w-auto" />
+      <button
+        type="button"
+        onClick={onLoginClick}
+        className="rounded-xl border-2 border-black bg-blue-500 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-blue-600"
+      >
+        {t("auth.sign_in")}
+      </button>
+    </header>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function Index() {
-  const { recentPages, allTags } = useLoaderData<typeof loader>()
+  const data = useLoaderData<typeof loader>()
   const { t } = useTranslation()
+  const [modalOpen, setModalOpen] = useState(false)
+
+  // Landing page for unauthenticated visitors
+  if (data.mode === "lp") {
+    const ctaSlot = (
+      <button
+        type="button"
+        onClick={() => setModalOpen(true)}
+        className="inline-flex items-center gap-3 rounded-xl border-2 border-black bg-blue-500 px-6 py-3 text-base font-semibold text-white shadow-[4px_4px_0px_0px_#000] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#000]"
+      >
+        <GoogleIcon />
+        {t("lp.cta_signin")}
+      </button>
+    )
+
+    return (
+      <>
+        <LpHeader onLoginClick={() => setModalOpen(true)} />
+        <LandingContent ctaSlot={ctaSlot} />
+        {modalOpen && <SignInModal onClose={() => setModalOpen(false)} />}
+      </>
+    )
+  }
+
+  // Home page for authenticated users
+  const { recentPages, allTags } = data
 
   return (
     <div className="max-w-5xl px-4 py-6 md:px-8 md:py-8">

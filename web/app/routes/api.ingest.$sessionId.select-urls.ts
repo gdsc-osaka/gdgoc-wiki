@@ -9,13 +9,14 @@ import {
   buildIngestionQueueMessage,
 } from "~/lib/ingestion-jobs.server"
 import type { AiDraftJson } from "~/lib/ingestion-pipeline.server"
+import { sendOrRunIngestion } from "~/lib/queue-processors.server"
 
 const SelectUrlsBodySchema = z.object({
   selectedUrls: z.array(z.string().url()).max(5),
 })
 
 export async function action({ request, context, params }: ActionFunctionArgs) {
-  const { env } = context.cloudflare
+  const { env, ctx } = context.cloudflare
   const user = await requireRole(request, env, "member")
   const db = drizzle(env.DB, { schema })
 
@@ -84,7 +85,9 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
     .where(eq(schema.ingestionSessions.id, session.id))
 
   try {
-    await env.INGESTION_QUEUE.send(
+    await sendOrRunIngestion(
+      env,
+      ctx,
       buildIngestionQueueMessage(session.id, user.id, "post_url_selection"),
     )
   } catch (err) {

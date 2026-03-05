@@ -9,7 +9,7 @@ import Sidebar from "~/components/Sidebar"
 import StarredDialog from "~/components/StarredDialog"
 import * as schema from "~/db/schema"
 import { useMediaQuery } from "~/hooks/useMediaQuery"
-import { requireRole } from "~/lib/auth-utils.server"
+import { getSessionUser } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
 import { buildTree } from "~/lib/page-tree"
 import { buildVisibilityFilter } from "~/lib/page-visibility.server"
@@ -20,7 +20,12 @@ import { buildVisibilityFilter } from "~/lib/page-visibility.server"
 
 export async function loader({ request, context }: LoaderFunctionArgs) {
   const { env } = context.cloudflare
-  const user = await requireRole(request, env, "viewer")
+  const user = await getSessionUser(request, env)
+
+  if (!user) {
+    return { user: null, pageTree: [] as ReturnType<typeof buildTree>, unreadNotificationCount: 0 }
+  }
+
   const db = getDb(env)
 
   const visFilter = buildVisibilityFilter(user)
@@ -82,6 +87,9 @@ export default function AppLayout() {
   useEffect(() => {
     setMobileOpen(false)
   }, [location.pathname])
+
+  // When unauthenticated, render only the outlet (child handles its own UI)
+  if (!user) return <Outlet />
 
   function toggleSidebar() {
     if (isMobile) {

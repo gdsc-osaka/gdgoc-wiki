@@ -176,8 +176,8 @@ export default function NotificationBell({ initialCount }: { initialCount: numbe
                     if (n.refUrl) navigate(n.refUrl)
                   }}
                   className={[
-                    "flex w-full items-center gap-2.5 px-3 py-2.5 text-left hover:bg-gray-50",
-                    !n.readAt ? "bg-blue-50" : "",
+                    "flex w-full items-center gap-2.5 px-3 py-2.5 text-left hover:bg-gray-50 dark:hover:bg-gray-700/40",
+                    !n.readAt ? "bg-blue-50 dark:bg-blue-900/40" : "",
                   ].join(" ")}
                 >
                   {typeIcon(n.type)}

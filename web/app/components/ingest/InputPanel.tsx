@@ -9,7 +9,7 @@ interface InputPanelProps {
 
 const MAX_IMAGES = 5
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024 // 10 MB
-const MIN_TEXT_LENGTH = 50
+const MIN_TEXT_LENGTH = 10
 
 export default function InputPanel({ driveConnected, serverError }: InputPanelProps) {
   const { t } = useTranslation()

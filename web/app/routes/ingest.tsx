@@ -10,6 +10,7 @@ import { requireRole } from "~/lib/auth-utils.server"
 import { isGoogleDriveUrl } from "~/lib/google-drive-utils"
 import { buildIngestionQueueMessage } from "~/lib/ingestion-jobs.server"
 import type { IngestionInputs } from "~/lib/ingestion-pipeline.server"
+import { sendOrRunIngestion } from "~/lib/queue-processors.server"
 
 // ---------------------------------------------------------------------------
 // Loader
@@ -45,10 +46,10 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
 
 const MAX_IMAGES = 5
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024 // 10 MB
-const MIN_TEXT_LENGTH = 50
+const MIN_TEXT_LENGTH = 10
 
 export async function action({ request, context }: ActionFunctionArgs) {
-  const { env } = context.cloudflare
+  const { env, ctx } = context.cloudflare
   const user = await requireRole(request, env, "member")
   const db = drizzle(env.DB, { schema })
 
@@ -111,7 +112,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
   })
 
   try {
-    await env.INGESTION_QUEUE.send(buildIngestionQueueMessage(sessionId, user.id, "initial"))
+    await sendOrRunIngestion(env, ctx, buildIngestionQueueMessage(sessionId, user.id, "initial"))
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     console.error("ingest: failed to enqueue ingestion job", { sessionId, userId: user.id, err })

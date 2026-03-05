@@ -206,6 +206,21 @@ export async function exportFileAsText(fileId: string, accessToken: string): Pro
 }
 
 // ---------------------------------------------------------------------------
+// Get file display name from Drive metadata
+// ---------------------------------------------------------------------------
+
+export async function getDriveFileName(fileId: string, accessToken: string): Promise<string> {
+  const res = await fetchWithTimeout(
+    `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?fields=name`,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+    TOKEN_TIMEOUT_MS,
+  )
+  if (!res.ok) return fileId
+  const meta = (await res.json()) as { name?: string }
+  return meta.name ?? fileId
+}
+
+// ---------------------------------------------------------------------------
 // Extract file ID from Google Drive URL
 // ---------------------------------------------------------------------------
 
