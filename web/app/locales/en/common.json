@@ -173,7 +173,25 @@
       "col_label_ja": "Label (JA)",
       "col_label_en": "Label (EN)",
       "col_pages": "Pages",
-      "empty": "No tags found."
+      "col_actions": "Actions",
+      "empty": "No tags found.",
+      "new_tag": "New Tag",
+      "edit": "Edit",
+      "delete": "Delete",
+      "delete_confirm": "Delete tag \"{{slug}}\"? This will remove it from all pages and cannot be undone.",
+      "created": "Tag \"{{slug}}\" created.",
+      "updated": "Tag \"{{slug}}\" updated.",
+      "deleted": "Tag deleted.",
+      "error_slug_taken": "A tag with slug \"{{slug}}\" already exists.",
+      "error_slug_invalid": "Slug must contain only lowercase letters, numbers, and hyphens.",
+      "form": {
+        "slug": "Slug",
+        "label_ja": "Label (Japanese)",
+        "label_en": "Label (English)",
+        "color": "Color",
+        "submit": "Create Tag",
+        "update": "Save Changes"
+      }
     },
     "stats": {
       "heading": "Stats",

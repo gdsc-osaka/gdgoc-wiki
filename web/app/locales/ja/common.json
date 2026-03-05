@@ -173,7 +173,25 @@
       "col_label_ja": "ラベル（日本語）",
       "col_label_en": "ラベル（英語）",
       "col_pages": "ページ数",
-      "empty": "タグが見つかりません。"
+      "col_actions": "操作",
+      "empty": "タグが見つかりません。",
+      "new_tag": "新規タグ",
+      "edit": "編集",
+      "delete": "削除",
+      "delete_confirm": "タグ「{{slug}}」を削除しますか？すべてのページから削除され、元に戻せません。",
+      "created": "タグ「{{slug}}」を作成しました。",
+      "updated": "タグ「{{slug}}」を更新しました。",
+      "deleted": "タグを削除しました。",
+      "error_slug_taken": "スラッグ「{{slug}}」のタグはすでに存在します。",
+      "error_slug_invalid": "スラッグは小文字・数字・ハイフンのみ使用できます。",
+      "form": {
+        "slug": "スラッグ",
+        "label_ja": "ラベル（日本語）",
+        "label_en": "ラベル（英語）",
+        "color": "カラー",
+        "submit": "タグを作成",
+        "update": "変更を保存"
+      }
     },
     "stats": {
       "heading": "統計",
