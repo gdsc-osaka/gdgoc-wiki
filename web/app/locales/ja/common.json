@@ -317,7 +317,14 @@
         "community-ops": "コミュニティ運営",
         "technical": "技術",
         "template": "テンプレート"
-      }
+      },
+      "field_parent_page": "親ページ",
+      "parent_none": "（なし — ルートレベル）",
+      "existing_pages": "既存ページ",
+      "new_pages_in_changeset": "今回作成する新規ページ",
+      "structure_preview": "ページ構造プレビュー",
+      "sibling_warning": "{{count}} 件の新規ページがルートレベルに追加されます。親ページでまとめることを検討してください。",
+      "add_parent_page": "親ページを追加してまとめる"
     },
     "sensitive": {
       "title": "機微情報が見つかりました",

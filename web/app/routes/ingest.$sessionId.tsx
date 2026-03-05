@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm"
+import { and, eq, inArray } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/d1"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -31,6 +31,25 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
   if (!session) throw new Response("Not found", { status: 404 })
   if (session.userId !== user.id) throw new Response("Forbidden", { status: 403 })
 
+  const pageIndex = user.chapterId
+    ? await db
+        .select({
+          id: schema.pages.id,
+          titleJa: schema.pages.titleJa,
+          titleEn: schema.pages.titleEn,
+          slug: schema.pages.slug,
+          parentId: schema.pages.parentId,
+        })
+        .from(schema.pages)
+        .where(
+          and(
+            eq(schema.pages.chapterId, user.chapterId),
+            inArray(schema.pages.status, ["draft", "published"]),
+          ),
+        )
+        .all()
+    : []
+
   const imageKeys = (() => {
     try {
       const parsed = JSON.parse(session.inputsJson) as { imageKeys?: string[] }
@@ -56,6 +75,7 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
     })(),
     userRole: user.role as string,
     imageKeys,
+    pageIndex,
   }
 }
 
@@ -581,6 +601,7 @@ export default function IngestSessionPage() {
         sessionId={loaderData.sessionId}
         userRole={loaderData.userRole}
         imageKeys={imageKeys}
+        pageIndex={loaderData.pageIndex}
       />
     </div>
   )

@@ -317,7 +317,14 @@
         "community-ops": "Community Operations",
         "technical": "Technical",
         "template": "Template"
-      }
+      },
+      "field_parent_page": "Parent Page",
+      "parent_none": "(None — root level)",
+      "existing_pages": "Existing Pages",
+      "new_pages_in_changeset": "New Pages in This Import",
+      "structure_preview": "Page Structure Preview",
+      "sibling_warning": "{{count}} new pages will be added at the root level. Consider grouping them under a parent page.",
+      "add_parent_page": "Add a parent page to group them"
     },
     "sensitive": {
       "title": "Sensitive Information Found",
