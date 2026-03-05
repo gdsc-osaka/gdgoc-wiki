@@ -100,7 +100,7 @@ describe("admin.users action", () => {
     })
 
     expect(result).toHaveProperty("error")
-    expect((result as { error: string }).error).toMatch(/cannot change your own role/i)
+    expect((result as { error: string }).error).toBe("admin.users.error_own_role")
   })
 
   it("rejects invalid roles", async () => {
@@ -124,7 +124,7 @@ describe("admin.users action", () => {
     })
 
     expect(result).toHaveProperty("error")
-    expect((result as { error: string }).error).toMatch(/invalid role/i)
+    expect((result as { error: string }).error).toBe("admin.users.error_invalid_role")
   })
 
   it("returns empty object on successful role update", async () => {
