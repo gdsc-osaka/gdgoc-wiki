@@ -22,7 +22,9 @@
     "on_this_page": "On this page",
     "read_in": "Read in",
     "translation_fallback_en": "Translation pending — showing Japanese content instead.",
-    "translation_fallback_ja": "Translation pending — showing English content instead."
+    "translation_fallback_ja": "Translation pending — showing English content instead.",
+    "author": "Author",
+    "tags": "Tags"
   },
   "home": {
     "recently_updated": "Recently Updated",
@@ -125,6 +127,63 @@
       "too_many_images": "You can attach up to {{max}} images.",
       "image_too_large": "{{name}} exceeds 10MB.",
       "not_an_image": "{{name}} is not an image file."
+    },
+    "review": {
+      "ai_rationale": "AI's Reasoning",
+      "warnings": "Warnings",
+      "op_create": "New",
+      "op_update": "Update",
+      "actionability_score": "Actionability Score: {{score}}/3",
+      "actionability_regen_hint": "— Consider adding more context and regenerating",
+      "field_title": "Page Title",
+      "field_summary": "Summary",
+      "field_page_type": "Page Type",
+      "field_tags": "Tags (max 5)",
+      "field_body": "Body",
+      "field_feedback": "Regeneration Feedback",
+      "feedback_placeholder": "Enter what you'd like improved...",
+      "regenerating": "Generating...",
+      "regenerate": "Regenerate",
+      "saving": "Saving...",
+      "save_draft": "Save as Draft",
+      "publishing": "Publishing...",
+      "publish": "Publish",
+      "error": "Error: {{message}}",
+      "pageType": {
+        "event-report": "Event Report",
+        "speaker-profile": "Speaker Profile",
+        "project-log": "Project Log",
+        "how-to-guide": "How-to Guide",
+        "onboarding-guide": "Onboarding Guide"
+      },
+      "tag": {
+        "event-operations": "Event Operations",
+        "speaker-management": "Speaker Management",
+        "sponsor-relations": "Sponsor & External Relations",
+        "project": "Project",
+        "onboarding": "Onboarding",
+        "community-ops": "Community Operations",
+        "technical": "Technical",
+        "template": "Template"
+      }
+    },
+    "sensitive": {
+      "title": "Sensitive Information Found",
+      "subtitle": "Please choose how to handle the following items before publishing.",
+      "location": "Location: {{location}}",
+      "resolution_keep": "Keep as-is",
+      "resolution_delete": "Delete",
+      "resolution_replace": "Replace with [REVIEW]",
+      "proceed": "Review Draft →",
+      "type": {
+        "email": "Email Address",
+        "phone": "Phone Number",
+        "sns-handle": "SNS Account",
+        "financial": "Financial Information",
+        "personal-opinion": "Personal Criticism",
+        "credential": "Credentials",
+        "other": "Other"
+      }
     }
   },
   "settings": {
@@ -156,6 +215,12 @@
       "invalid_lang": "Invalid language selection.",
       "invalid_chapter": "Selected chapter does not exist."
     }
+  },
+  "time": {
+    "just_now": "just now",
+    "minutes_ago": "{{count}}m ago",
+    "hours_ago": "{{count}}h ago",
+    "days_ago": "{{count}}d ago"
   },
   "pageTree": {
     "noPages": "No pages yet",

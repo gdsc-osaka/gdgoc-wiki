@@ -22,7 +22,9 @@
     "on_this_page": "このページの内容",
     "read_in": "言語選択",
     "translation_fallback_en": "翻訳準備中 — 日本語コンテンツを表示しています。",
-    "translation_fallback_ja": "翻訳準備中 — 英語コンテンツを表示しています。"
+    "translation_fallback_ja": "翻訳準備中 — 英語コンテンツを表示しています。",
+    "author": "著者",
+    "tags": "タグ"
   },
   "home": {
     "recently_updated": "最近の更新",
@@ -125,6 +127,63 @@
       "too_many_images": "画像は最大{{max}}枚までです。",
       "image_too_large": "{{name}} は10MBを超えています。",
       "not_an_image": "{{name}} は画像ファイルではありません。"
+    },
+    "review": {
+      "ai_rationale": "AIの判断理由",
+      "warnings": "注意",
+      "op_create": "新規作成",
+      "op_update": "更新",
+      "actionability_score": "アクション可能性スコア: {{score}}/3",
+      "actionability_regen_hint": "— 入力を補強して再生成することを推奨します",
+      "field_title": "ページタイトル",
+      "field_summary": "要約",
+      "field_page_type": "ページタイプ",
+      "field_tags": "タグ（最大5つ）",
+      "field_body": "本文",
+      "field_feedback": "再生成フィードバック",
+      "feedback_placeholder": "改善してほしい点を入力...",
+      "regenerating": "生成中...",
+      "regenerate": "再生成",
+      "saving": "保存中...",
+      "save_draft": "下書きとして保存",
+      "publishing": "公開中...",
+      "publish": "公開する",
+      "error": "エラー: {{message}}",
+      "pageType": {
+        "event-report": "イベントレポート",
+        "speaker-profile": "スピーカープロファイル",
+        "project-log": "プロジェクトログ",
+        "how-to-guide": "ハウツーガイド",
+        "onboarding-guide": "オンボーディングガイド"
+      },
+      "tag": {
+        "event-operations": "イベント運営",
+        "speaker-management": "スピーカー管理",
+        "sponsor-relations": "スポンサー・渉外",
+        "project": "プロジェクト",
+        "onboarding": "新メンバー向け",
+        "community-ops": "コミュニティ運営",
+        "technical": "技術",
+        "template": "テンプレート"
+      }
+    },
+    "sensitive": {
+      "title": "機微情報が見つかりました",
+      "subtitle": "以下の項目について、公開前に対応を選択してください。",
+      "location": "場所: {{location}}",
+      "resolution_keep": "そのまま含める",
+      "resolution_delete": "削除する",
+      "resolution_replace": "[要確認] に置換する",
+      "proceed": "下書きを確認する →",
+      "type": {
+        "email": "メールアドレス",
+        "phone": "電話番号",
+        "sns-handle": "SNSアカウント",
+        "financial": "財務情報",
+        "personal-opinion": "個人への批評",
+        "credential": "認証情報",
+        "other": "その他"
+      }
     }
   },
   "settings": {
@@ -156,6 +215,12 @@
       "invalid_lang": "無効な言語が選択されています。",
       "invalid_chapter": "選択されたチャプターは存在しません。"
     }
+  },
+  "time": {
+    "just_now": "たった今",
+    "minutes_ago": "{{count}}分前",
+    "hours_ago": "{{count}}時間前",
+    "days_ago": "{{count}}日前"
   },
   "pageTree": {
     "noPages": "ページはまだありません",

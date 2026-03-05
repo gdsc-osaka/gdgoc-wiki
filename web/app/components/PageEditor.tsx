@@ -30,12 +30,14 @@ function isTipTapJson(content: string | null | undefined): boolean {
   return typeof content === "string" && content.startsWith('{"type":"doc"')
 }
 
-function formatRelativeTime(isoString: string): string {
+function formatRelativeTime(
+  isoString: string,
+  t: (key: string, opts?: Record<string, unknown>) => string,
+): string {
   const diff = Date.now() - new Date(isoString).getTime()
   const minutes = Math.floor(diff / 60_000)
-  if (minutes < 1) return "just now"
-  if (minutes === 1) return "1m ago"
-  return `${minutes}m ago`
+  if (minutes < 1) return t("time.just_now")
+  return t("time.minutes_ago", { count: minutes })
 }
 
 // ---------------------------------------------------------------------------
@@ -109,7 +111,7 @@ export default function PageEditor({ page, canPublish }: PageEditorProps) {
   } else if (fetcher.data && !fetcher.data.ok) {
     statusText = t("editor.autosave_failed")
   } else if (lastSavedAt) {
-    statusText = t("editor.saved_at", { time: formatRelativeTime(lastSavedAt) })
+    statusText = t("editor.saved_at", { time: formatRelativeTime(lastSavedAt, t) })
   }
 
   return (
@@ -188,7 +190,7 @@ export default function PageEditor({ page, canPublish }: PageEditorProps) {
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
-              {lang === "ja" ? "日本語" : "English"}
+              {lang === "ja" ? t("language.ja") : t("language.en")}
             </button>
           ))}
         </div>

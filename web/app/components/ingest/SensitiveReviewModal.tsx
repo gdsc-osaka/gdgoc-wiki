@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import type { SensitiveItem } from "~/lib/gemini.server"
 
 // ---------------------------------------------------------------------------
@@ -21,16 +22,6 @@ interface SensitiveReviewModalProps {
 // Label helpers
 // ---------------------------------------------------------------------------
 
-const TYPE_LABELS: Record<string, string> = {
-  email: "メールアドレス",
-  phone: "電話番号",
-  "sns-handle": "SNSアカウント",
-  financial: "財務情報",
-  "personal-opinion": "個人への批評",
-  credential: "認証情報",
-  other: "その他",
-}
-
 const TYPE_COLORS: Record<string, string> = {
   email: "bg-blue-100 text-blue-700",
   phone: "bg-green-100 text-green-700",
@@ -46,6 +37,7 @@ const TYPE_COLORS: Record<string, string> = {
 // ---------------------------------------------------------------------------
 
 export default function SensitiveReviewModal({ items, onProceed }: SensitiveReviewModalProps) {
+  const { t } = useTranslation()
   const [resolutions, setResolutions] = useState<Record<string, SensitiveResolution>>(
     Object.fromEntries(items.map((item) => [item.id, "replace" as SensitiveResolution])),
   )
@@ -84,10 +76,10 @@ export default function SensitiveReviewModal({ items, onProceed }: SensitiveRevi
               className="h-5 w-5 text-yellow-600"
               viewBox="0 0 20 20"
               fill="currentColor"
-              aria-label="警告"
+              aria-label={t("ingest.sensitive.title")}
               role="img"
             >
-              <title>警告</title>
+              <title>{t("ingest.sensitive.title")}</title>
               <path
                 fillRule="evenodd"
                 d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
@@ -97,11 +89,9 @@ export default function SensitiveReviewModal({ items, onProceed }: SensitiveRevi
           </div>
           <div>
             <h2 id="sensitive-review-title" className="text-base font-semibold text-gray-900">
-              機微情報が見つかりました
+              {t("ingest.sensitive.title")}
             </h2>
-            <p className="mt-0.5 text-sm text-gray-500">
-              以下の項目について、公開前に対応を選択してください。
-            </p>
+            <p className="mt-0.5 text-sm text-gray-500">{t("ingest.sensitive.subtitle")}</p>
           </div>
         </div>
 
@@ -115,14 +105,16 @@ export default function SensitiveReviewModal({ items, onProceed }: SensitiveRevi
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-medium ${TYPE_COLORS[item.type] ?? "bg-gray-100 text-gray-700"}`}
                   >
-                    {TYPE_LABELS[item.type] ?? item.type}
+                    {t(`ingest.sensitive.type.${item.type}`, { defaultValue: item.type })}
                   </span>
                 </div>
 
                 <div className="mb-1 font-mono text-sm text-gray-800 bg-gray-50 rounded px-2 py-1">
                   {item.excerpt}
                 </div>
-                <div className="mb-3 text-xs text-gray-400">場所: {item.location}</div>
+                <div className="mb-3 text-xs text-gray-400">
+                  {t("ingest.sensitive.location", { location: item.location })}
+                </div>
 
                 <div className="flex flex-wrap gap-3">
                   {(["keep", "delete", "replace"] as SensitiveResolution[]).map((res) => (
@@ -136,9 +128,9 @@ export default function SensitiveReviewModal({ items, onProceed }: SensitiveRevi
                         className="h-3.5 w-3.5 text-blue-500"
                       />
                       <span className="text-sm text-gray-700">
-                        {res === "keep" && "そのまま含める"}
-                        {res === "delete" && "削除する"}
-                        {res === "replace" && "[要確認] に置換する"}
+                        {res === "keep" && t("ingest.sensitive.resolution_keep")}
+                        {res === "delete" && t("ingest.sensitive.resolution_delete")}
+                        {res === "replace" && t("ingest.sensitive.resolution_replace")}
                       </span>
                     </label>
                   ))}
@@ -156,7 +148,7 @@ export default function SensitiveReviewModal({ items, onProceed }: SensitiveRevi
             disabled={!allResolved}
             className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            下書きを確認する →
+            {t("ingest.sensitive.proceed")}
           </button>
         </div>
       </div>
