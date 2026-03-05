@@ -1,5 +1,8 @@
 {
   "app_name": "GDGoC Japan Wiki",
+  "close": "Close",
+  "draft": "Draft",
+  "tableOfContents": "Table of contents",
   "nav": {
     "home": "Home",
     "search": "Search",
@@ -15,6 +18,10 @@
     "ja": "日本語",
     "en": "English",
     "switch_ui": "Display language"
+  },
+  "theme": {
+    "switch_to_dark": "Switch to dark theme",
+    "switch_to_light": "Switch to light theme"
   },
   "wiki": {
     "auto_translated": "Auto-translated",
@@ -174,7 +181,8 @@
       "too_many_images": "You can attach up to {{max}} images.",
       "image_too_large": "{{name}} exceeds 10MB.",
       "not_an_image": "{{name}} is not an image file.",
-      "invalid_drive_url": "Please enter a valid Google Docs or Google Slides URL."
+      "invalid_drive_url": "Please enter a valid Google Docs or Google Slides URL.",
+      "enqueue_failed": "Failed to start ingestion. Please try again."
     },
     "review": {
       "ai_rationale": "AI's Reasoning",

@@ -1,8 +1,8 @@
 /**
  * Full AI ingestion pipeline orchestration.
  *
- * Runs asynchronously via ctx.waitUntil() after the /ingest form action
- * creates the session row. Updates ingestion_sessions.status / ai_draft_json
+ * Runs asynchronously via a Cloudflare Queue consumer (or waitUntil in local
+ * development fallback paths). Updates ingestion_sessions.status / ai_draft_json
  * when done or on error.
  */
 
@@ -74,12 +74,35 @@ export type AiDraftJson =
       googleDocText?: string
     }
   | {
+      phase: "resume_post_clarification"
+      fileUris: { uri: string; mimeType: string }[]
+      clarificationAnswers: string
+      googleDocText?: string
+      fetchedUrlContent?: string
+    }
+  | {
+      phase: "resume_post_url_selection"
+      fileUris: { uri: string; mimeType: string }[]
+      selectedUrls: string[]
+      googleDocText?: string
+    }
+  | {
       phase?: "result"
       planRationale: string
       operations: ChangesetOperation[]
       sensitiveItems: import("./gemini.server").SensitiveItem[]
       warnings: string[]
     }
+
+export type IngestionResumePostClarificationDraft = Extract<
+  AiDraftJson,
+  { phase: "resume_post_clarification" }
+>
+
+export type IngestionResumePostUrlSelectionDraft = Extract<
+  AiDraftJson,
+  { phase: "resume_post_url_selection" }
+>
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -145,7 +168,7 @@ export async function runIngestionPipeline(
       await updatePhase(db, sessionId, "parsing")
 
       // ------------------------------------------------------------------
-      // Step 1: Upload images to Gemini File API + R2
+      // Step 1: Upload images to Gemini File API
       // ------------------------------------------------------------------
       if (inputs.imageFiles && inputs.imageFiles.length > 0) {
         for (const img of inputs.imageFiles) {
@@ -156,6 +179,16 @@ export async function runIngestionPipeline(
             env.GEMINI_API_KEY,
           )
           fileUris.push({ uri, mimeType: img.mimeType })
+        }
+      } else {
+        for (const key of inputs.imageKeys) {
+          const obj = await env.BUCKET.get(key)
+          if (!obj) throw new Error(`Uploaded image not found in R2: ${key}`)
+          const mimeType = obj.httpMetadata?.contentType ?? "application/octet-stream"
+          const name = key.split("/").at(-1) ?? key
+          const buffer = await obj.arrayBuffer()
+          const uri = await uploadFileToGemini(buffer, mimeType, name, env.GEMINI_API_KEY)
+          fileUris.push({ uri, mimeType })
         }
       }
 

@@ -18,6 +18,11 @@ output "queue_name" {
   value       = cloudflare_queue.translation_jobs.name
 }
 
+output "ingestion_queue_name" {
+  description = "Cloudflare Queue name for ingestion jobs."
+  value       = cloudflare_queue.ingestion_jobs.name
+}
+
 output "pages_project_name" {
   description = "Cloudflare Pages project name."
   value       = cloudflare_pages_project.app.name

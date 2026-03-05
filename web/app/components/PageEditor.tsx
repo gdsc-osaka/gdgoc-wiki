@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, useBlocker, useFetcher } from "react-router"
+import { useThemeMode } from "~/hooks/useThemeMode"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -17,11 +18,13 @@ interface Page {
   status: string
   contentJa: string
   contentEn: string
+  visibility: string
 }
 
 interface PageEditorProps {
   page: Page
   canPublish: boolean
+  canChangeVisibility: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -46,9 +49,11 @@ function formatRelativeTime(
 // Component
 // ---------------------------------------------------------------------------
 
-export default function PageEditor({ page, canPublish }: PageEditorProps) {
+export default function PageEditor({ page, canPublish, canChangeVisibility }: PageEditorProps) {
   const { t } = useTranslation()
   const fetcher = useFetcher<{ ok: boolean; savedAt: string }>()
+  const visibilityFetcher = useFetcher()
+  const theme = useThemeMode()
 
   const [titleJa, setTitleJa] = useState(page.titleJa)
   const [titleEn, setTitleEn] = useState(page.titleEn)
@@ -56,6 +61,9 @@ export default function PageEditor({ page, canPublish }: PageEditorProps) {
   const [contentEn, setContentEn] = useState(page.contentEn)
   const [activeLang, setActiveLang] = useState<"ja" | "en">("ja")
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null)
+  const [visibility, setVisibility] = useState(page.visibility)
+  const isJaActive = activeLang === "ja"
+  const isEnActive = activeLang === "en"
 
   // Track last saved content to detect dirty state
   const lastSavedRef = useRef({
@@ -131,7 +139,7 @@ export default function PageEditor({ page, canPublish }: PageEditorProps) {
       {/* ------------------------------------------------------------------ */}
       <div className="sticky top-14 z-10 grid grid-cols-2 items-center gap-x-2 gap-y-1 border-b border-gray-200 bg-white px-3 py-2 shadow-sm sm:flex sm:flex-wrap sm:gap-2">
         {/* Row 1 col 1 (mobile) / inline (desktop): back + title */}
-        <div className="flex min-w-0 items-center gap-1">
+        <div className="flex min-w-0 items-center gap-1 sm:flex-1">
           <Link
             to={`/wiki/${page.slug}`}
             className="shrink-0 rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
@@ -146,20 +154,22 @@ export default function PageEditor({ page, canPublish }: PageEditorProps) {
             value={titleJa}
             onChange={(e) => setTitleJa(e.target.value)}
             placeholder={t("editor.title_ja")}
-            required
-            className={`min-w-0 flex-1 rounded bg-transparent px-2 py-1 text-base font-medium text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${activeLang !== "ja" ? "hidden" : ""}`}
+            required={isJaActive}
+            aria-hidden={!isJaActive}
+            className={`min-w-0 flex-1 rounded bg-transparent px-2 py-1 text-base font-medium text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${!isJaActive ? "hidden" : ""}`}
           />
           <input
             name="titleEn"
             value={titleEn}
             onChange={(e) => setTitleEn(e.target.value)}
             placeholder={t("editor.title_en")}
-            className={`min-w-0 flex-1 rounded bg-transparent px-2 py-1 text-base font-medium text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${activeLang !== "en" ? "hidden" : ""}`}
+            aria-hidden={!isEnActive}
+            className={`min-w-0 flex-1 rounded bg-transparent px-2 py-1 text-base font-medium text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${!isEnActive ? "hidden" : ""}`}
           />
         </div>
 
         {/* Row 1 col 2 (mobile) / inline (desktop): lang switcher + actions */}
-        <div className="flex shrink-0 items-center justify-end gap-2">
+        <div className="flex shrink-0 items-center justify-end gap-2 sm:ml-auto">
           {/* Autosave status */}
           {statusText && (
             <span
@@ -172,7 +182,7 @@ export default function PageEditor({ page, canPublish }: PageEditorProps) {
           {/* Draft badge */}
           {page.status === "draft" && (
             <span className="hidden shrink-0 rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800 sm:inline">
-              Draft
+              {t("draft")}
             </span>
           )}
 
@@ -185,7 +195,7 @@ export default function PageEditor({ page, canPublish }: PageEditorProps) {
                 onClick={() => setActiveLang(lang)}
                 className={`px-3 py-1 text-sm font-medium transition-colors ${
                   activeLang === lang
-                    ? "bg-gray-900 text-white"
+                    ? "bg-blue-600 text-white hover:bg-blue-700"
                     : "bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700"
                 }`}
               >
@@ -194,7 +204,26 @@ export default function PageEditor({ page, canPublish }: PageEditorProps) {
             ))}
           </div>
 
-          {/* Action buttons */}
+          {/* Visibility + actions */}
+          {canChangeVisibility && (
+            <select
+              aria-label={t("wiki.visibility")}
+              value={visibility}
+              onChange={(e) => {
+                const next = e.target.value
+                setVisibility(next)
+                visibilityFetcher.submit(
+                  { intent: "setVisibility", visibility: next },
+                  { method: "post", action: `/wiki/${page.slug}` },
+                )
+              }}
+              className="max-w-36 shrink-0 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-sm text-gray-700"
+            >
+              <option value="public">{t("wiki.visibility_public")}</option>
+              <option value="private_to_chapter">{t("wiki.visibility_chapter")}</option>
+              <option value="private_to_lead">{t("wiki.visibility_lead")}</option>
+            </select>
+          )}
           <button
             type="submit"
             name="intent"
@@ -220,20 +249,22 @@ export default function PageEditor({ page, canPublish }: PageEditorProps) {
       {/* ------------------------------------------------------------------ */}
       {/* Editor body — no padding, full size                                 */}
       {/* ------------------------------------------------------------------ */}
-      <div className={`min-h-0 flex-1 ${activeLang === "ja" ? "" : "hidden"}`}>
+      <div className={`min-h-0 flex-1 ${isJaActive ? "" : "hidden"}`}>
         <MdEditor
           modelValue={contentJa}
           onChange={setContentJa}
           language="en-US"
+          theme={theme}
           noUploadImg
           style={{ height: "100%" }}
         />
       </div>
-      <div className={`min-h-0 flex-1 ${activeLang === "en" ? "" : "hidden"}`}>
+      <div className={`min-h-0 flex-1 ${isEnActive ? "" : "hidden"}`}>
         <MdEditor
           modelValue={contentEn}
           onChange={setContentEn}
           language="en-US"
+          theme={theme}
           noUploadImg
           style={{ height: "100%" }}
         />

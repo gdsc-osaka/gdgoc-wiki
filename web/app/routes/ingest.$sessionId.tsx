@@ -71,6 +71,17 @@ function isUrlSelection(
   return draft !== null && (draft as { phase?: string }).phase === "url_selection"
 }
 
+function isResultDraft(draft: AiDraftJson | null): draft is ResultDraft {
+  if (!draft || typeof draft !== "object") return false
+  const data = draft as Record<string, unknown>
+  return (
+    typeof data.planRationale === "string" &&
+    Array.isArray(data.operations) &&
+    Array.isArray(data.sensitiveItems) &&
+    Array.isArray(data.warnings)
+  )
+}
+
 // ---------------------------------------------------------------------------
 // Processing UI with step-list progress
 // ---------------------------------------------------------------------------
@@ -490,7 +501,7 @@ export default function IngestSessionPage() {
   }
 
   // Done — show review (draft must be the result variant)
-  if (!draft || isClarification(draft) || isUrlSelection(draft)) {
+  if (!isResultDraft(draft)) {
     return (
       <div className="mx-auto max-w-xl px-4 py-16 text-center">
         <p className="text-gray-500">{t("ingest.draft_not_found")}</p>

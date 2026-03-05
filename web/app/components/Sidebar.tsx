@@ -116,6 +116,26 @@ export default function Sidebar({
     }
   }, [onMouseMove, onMouseUp])
 
+  useEffect(() => {
+    if (!isMobile || !isOpen || !onClose) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose()
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [isMobile, isOpen, onClose])
+
+  useEffect(() => {
+    if (!isMobile) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = isOpen ? "hidden" : previousOverflow
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [isMobile, isOpen])
+
   const sidebarContent = (
     <div className="flex h-full flex-col">
       {/* Nav items */}
@@ -188,22 +208,20 @@ export default function Sidebar({
       <>
         {/* Backdrop */}
         {isOpen && (
+          /* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop closes via pointer; Escape handled by window keydown */
           <div
             className="fixed inset-0 top-14 z-30 bg-black/40"
             onClick={onClose}
-            onKeyDown={(e) => e.key === "Escape" && onClose?.()}
             aria-hidden="true"
           />
         )}
 
         {/* Drawer */}
-        <aside
-          className={`fixed bottom-0 left-0 top-14 z-40 w-64 overflow-hidden border-r border-gray-200 bg-white transition-transform duration-200 ease-in-out ${
-            isOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
-        >
-          {sidebarContent}
-        </aside>
+        {isOpen && (
+          <aside className="fixed bottom-0 left-0 top-14 z-40 w-64 overflow-hidden border-r border-gray-200 bg-white">
+            {sidebarContent}
+          </aside>
+        )}
       </>
     )
   }

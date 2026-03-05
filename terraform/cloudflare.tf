@@ -23,6 +23,11 @@ resource "cloudflare_queue" "translation_jobs" {
   name       = "${local.name_prefix}-translation-jobs"
 }
 
+resource "cloudflare_queue" "ingestion_jobs" {
+  account_id = var.cloudflare_account_id
+  name       = "${local.name_prefix}-ingestion-jobs"
+}
+
 # ---------------------------------------------------------------------------
 # Cloudflare Pages — hosts the Remix / React Router v7 SSR app
 # ---------------------------------------------------------------------------

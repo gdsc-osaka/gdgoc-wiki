@@ -1,5 +1,8 @@
 {
   "app_name": "GDGoC Japan Wiki",
+  "close": "閉じる",
+  "draft": "下書き",
+  "tableOfContents": "目次",
   "nav": {
     "home": "ホーム",
     "search": "検索",
@@ -15,6 +18,10 @@
     "ja": "日本語",
     "en": "English",
     "switch_ui": "表示言語"
+  },
+  "theme": {
+    "switch_to_dark": "ダークテーマに切り替え",
+    "switch_to_light": "ライトテーマに切り替え"
   },
   "wiki": {
     "auto_translated": "自動翻訳",
@@ -174,7 +181,8 @@
       "too_many_images": "画像は最大{{max}}枚までです。",
       "image_too_large": "{{name}} は10MBを超えています。",
       "not_an_image": "{{name}} は画像ファイルではありません。",
-      "invalid_drive_url": "GoogleドキュメントまたはGoogleスライドの有効なURLを入力してください。"
+      "invalid_drive_url": "GoogleドキュメントまたはGoogleスライドの有効なURLを入力してください。",
+      "enqueue_failed": "取り込みジョブの開始に失敗しました。もう一度お試しください。"
     },
     "review": {
       "ai_rationale": "AIの判断理由",

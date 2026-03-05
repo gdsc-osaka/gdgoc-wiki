@@ -37,21 +37,28 @@ export async function loader({ request }: LoaderFunctionArgs) {
     cookieLang && (supportedLngs as readonly string[]).includes(cookieLang)
       ? (cookieLang as SupportedLng)
       : (detected as SupportedLng)
-  return { locale }
+  const cookieTheme = cookieHeader
+    .split(";")
+    .map((c) => c.trim())
+    .find((c) => c.startsWith("theme="))
+    ?.split("=")[1]
+  const theme = cookieTheme === "dark" ? "dark" : "light"
+  return { locale, theme }
 }
 
 export default function App() {
-  const { locale } = useLoaderData<typeof loader>()
+  const { locale, theme } = useLoaderData<typeof loader>()
 
   return (
-    <html lang={locale}>
+    <html lang={locale} className={theme === "dark" ? "dark" : undefined} suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <script src="/theme-init.js" />
         <Meta />
         <Links />
       </head>
-      <body>
+      <body className="bg-gray-50 text-gray-900">
         <Outlet />
         <ScrollRestoration />
         <Scripts />

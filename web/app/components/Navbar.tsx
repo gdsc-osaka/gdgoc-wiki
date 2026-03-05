@@ -1,4 +1,4 @@
-import { Globe, LogOut, PanelLeft, PanelLeftClose, Settings } from "lucide-react"
+import { Globe, LogOut, Moon, PanelLeft, PanelLeftClose, Settings, Sun } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Form, Link, useFetcher, useSearchParams } from "react-router"
@@ -144,6 +144,37 @@ function UserMenu({ user }: { user: NonNullable<NavbarProps["user"]> }) {
   )
 }
 
+function ThemeSwitcher() {
+  const { t } = useTranslation()
+  const [isDark, setIsDark] = useState(false)
+
+  useEffect(() => {
+    setIsDark(document.documentElement.classList.contains("dark"))
+  }, [])
+
+  function toggleTheme() {
+    const nextIsDark = !isDark
+    setIsDark(nextIsDark)
+    document.documentElement.classList.toggle("dark", nextIsDark)
+    localStorage.setItem("theme", nextIsDark ? "dark" : "light")
+    document.cookie = `theme=${nextIsDark ? "dark" : "light"}; path=/; max-age=31536000; SameSite=Lax`
+  }
+
+  const title = isDark ? t("theme.switch_to_light") : t("theme.switch_to_dark")
+
+  return (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      title={title}
+      aria-label={title}
+      className="flex items-center justify-center rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+    >
+      {isDark ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
+    </button>
+  )
+}
+
 export default function Navbar({
   user,
   sidebarOpen,
@@ -177,7 +208,16 @@ export default function Navbar({
 
       {/* Logo */}
       <Link to="/" className="flex-shrink-0">
-        <img src="/logo.png" alt="GDGoC Japan Wiki" className="hidden h-8 w-auto sm:block" />
+        <img
+          src="/logo.png"
+          alt="GDGoC Japan Wiki"
+          className="hidden h-8 w-auto sm:block dark:hidden"
+        />
+        <img
+          src="/logo_dark.png"
+          alt="GDGoC Japan Wiki"
+          className="hidden h-8 w-auto dark:sm:block"
+        />
         <img src="/logo_square.png" alt="GDGoC Japan Wiki" className="h-8 w-auto sm:hidden" />
       </Link>
 
@@ -205,6 +245,8 @@ export default function Navbar({
         )}
 
         {user && <NotificationBell initialCount={unreadNotificationCount ?? 0} />}
+
+        <ThemeSwitcher />
 
         <UiLangSwitcher />
 

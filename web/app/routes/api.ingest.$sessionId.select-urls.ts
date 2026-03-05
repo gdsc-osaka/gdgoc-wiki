@@ -4,15 +4,18 @@ import type { ActionFunctionArgs } from "react-router"
 import { z } from "zod"
 import * as schema from "~/db/schema"
 import { requireRole } from "~/lib/auth-utils.server"
-import type { AiDraftJson, IngestionInputs } from "~/lib/ingestion-pipeline.server"
-import { runIngestionPipeline } from "~/lib/ingestion-pipeline.server"
+import {
+  type IngestionResumePostUrlSelectionDraft,
+  buildIngestionQueueMessage,
+} from "~/lib/ingestion-jobs.server"
+import type { AiDraftJson } from "~/lib/ingestion-pipeline.server"
 
 const SelectUrlsBodySchema = z.object({
   selectedUrls: z.array(z.string().url()).max(5),
 })
 
 export async function action({ request, context, params }: ActionFunctionArgs) {
-  const { env, ctx } = context.cloudflare
+  const { env } = context.cloudflare
   const user = await requireRole(request, env, "member")
   const db = drizzle(env.DB, { schema })
 
@@ -62,21 +65,11 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
   const fileUris = storedDraft.fileUris
   const googleDocText = storedDraft.googleDocText ?? ""
 
-  // Reconstruct inputs from inputsJson
-  let inputs: IngestionInputs
-  try {
-    const parsed = JSON.parse(session.inputsJson) as {
-      texts: string[]
-      imageKeys: string[]
-      googleDocUrls: string[]
-    }
-    inputs = {
-      texts: parsed.texts,
-      imageKeys: parsed.imageKeys,
-      googleDocUrls: [], // skip re-upload; fileUris already stored
-    }
-  } catch {
-    return new Response("Failed to parse session inputs", { status: 500 })
+  const resumeDraft: IngestionResumePostUrlSelectionDraft = {
+    phase: "resume_post_url_selection",
+    fileUris,
+    selectedUrls,
+    googleDocText: googleDocText || undefined,
   }
 
   // Transition status back to processing
@@ -84,20 +77,29 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
     .update(schema.ingestionSessions)
     .set({
       status: "processing",
-      aiDraftJson: null,
+      aiDraftJson: JSON.stringify(resumeDraft),
       phaseMessage: "fetching_urls",
       updatedAt: new Date(),
     })
     .where(eq(schema.ingestionSessions.id, session.id))
 
-  ctx.waitUntil(
-    runIngestionPipeline(env, session.id, user.id, inputs, {
-      fileUris,
-      clarificationAnswers: "",
-      googleDocText,
-      selectedUrls,
-    }),
-  )
+  try {
+    await env.INGESTION_QUEUE.send(
+      buildIngestionQueueMessage(session.id, user.id, "post_url_selection"),
+    )
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    await db
+      .update(schema.ingestionSessions)
+      .set({
+        status: "awaiting_url_selection",
+        aiDraftJson: JSON.stringify(storedDraft),
+        phaseMessage: `Queue enqueue failed: ${message}`,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.ingestionSessions.id, session.id))
+    throw new Response(`Failed to enqueue ingestion job: ${message}`, { status: 500 })
+  }
 
   return Response.json({ ok: true })
 }
