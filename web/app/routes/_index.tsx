@@ -109,7 +109,7 @@ function SignInModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="force-light fixed inset-0 z-50 flex items-center justify-center bg-black/40"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
@@ -160,8 +160,8 @@ function SignInModal({ onClose }: { onClose: () => void }) {
 function LpHeader({ onLoginClick }: { onLoginClick: () => void }) {
   const { t } = useTranslation()
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-black bg-white px-6">
-      <span className="font-bold text-gray-900">{t("app_name")}</span>
+    <header className="force-light sticky top-0 z-40 flex h-14 items-center justify-between border-b border-black bg-white px-6">
+      <img src="/logo.png" alt={t("app_name")} className="h-8 w-auto" />
       <button
         type="button"
         onClick={onLoginClick}

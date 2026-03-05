@@ -127,6 +127,27 @@
   background-color: var(--color-gray-100);
 }
 
+/* Force light mode for landing page sections regardless of user theme */
+.force-light {
+  color-scheme: light;
+  --color-gray-50: #f9f9f9;
+  --color-gray-100: #f0f0f0;
+  --color-gray-200: #e4e4e4;
+  --color-gray-300: #cccccc;
+  --color-gray-400: #aaaaaa;
+  --color-gray-500: #888888;
+  --color-gray-600: #636363;
+  --color-gray-700: #444444;
+  --color-gray-800: #2a2a2a;
+  --color-gray-900: #1e1e1e;
+  --color-gray-950: #141414;
+}
+
+.force-light .bg-white,
+.dark .force-light .bg-white {
+  background-color: white;
+}
+
 .dark .md-editor-dark {
   --md-bk-color: #1e1e1e;
   --md-bk-color-outstand: #2a2a2a;

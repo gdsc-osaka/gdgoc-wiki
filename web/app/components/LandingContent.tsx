@@ -268,7 +268,7 @@ export default function LandingContent({ ctaSlot }: LandingContentProps) {
   const { t } = useTranslation()
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="force-light min-h-screen bg-white">
       {/* ------------------------------------------------------------------ */}
       {/* Hero                                                                */}
       {/* ------------------------------------------------------------------ */}
