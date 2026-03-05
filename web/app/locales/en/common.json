@@ -13,6 +13,7 @@
     "recent": "Recent",
     "starred": "Starred",
     "archived": "Archived",
+    "chapter": "Chapter",
     "close_sidebar": "Close Sidebar",
     "open_sidebar": "Open Sidebar"
   },
@@ -309,6 +310,34 @@
       "invalid_chapter": "Selected chapter does not exist.",
       "invalid_discord_id": "Please enter a valid Discord User ID (17–20 digit number)."
     }
+  },
+  "chapter": {
+    "heading": "Chapter",
+    "section_info": "Chapter Information",
+    "form": {
+      "name_ja": "Name (Japanese)",
+      "name_en": "Name (English)",
+      "abbreviation": "Abbreviation",
+      "university": "University",
+      "region": "Region",
+      "save": "Save Changes"
+    },
+    "update_success": "Chapter information updated.",
+    "update_error": "Failed to update chapter information.",
+    "section_members": "Members",
+    "col_user": "User",
+    "col_email": "Email",
+    "col_role": "Role",
+    "col_joined": "Joined",
+    "members_empty": "No members yet.",
+    "section_pending": "Pending Invitations",
+    "col_invited_at": "Invited",
+    "col_expires_at": "Expires",
+    "add_member": "Invite Member",
+    "email_placeholder": "member@example.com",
+    "invite_sent": "Invitation sent to {{email}}.",
+    "form_submit_invite": "Send Invite",
+    "no_chapter": "You are not assigned to a chapter."
   },
   "manage": {
     "label": "Management",

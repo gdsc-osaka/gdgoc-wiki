@@ -55,6 +55,7 @@ export default [
     route("/wiki/:slug/history", "routes/wiki.$slug.history.tsx"),
     route("/recent", "routes/recent.tsx"),
     route("/archived", "routes/archived.tsx"),
+    route("/chapter", "routes/chapter.tsx"),
     route("/ingest", "routes/ingest.tsx"),
     route("/ingest/:sessionId", "routes/ingest.$sessionId.tsx"),
     route("/settings", "routes/settings.tsx"),

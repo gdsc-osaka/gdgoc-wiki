@@ -1,4 +1,4 @@
-import { Archive, Clock, Home, Settings, Star } from "lucide-react"
+import { Archive, Building2, Clock, Home, Settings, Star } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, useLocation } from "react-router"
@@ -182,6 +182,15 @@ export default function Sidebar({
             label={t("nav.archived")}
             isCollapsed={isCollapsed}
             isActive={location.pathname === "/archived"}
+          />
+        )}
+        {["lead", "admin"].includes(userRole ?? "") && (
+          <NavItem
+            to="/chapter"
+            icon={<Building2 size={16} />}
+            label={t("nav.chapter")}
+            isCollapsed={isCollapsed}
+            isActive={location.pathname === "/chapter"}
           />
         )}
         {userRole === "admin" && (
