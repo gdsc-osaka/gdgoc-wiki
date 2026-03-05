@@ -21,20 +21,20 @@ interface ToggleData {
 interface StarredDialogProps {
   open: boolean
   onClose: () => void
-  currentPageId: string
-  currentPageTitle: string
   lang: "ja" | "en"
-  isStarred: boolean
-  onStarChange: (starred: boolean) => void
+  currentPageId?: string
+  currentPageTitle?: string
+  isStarred?: boolean
+  onStarChange?: (starred: boolean) => void
 }
 
 export default function StarredDialog({
   open,
   onClose,
+  lang,
   currentPageId,
   currentPageTitle,
-  lang,
-  isStarred,
+  isStarred = false,
   onStarChange,
 }: StarredDialogProps) {
   const { t } = useTranslation()
@@ -45,7 +45,7 @@ export default function StarredDialog({
 
   const loadFavorites = useCallback(() => {
     listFetcher.load("/api/favorites")
-  }, [listFetcher])
+  }, [listFetcher.load])
 
   // Load favorites when dialog opens
   useEffect(() => {
@@ -58,7 +58,7 @@ export default function StarredDialog({
   // Sync star state after toggle
   useEffect(() => {
     if (toggleFetcher.data?.ok) {
-      onStarChange(toggleFetcher.data.starred)
+      onStarChange?.(toggleFetcher.data.starred)
       loadFavorites()
     }
   }, [toggleFetcher.data, onStarChange, loadFavorites])
@@ -90,6 +90,7 @@ export default function StarredDialog({
       : isStarred
 
   function handleToggle() {
+    if (!currentPageId) return
     toggleFetcher.submit(
       { intent: "toggle", pageId: currentPageId },
       { method: "post", action: "/api/favorites" },
@@ -125,28 +126,30 @@ export default function StarredDialog({
           </button>
         </div>
 
-        {/* Current page */}
-        <div className="border-b border-gray-100 px-5 py-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
-            {t("wiki.this_page")}
-          </p>
-          <div className="flex items-center justify-between gap-3">
-            <span className="truncate text-sm text-gray-700">{currentPageTitle}</span>
-            <button
-              type="button"
-              onClick={handleToggle}
-              disabled={toggleFetcher.state !== "idle"}
-              className={[
-                "shrink-0 rounded px-3 py-1 text-xs font-medium transition-colors",
-                optimisticStarred
-                  ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200",
-              ].join(" ")}
-            >
-              {optimisticStarred ? t("wiki.star_remove") : t("wiki.star_add")}
-            </button>
+        {/* Current page (only shown when inside a wiki page) */}
+        {currentPageId && currentPageTitle && (
+          <div className="border-b border-gray-100 px-5 py-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+              {t("wiki.this_page")}
+            </p>
+            <div className="flex items-center justify-between gap-3">
+              <span className="truncate text-sm text-gray-700">{currentPageTitle}</span>
+              <button
+                type="button"
+                onClick={handleToggle}
+                disabled={toggleFetcher.state !== "idle"}
+                className={[
+                  "shrink-0 rounded px-3 py-1 text-xs font-medium transition-colors",
+                  optimisticStarred
+                    ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200",
+                ].join(" ")}
+              >
+                {optimisticStarred ? t("wiki.star_remove") : t("wiki.star_add")}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Search */}
         <div className="px-5 pt-3">

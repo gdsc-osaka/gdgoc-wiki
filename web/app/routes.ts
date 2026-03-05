@@ -18,6 +18,7 @@ export default [
   route("/api/google-drive/callback", "routes/api.google-drive.callback.ts"),
   route("/api/pages/reorder", "routes/api.pages.reorder.ts"),
   route("/api/notifications", "routes/api.notifications.ts"),
+  route("/api/favorites", "routes/api.favorites.tsx"),
 
   // Admin routes — separate layout with admin sidebar
   route("admin", "routes/admin.tsx", [
