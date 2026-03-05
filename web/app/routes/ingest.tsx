@@ -3,7 +3,7 @@ import { drizzle } from "drizzle-orm/d1"
 import { nanoid } from "nanoid"
 import { useTranslation } from "react-i18next"
 import { redirect, useActionData, useLoaderData } from "react-router"
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router"
+import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react-router"
 import InputPanel from "~/components/ingest/InputPanel"
 import * as schema from "~/db/schema"
 import { requireRole } from "~/lib/auth-utils.server"
@@ -11,6 +11,8 @@ import { isGoogleDriveUrl } from "~/lib/google-drive-utils"
 import { buildIngestionQueueMessage } from "~/lib/ingestion-jobs.server"
 import type { IngestionInputs } from "~/lib/ingestion-pipeline.server"
 import { sendOrRunIngestion } from "~/lib/queue-processors.server"
+
+export const meta: MetaFunction = () => [{ title: "Add Content — GDGoC Japan Wiki" }]
 
 // ---------------------------------------------------------------------------
 // Loader
