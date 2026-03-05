@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, useFetcher, useLocation } from "react-router"
-import type { TocItem } from "~/components/TipTapRenderer"
+
+export interface TocItem {
+  id: string
+  text: string
+  level: number
+}
 
 interface Tag {
   tagSlug: string
@@ -31,7 +36,7 @@ interface WikiRightSidebarProps {
   translationStatusJa: string
   translationStatusEn: string
   slug: string
-  canEdit: boolean
+  canEdit?: boolean
   visibility: string
   canChangeVisibility: boolean
 }
@@ -69,7 +74,6 @@ export default function WikiRightSidebar({
   translationStatusJa,
   translationStatusEn,
   slug,
-  canEdit,
   visibility,
   canChangeVisibility,
 }: WikiRightSidebarProps) {
@@ -249,19 +253,6 @@ export default function WikiRightSidebar({
                 </option>
               ))}
             </select>
-          </div>
-        )}
-
-        {/* Edit button */}
-        {canEdit && (
-          <div className="pt-2">
-            <Link
-              to={`/wiki/${slug}/edit`}
-              className="flex items-center gap-1 text-sm text-gray-500 hover:text-blue-500"
-            >
-              <span>✎</span>
-              <span>{t("wiki.edit_page")}</span>
-            </Link>
           </div>
         )}
       </div>
