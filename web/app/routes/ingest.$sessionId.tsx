@@ -197,7 +197,10 @@ function ClarificationScreen({
   onSubmitted: () => void
   t: (k: string) => string
 }) {
-  const [answers, setAnswers] = useState<Record<string, string>>(() =>
+  const [selected, setSelected] = useState<Record<string, string[]>>(() =>
+    Object.fromEntries(questions.map((q) => [q.id, []])),
+  )
+  const [freeText, setFreeText] = useState<Record<string, string>>(() =>
     Object.fromEntries(questions.map((q) => [q.id, ""])),
   )
   const [submitting, setSubmitting] = useState(false)
@@ -214,7 +217,10 @@ function ClarificationScreen({
           answers: questions.map((q) => ({
             id: q.id,
             question: q.question,
-            answer: answers[q.id] ?? "",
+            answer: [...(selected[q.id] ?? []), freeText[q.id] ?? ""]
+              .map((s) => s.trim())
+              .filter(Boolean)
+              .join(", "),
           })),
         }),
       })
@@ -257,20 +263,30 @@ function ClarificationScreen({
                 <button
                   key={s}
                   type="button"
-                  onClick={() => setAnswers((prev) => ({ ...prev, [q.id]: s }))}
-                  className="rounded-full border border-gray-300 bg-white px-3 py-1 text-xs text-gray-600 hover:border-blue-400 hover:text-blue-600"
+                  onClick={() =>
+                    setSelected((prev) => {
+                      const cur = prev[q.id] ?? []
+                      return {
+                        ...prev,
+                        [q.id]: cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s],
+                      }
+                    })
+                  }
+                  className={`rounded-full border px-3 py-1 text-xs ${
+                    (selected[q.id] ?? []).includes(s)
+                      ? "border-blue-500 bg-blue-600 text-white"
+                      : "border-gray-300 bg-white text-gray-600 hover:border-blue-400 hover:text-blue-600"
+                  }`}
                 >
                   {s}
                 </button>
               ))}
               <button
                 type="button"
-                onClick={() =>
-                  setAnswers((prev) => ({
-                    ...prev,
-                    [q.id]: t("ingest.nothing_in_particular"),
-                  }))
-                }
+                onClick={() => {
+                  setSelected((prev) => ({ ...prev, [q.id]: [] }))
+                  setFreeText((prev) => ({ ...prev, [q.id]: t("ingest.nothing_in_particular") }))
+                }}
                 className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-400 hover:border-gray-400 hover:text-gray-600"
               >
                 {t("ingest.nothing_in_particular")}
@@ -279,8 +295,8 @@ function ClarificationScreen({
             <textarea
               id={`q-${q.id}`}
               rows={3}
-              value={answers[q.id] ?? ""}
-              onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
+              value={freeText[q.id] ?? ""}
+              onChange={(e) => setFreeText((prev) => ({ ...prev, [q.id]: e.target.value }))}
               className="w-full rounded-lg border border-gray-300 p-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
