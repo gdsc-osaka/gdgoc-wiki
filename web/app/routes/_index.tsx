@@ -65,7 +65,13 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
     .all()
 
   // Tags for those pages
-  type PageTag = { pageId: string; tagSlug: string; labelEn: string; color: string }
+  type PageTag = {
+    pageId: string
+    tagSlug: string
+    labelJa: string
+    labelEn: string
+    color: string
+  }
   let pageTags: PageTag[] = []
   if (recentPages.length > 0) {
     const ids = recentPages.map((p) => p.id)
@@ -73,6 +79,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
       .select({
         pageId: schema.pageTags.pageId,
         tagSlug: schema.pageTags.tagSlug,
+        labelJa: schema.tags.labelJa,
         labelEn: schema.tags.labelEn,
         color: schema.tags.color,
       })
@@ -198,7 +205,7 @@ function LpHeader({ onLoginClick }: { onLoginClick: () => void }) {
 
 export default function Index() {
   const data = useLoaderData<typeof loader>()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [modalOpen, setModalOpen] = useState(false)
 
   // Landing page for unauthenticated visitors
@@ -225,6 +232,7 @@ export default function Index() {
 
   // Home page for authenticated users
   const { recentPages, allTags } = data
+  const isJa = i18n.language !== "en"
 
   return (
     <div className="max-w-5xl px-4 py-6 md:px-8 md:py-8">
@@ -243,12 +251,12 @@ export default function Index() {
                 className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white p-4 transition-all hover:border-blue-500/40 hover:shadow-sm"
               >
                 <h3 className="line-clamp-2 font-medium text-gray-900">
-                  {page.titleEn || page.titleJa}
+                  {isJa ? page.titleJa || page.titleEn : page.titleEn || page.titleJa}
                 </h3>
 
                 {(page.summaryEn || page.summaryJa) && (
                   <p className="line-clamp-2 text-sm text-gray-500">
-                    {page.summaryEn || page.summaryJa}
+                    {isJa ? page.summaryJa || page.summaryEn : page.summaryEn || page.summaryJa}
                   </p>
                 )}
 
@@ -259,7 +267,7 @@ export default function Index() {
                       className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium text-white"
                       style={{ backgroundColor: tag.color }}
                     >
-                      {tag.labelEn}
+                      {isJa ? tag.labelJa : tag.labelEn}
                     </span>
                   ))}
                 </div>
