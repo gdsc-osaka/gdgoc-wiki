@@ -41,7 +41,8 @@
     "this_page": "This page",
     "star_add": "Add",
     "star_remove": "Remove",
-    "unstar": "Unstar"
+    "unstar": "Unstar",
+    "contents": "Contents"
   },
   "home": {
     "recently_updated": "Recently Updated",
@@ -327,7 +328,8 @@
     "saved_at": "Saved {{time}}",
     "autosave_failed": "Auto-save failed",
     "title_ja": "Title (Japanese)",
-    "title_en": "Title (English)"
+    "title_en": "Title (English)",
+    "save": "Save"
   },
   "privacy": {
     "title": "Privacy Policy",

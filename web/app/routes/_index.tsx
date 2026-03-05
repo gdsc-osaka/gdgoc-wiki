@@ -96,7 +96,7 @@ export default function Index() {
   const { t } = useTranslation()
 
   return (
-    <div className="max-w-5xl px-8 py-8">
+    <div className="max-w-5xl px-4 py-6 md:px-8 md:py-8">
       {/* Recently Updated */}
       <section className="mb-10">
         <h2 className="mb-4 text-lg font-semibold text-gray-900">{t("home.recently_updated")}</h2>
@@ -104,7 +104,7 @@ export default function Index() {
         {recentPages.length === 0 ? (
           <p className="text-sm text-gray-400">{t("home.no_pages_yet")}</p>
         ) : (
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {recentPages.map((page) => (
               <Link
                 key={page.id}

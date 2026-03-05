@@ -161,7 +161,7 @@ export default function Navbar({
   }, [currentQuery])
 
   return (
-    <header className="fixed top-0 right-0 left-0 z-50 flex h-14 items-center gap-4 border-b border-gray-200 bg-white px-4">
+    <header className="fixed top-0 right-0 left-0 z-50 flex h-14 items-center gap-2 border-b border-gray-200 bg-white px-3 sm:gap-4 sm:px-4">
       {/* Sidebar toggle */}
       {onToggleSidebar && (
         <button
@@ -177,7 +177,8 @@ export default function Navbar({
 
       {/* Logo */}
       <Link to="/" className="flex-shrink-0">
-        <img src="/logo.png" alt="GDGoC Japan Wiki" className="h-8 w-auto" />
+        <img src="/logo.png" alt="GDGoC Japan Wiki" className="hidden h-8 w-auto sm:block" />
+        <img src="/logo_square.png" alt="GDGoC Japan Wiki" className="h-8 w-auto sm:hidden" />
       </Link>
 
       {/* Search */}
@@ -197,7 +198,7 @@ export default function Navbar({
         {user && (
           <Link
             to="/ingest"
-            className="whitespace-nowrap rounded-md bg-blue-500 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-600"
+            className="hidden whitespace-nowrap rounded-md bg-blue-500 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-600 sm:flex"
           >
             + {t("nav.new_page")}
           </Link>
