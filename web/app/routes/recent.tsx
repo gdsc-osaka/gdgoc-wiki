@@ -15,7 +15,7 @@ export const meta: MetaFunction = () => [{ title: "Recent — GDGoC Japan Wiki" 
 
 export async function loader({ request, context }: LoaderFunctionArgs) {
   const { env } = context.cloudflare
-  const user = await requireRole(request, env, "viewer")
+  const user = await requireRole(request, env, "member")
   const db = getDb(env)
 
   const visFilter = buildVisibilityFilter(user)

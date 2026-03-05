@@ -27,7 +27,7 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => [
 
 export async function loader({ request, context, params }: LoaderFunctionArgs) {
   const { env } = context.cloudflare
-  const sessionUser = await requireRole(request, env, "viewer")
+  const sessionUser = await requireRole(request, env, "member")
   const db = getDb(env)
 
   const page = await db
@@ -223,7 +223,7 @@ const VALID_VISIBILITY = ["public", "private_to_chapter", "private_to_lead"] as 
 
 export async function action({ request, context, params }: ActionFunctionArgs) {
   const { env } = context.cloudflare
-  const sessionUser = await requireRole(request, env, "viewer")
+  const sessionUser = await requireRole(request, env, "member")
   const db = getDb(env)
 
   const form = await request.formData()

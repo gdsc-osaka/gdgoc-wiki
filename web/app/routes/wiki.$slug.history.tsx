@@ -45,7 +45,7 @@ type VersionFullRaw = VersionRaw & {
 
 export async function loader({ request, context, params }: LoaderFunctionArgs) {
   const { env } = context.cloudflare
-  const sessionUser = await requireRole(request, env, "viewer")
+  const sessionUser = await requireRole(request, env, "member")
   const db = getDb(env)
 
   const page = await db

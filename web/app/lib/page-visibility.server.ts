@@ -16,7 +16,7 @@ type PageLike = {
 
 export function canUserSeePage(user: UserLike, page: PageLike): boolean {
   if (hasRole(user.role, "admin")) return true
-  if (page.visibility === "public") return true
+  if (page.visibility === "public" && hasRole(user.role, "member")) return true
   if (user.id === page.authorId) return true
 
   if (page.visibility === "private_to_chapter") {

@@ -27,7 +27,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
   const tag = url.searchParams.get("tag")?.trim() ?? ""
 
   const { env } = context.cloudflare
-  const user = await requireRole(request, env, "viewer")
+  const user = await requireRole(request, env, "member")
   const db = getDb(env)
 
   const visFilter = buildVisibilityFilter(user)
