@@ -14,7 +14,7 @@ export const user = sqliteTable("user", {
   createdAt: integer("createdAt", { mode: "timestamp" }).notNull(),
   updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull(),
   // additionalFields
-  role: text("role").notNull().default("member"),
+  role: text("role").notNull().default("pending"),
   chapterId: text("chapterId"),
   preferredUiLanguage: text("preferredUiLanguage").notNull().default("ja"),
   preferredContentLanguage: text("preferredContentLanguage").notNull().default("ja"),
@@ -67,9 +67,28 @@ export const chapters = sqliteTable("chapters", {
   id: text("id").primaryKey(),
   nameJa: text("name_ja").notNull(),
   nameEn: text("name_en").notNull(),
+  abbreviation: text("abbreviation").notNull().default(""),
   university: text("university").notNull(),
   region: text("region").notNull(),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+})
+
+// ---------------------------------------------------------------------------
+// invitations
+// ---------------------------------------------------------------------------
+export const invitations = sqliteTable("invitations", {
+  id: text("id").primaryKey(),
+  email: text("email").notNull(),
+  chapterId: text("chapter_id").references(() => chapters.id, { onDelete: "cascade" }),
+  role: text("role").notNull().default("member"),
+  // "lead" | "member" | "viewer"
+  invitedBy: text("invited_by")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  expiresAt: integer("expires_at").notNull(),
+  acceptedAt: integer("accepted_at"),
+  createdAt: integer("created_at").notNull().default(sql`(unixepoch())`),
 })
 
 // ---------------------------------------------------------------------------

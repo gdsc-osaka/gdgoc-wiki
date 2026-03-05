@@ -46,9 +46,31 @@
     "label": "管理",
     "nav": {
       "users": "ユーザー",
+      "chapters": "チャプター",
       "pages": "ページ",
       "tags": "タグ",
       "stats": "統計"
+    },
+    "chapters": {
+      "heading": "チャプター管理",
+      "new_chapter": "新規チャプター",
+      "col_name": "名前",
+      "col_abbreviation": "略称",
+      "col_university": "大学",
+      "col_region": "地域",
+      "col_members": "メンバー数",
+      "col_lead": "リード",
+      "empty": "チャプターがありません。",
+      "invite_sent": "{{email}} に招待メールを送信しました",
+      "form": {
+        "name_ja": "名前（日本語）",
+        "name_en": "名前（英語）",
+        "abbreviation": "略称",
+        "university": "大学",
+        "region": "地域",
+        "lead_email": "リードのメールアドレス",
+        "submit": "チャプターを作成"
+      }
     },
     "pages": {
       "heading": "ページ",
@@ -216,6 +238,34 @@
       "invalid_chapter": "選択されたチャプターは存在しません。"
     }
   },
+  "manage": {
+    "label": "管理",
+    "nav": {
+      "members": "メンバー管理"
+    },
+    "members": {
+      "heading": "チャプターメンバー",
+      "add_member": "メンバーを招待",
+      "col_user": "ユーザー",
+      "col_email": "メールアドレス",
+      "col_role": "役割",
+      "col_joined": "参加日",
+      "col_invited_at": "招待日",
+      "col_expires_at": "有効期限",
+      "empty": "メンバーがいません。",
+      "pending_heading": "招待待ち",
+      "invite_sent": "{{email}} に招待メールを送信しました",
+      "email_placeholder": "member@example.com",
+      "form": {
+        "submit": "招待を送信"
+      }
+    }
+  },
+  "pending": {
+    "title": "アクセス制限",
+    "message": "このWikiへのアクセス権限がありません。チャプターリードまたは管理者に招待を依頼してください。",
+    "sign_out": "サインアウト"
+  },
   "search": {
     "title": "検索結果",
     "results_count": "{{count}} 件の結果",
@@ -232,7 +282,8 @@
     "noPages": "ページはまだありません",
     "newPage": "新規ページ",
     "collapse": "折りたたむ",
-    "expand": "展開する"
+    "expand": "展開する",
+    "dragHandle": "ドラッグして並び替え"
   },
   "editor": {
     "back_to_page": "ページに戻る",

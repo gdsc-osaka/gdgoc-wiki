@@ -210,7 +210,7 @@ function SortableTreeItem({
           {...attributes}
           {...listeners}
           className="flex h-4 w-4 flex-shrink-0 cursor-grab items-center justify-center text-gray-300 opacity-0 group-hover:opacity-100 active:cursor-grabbing"
-          aria-label="Drag to reorder"
+          aria-label={t("pageTree.dragHandle")}
         >
           <GripVertical size={12} />
         </button>

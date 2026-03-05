@@ -21,10 +21,17 @@ export default [
   route("admin", "routes/admin.tsx", [
     index("routes/admin._index.tsx"),
     route("users", "routes/admin.users.tsx"),
+    route("chapters", "routes/admin.chapters.tsx"),
     route("pages", "routes/admin.pages.tsx"),
     route("tags", "routes/admin.tags.tsx"),
     route("stats", "routes/admin.stats.tsx"),
   ]),
+
+  // Lead: chapter management
+  route("manage", "routes/manage.tsx", [route("members", "routes/manage.members.tsx")]),
+
+  // Pending access — no auth shell needed
+  route("/pending", "routes/pending.tsx"),
 
   // Catch-all: return 404 for any unmatched URL (suppresses React Router warning)
   route("*", "routes/$.tsx"),

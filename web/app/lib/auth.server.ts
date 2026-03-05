@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
+import { and, eq, gt, isNull } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/d1"
 import * as schema from "../db/schema"
 
@@ -23,8 +24,8 @@ export function createAuth(env: Env) {
       additionalFields: {
         role: {
           type: "string",
-          defaultValue: "member",
-          // "admin" | "lead" | "member" | "viewer"
+          defaultValue: "pending",
+          // "admin" | "lead" | "member" | "viewer" | "pending"
         },
         chapterId: {
           type: "string",
@@ -39,6 +40,47 @@ export function createAuth(env: Env) {
           type: "string",
           defaultValue: "ja",
           // "ja" | "en"
+        },
+      },
+    },
+    databaseHooks: {
+      user: {
+        create: {
+          before: async (userData) => {
+            // On first sign-in, check if there's a valid invitation for this email.
+            const now = Math.floor(Date.now() / 1000)
+            const drizzleDb = drizzle(env.DB, { schema })
+            const invitation = await drizzleDb
+              .select()
+              .from(schema.invitations)
+              .where(
+                and(
+                  eq(schema.invitations.email, userData.email),
+                  gt(schema.invitations.expiresAt, now),
+                  isNull(schema.invitations.acceptedAt),
+                ),
+              )
+              .get()
+
+            if (invitation) {
+              // Accept the invitation and assign role + chapter
+              await drizzleDb
+                .update(schema.invitations)
+                .set({ acceptedAt: now })
+                .where(eq(schema.invitations.id, invitation.id))
+
+              return {
+                data: {
+                  ...userData,
+                  role: invitation.role,
+                  chapterId: invitation.chapterId ?? undefined,
+                },
+              }
+            }
+
+            // No invitation found — set to pending (no access)
+            return { data: { ...userData, role: "pending" } }
+          },
         },
       },
     },

@@ -46,9 +46,31 @@
     "label": "Admin",
     "nav": {
       "users": "Users",
+      "chapters": "Chapters",
       "pages": "Pages",
       "tags": "Tags",
       "stats": "Stats"
+    },
+    "chapters": {
+      "heading": "Chapter Management",
+      "new_chapter": "New Chapter",
+      "col_name": "Name",
+      "col_abbreviation": "Abbreviation",
+      "col_university": "University",
+      "col_region": "Region",
+      "col_members": "Members",
+      "col_lead": "Lead",
+      "empty": "No chapters yet.",
+      "invite_sent": "Invitation sent to {{email}}",
+      "form": {
+        "name_ja": "Name (Japanese)",
+        "name_en": "Name (English)",
+        "abbreviation": "Abbreviation",
+        "university": "University",
+        "region": "Region",
+        "lead_email": "Lead Email",
+        "submit": "Create Chapter"
+      }
     },
     "pages": {
       "heading": "Pages",
@@ -216,6 +238,34 @@
       "invalid_chapter": "Selected chapter does not exist."
     }
   },
+  "manage": {
+    "label": "Management",
+    "nav": {
+      "members": "Members"
+    },
+    "members": {
+      "heading": "Chapter Members",
+      "add_member": "Invite Member",
+      "col_user": "User",
+      "col_email": "Email",
+      "col_role": "Role",
+      "col_joined": "Joined",
+      "col_invited_at": "Invited",
+      "col_expires_at": "Expires",
+      "empty": "No members yet.",
+      "pending_heading": "Pending Invitations",
+      "invite_sent": "Invitation sent to {{email}}",
+      "email_placeholder": "member@example.com",
+      "form": {
+        "submit": "Send Invite"
+      }
+    }
+  },
+  "pending": {
+    "title": "Access Restricted",
+    "message": "Your account is not authorized to access this wiki. Please contact your chapter lead or an admin to request an invitation.",
+    "sign_out": "Sign Out"
+  },
   "search": {
     "title": "Search Results",
     "results_count": "{{count}} results",
@@ -232,7 +282,8 @@
     "noPages": "No pages yet",
     "newPage": "New Page",
     "collapse": "Collapse",
-    "expand": "Expand"
+    "expand": "Expand",
+    "dragHandle": "Drag to reorder"
   },
   "editor": {
     "back_to_page": "Back to page",

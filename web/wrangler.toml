@@ -48,3 +48,9 @@ queue = "gdgoc-wiki-production-translation-jobs"
 queue = "gdgoc-wiki-production-translation-jobs"
 max_batch_size = 10
 max_batch_timeout = 30
+
+# ---------------------------------------------------------------------------
+# Cloudflare Email Workers — send invitation emails
+# ---------------------------------------------------------------------------
+[[send_email]]
+name = "MAILER"
