@@ -12,3 +12,5 @@ GOOGLE_CLIENT_SECRET=
 
 # Optional — only needed for AI ingestion/translation features
 GEMINI_API_KEY=
+
+ENVIRONMENT=development

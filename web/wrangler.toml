@@ -22,7 +22,7 @@ pattern = "wiki.gdgoc-osaka.jp/*"
 zone_name = "gdgoc-osaka.jp"
 
 [vars]
-ENVIRONMENT = "development"
+ENVIRONMENT = "production"
 
 # ---------------------------------------------------------------------------
 # Cloudflare D1 — managed SQLite database
