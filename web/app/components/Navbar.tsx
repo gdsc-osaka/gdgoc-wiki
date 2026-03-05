@@ -1,7 +1,7 @@
 import { LogOut, Settings } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Form, Link, useFetcher } from "react-router"
+import { Form, Link, useFetcher, useSearchParams } from "react-router"
 
 interface NavbarProps {
   user: { name: string; email: string; image?: string | null; role: string } | null
@@ -143,6 +143,8 @@ function UserMenu({ user }: { user: NonNullable<NavbarProps["user"]> }) {
 
 export default function Navbar({ user }: NavbarProps) {
   const { t } = useTranslation()
+  const [searchParams] = useSearchParams()
+  const currentQuery = searchParams.get("q") ?? ""
 
   return (
     <header className="fixed top-0 right-0 left-0 z-50 flex h-14 items-center gap-4 border-b border-gray-200 bg-white px-4">
@@ -156,6 +158,7 @@ export default function Navbar({ user }: NavbarProps) {
         <input
           name="q"
           type="search"
+          defaultValue={currentQuery}
           placeholder={`${t("nav.search")}…`}
           className="w-full max-w-[400px] rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
         />

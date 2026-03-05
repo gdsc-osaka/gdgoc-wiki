@@ -216,6 +216,12 @@
       "invalid_chapter": "Selected chapter does not exist."
     }
   },
+  "search": {
+    "title": "Search Results",
+    "results_count": "{{count}} results",
+    "no_results": "No pages found for \"{{query}}\".",
+    "empty_query": "Enter a search term to find pages."
+  },
   "time": {
     "just_now": "just now",
     "minutes_ago": "{{count}}m ago",

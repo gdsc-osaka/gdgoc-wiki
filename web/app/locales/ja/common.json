@@ -216,6 +216,12 @@
       "invalid_chapter": "選択されたチャプターは存在しません。"
     }
   },
+  "search": {
+    "title": "検索結果",
+    "results_count": "{{count}} 件の結果",
+    "no_results": "「{{query}}」に一致するページは見つかりませんでした。",
+    "empty_query": "検索キーワードを入力してページを探しましょう。"
+  },
   "time": {
     "just_now": "たった今",
     "minutes_ago": "{{count}}分前",

@@ -32,6 +32,7 @@ export default [
   // App routes — wrapped in shared layout (Navbar + PageTree sidebar)
   layout("routes/_app.tsx", [
     index("routes/_index.tsx"),
+    route("/search", "routes/search.tsx"),
     route("/wiki/:slug", "routes/wiki.$slug.tsx"),
     route("/wiki/:slug/edit", "routes/wiki.$slug.edit.tsx"),
     route("/ingest", "routes/ingest.tsx"),
