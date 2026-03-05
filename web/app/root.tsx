@@ -1,5 +1,5 @@
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from "react-router"
-import type { LinksFunction, LoaderFunctionArgs } from "react-router"
+import type { LinksFunction, LoaderFunctionArgs, MetaFunction } from "react-router"
 import { type SupportedLng, supportedLngs } from "./i18n"
 import { i18nextServer } from "./i18n.server"
 
@@ -43,8 +43,16 @@ export async function loader({ request }: LoaderFunctionArgs) {
     .find((c) => c.startsWith("theme="))
     ?.split("=")[1]
   const theme = cookieTheme === "dark" ? "dark" : "light"
-  return { locale, theme }
+  const origin = new URL(request.url).origin
+  return { locale, theme, origin }
 }
+
+export const meta: MetaFunction<typeof loader> = ({ data }) => [
+  { property: "og:site_name", content: "GDGoC Japan Wiki" },
+  { property: "og:image", content: `${data?.origin ?? ""}/og-image.png` },
+  { property: "og:type", content: "website" },
+  { name: "twitter:card", content: "summary_large_image" },
+]
 
 export default function App() {
   const { locale, theme } = useLoaderData<typeof loader>()

@@ -4,7 +4,24 @@ import type { LoaderFunctionArgs, MetaFunction } from "react-router"
 import LandingContent from "~/components/LandingContent"
 import { requireRole } from "~/lib/auth-utils.server"
 
-export const meta: MetaFunction = () => [{ title: "About — GDGoC Japan Wiki" }]
+export const meta: MetaFunction = ({ matches }) => {
+  const origin = (matches.find((m) => m.id === "root")?.data as { origin?: string })?.origin ?? ""
+  return [
+    { title: "About — GDGoC Japan Wiki" },
+    {
+      name: "description",
+      content:
+        "Learn about GDGoC Japan Wiki — an AI-powered bilingual knowledge sharing platform built for GDGoC Japan chapters.",
+    },
+    { property: "og:title", content: "About — GDGoC Japan Wiki" },
+    {
+      property: "og:description",
+      content:
+        "Learn about GDGoC Japan Wiki — an AI-powered bilingual knowledge sharing platform built for GDGoC Japan chapters.",
+    },
+    { property: "og:url", content: `${origin}/about` },
+  ]
+}
 
 export async function loader({ request, context }: LoaderFunctionArgs) {
   await requireRole(request, context.cloudflare.env, "viewer")
