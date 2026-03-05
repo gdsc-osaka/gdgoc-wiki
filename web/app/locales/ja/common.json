@@ -258,6 +258,9 @@
       "doc_url_label": "Googleドキュメント / スライド URL",
       "drive_connected": "接続済み",
       "drive_connect": "Driveを接続",
+      "excel_label": "スプレッドシート（Excel）",
+      "excel_hint": ".xlsx または .xls ファイルをアップロード（最大10MB）",
+      "excel_drop_hint": "クリックしてスプレッドシートを追加",
       "submit": "AI で整理する →"
     },
     "errors": {
@@ -266,6 +269,7 @@
       "image_too_large": "{{name}} は10MBを超えています。",
       "not_an_image": "{{name}} は画像ファイルではありません。",
       "invalid_drive_url": "GoogleドキュメントまたはGoogleスライドの有効なURLを入力してください。",
+      "excel_too_large": "{{name}} は10MBを超えています。",
       "enqueue_failed": "取り込みジョブの開始に失敗しました。もう一度お試しください。"
     },
     "review": {

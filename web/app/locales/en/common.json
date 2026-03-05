@@ -258,6 +258,9 @@
       "doc_url_label": "Google Docs / Slides URL",
       "drive_connected": "Connected",
       "drive_connect": "Connect Drive",
+      "excel_label": "Spreadsheet (Excel)",
+      "excel_hint": "Upload an .xlsx or .xls file (max 10MB)",
+      "excel_drop_hint": "Click to add a spreadsheet",
       "submit": "Organize with AI →"
     },
     "errors": {
@@ -266,6 +269,7 @@
       "image_too_large": "{{name}} exceeds 10MB.",
       "not_an_image": "{{name}} is not an image file.",
       "invalid_drive_url": "Please enter a valid Google Docs or Google Slides URL.",
+      "excel_too_large": "{{name}} exceeds 10MB.",
       "enqueue_failed": "Failed to start ingestion. Please try again."
     },
     "review": {

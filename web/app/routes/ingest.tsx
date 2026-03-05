@@ -7,6 +7,7 @@ import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react
 import InputPanel from "~/components/ingest/InputPanel"
 import * as schema from "~/db/schema"
 import { requireRole } from "~/lib/auth-utils.server"
+import { parseExcelToMarkdown } from "~/lib/excel-parse.server"
 import { isGoogleDriveUrl } from "~/lib/google-drive-utils"
 import { buildIngestionQueueMessage } from "~/lib/ingestion-jobs.server"
 import type { IngestionInputs } from "~/lib/ingestion-pipeline.server"
@@ -48,6 +49,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
 
 const MAX_IMAGES = 5
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024 // 10 MB
+const MAX_EXCEL_SIZE = 10 * 1024 * 1024 // 10 MB
 const MIN_TEXT_LENGTH = 10
 
 export async function action({ request, context }: ActionFunctionArgs) {
@@ -64,8 +66,19 @@ export async function action({ request, context }: ActionFunctionArgs) {
     return { errorKey: "ingest.errors.invalid_drive_url" }
   }
 
-  // Validate text (skip if a Google Drive URL is provided)
-  if (!googleDocUrl && text.length < MIN_TEXT_LENGTH) {
+  // Parse optional Excel file
+  const excelEntry = formData.get("excelFile")
+  let excelMarkdown = ""
+  if (excelEntry instanceof File && excelEntry.size > 0) {
+    if (excelEntry.size > MAX_EXCEL_SIZE) {
+      return { errorKey: "ingest.errors.excel_too_large", errorParams: { name: excelEntry.name } }
+    }
+    const buf = await excelEntry.arrayBuffer()
+    excelMarkdown = parseExcelToMarkdown(buf)
+  }
+
+  // Validate text (skip if a Google Drive URL or Excel file is provided)
+  if (!googleDocUrl && !excelMarkdown && text.length < MIN_TEXT_LENGTH) {
     return { errorKey: "ingest.errors.text_too_short", errorParams: { min: MIN_TEXT_LENGTH } }
   }
 
@@ -93,7 +106,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
 
   // Build inputs
   const inputs: IngestionInputs = {
-    texts: [text],
+    texts: excelMarkdown ? [text, excelMarkdown].filter(Boolean) : [text],
     imageKeys: imageFiles.map((f) => f.key),
     googleDocUrls: googleDocUrl ? [googleDocUrl] : [],
     imageFiles,
