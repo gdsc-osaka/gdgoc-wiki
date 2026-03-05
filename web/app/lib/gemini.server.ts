@@ -533,11 +533,12 @@ export async function runPhase0Clarifier(
   apiKey: string,
   userText: string,
   fileUris: { uri: string; mimeType: string }[],
+  currentDatetime: string,
 ): Promise<ClarificationResult> {
   const ai = new GoogleGenAI({ apiKey })
 
   const parts: Array<{ text: string } | { fileData: { mimeType: string; fileUri: string } }> = [
-    { text: `## ユーザー入力\n\n${userText}` },
+    { text: `## ユーザー入力\n\n${userText}\n\n## 現在の日時（参考情報）\n${currentDatetime}` },
   ]
   pushFilePartsWithHint(parts, fileUris)
   parts.push({
@@ -604,11 +605,14 @@ export async function runPhase1Planner(
   userText: string,
   fileUris: { uri: string; mimeType: string }[],
   pageIndex: PageIndexEntry[],
+  currentDatetime: string,
 ): Promise<OperationPlan> {
   const ai = new GoogleGenAI({ apiKey })
 
   const parts: Array<{ text: string } | { fileData: { mimeType: string; fileUri: string } }> = [
-    { text: `## ユーザー入力\n\n### テキスト\n${userText}` },
+    {
+      text: `## ユーザー入力\n\n### テキスト\n${userText}\n\n## 現在の日時（参考情報）\n${currentDatetime}`,
+    },
   ]
   pushFilePartsWithHint(parts, fileUris)
   parts.push({
@@ -641,11 +645,14 @@ export async function runPhase2Creator(
   op: CreateOperation,
   pageIndex: PageIndexEntry[],
   siblingOps: CreateOperation[],
+  currentDatetime: string,
 ): Promise<PageDraft> {
   const ai = new GoogleGenAI({ apiKey })
 
   const parts: Array<{ text: string } | { fileData: { mimeType: string; fileUri: string } }> = [
-    { text: `## ユーザー入力\n\n### テキスト\n${userText}` },
+    {
+      text: `## ユーザー入力\n\n### テキスト\n${userText}\n\n## 現在の日時（参考情報）\n${currentDatetime}`,
+    },
   ]
   pushFilePartsWithHint(parts, fileUris)
   const siblingContext =
@@ -681,11 +688,14 @@ export async function runPhase2Patcher(
   fileUris: { uri: string; mimeType: string }[],
   op: UpdateOperation,
   existingMarkdown: string,
+  currentDatetime: string,
 ): Promise<SectionPatchResponse> {
   const ai = new GoogleGenAI({ apiKey })
 
   const parts: Array<{ text: string } | { fileData: { mimeType: string; fileUri: string } }> = [
-    { text: `## ユーザー入力\n\n### テキスト\n${userText}` },
+    {
+      text: `## ユーザー入力\n\n### テキスト\n${userText}\n\n## 現在の日時（参考情報）\n${currentDatetime}`,
+    },
   ]
   pushFilePartsWithHint(parts, fileUris)
   parts.push({

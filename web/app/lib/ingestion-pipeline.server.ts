@@ -152,6 +152,16 @@ export async function runIngestionPipeline(
 ): Promise<void> {
   const db = drizzle(env.DB, { schema })
 
+  const currentDatetime = `${new Date().toLocaleString("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  })}（JST）`
+
   try {
     const baseUserText = inputs.texts.join("\n\n")
     let fileUris: { uri: string; mimeType: string }[]
@@ -411,7 +421,7 @@ export async function runIngestionPipeline(
       await updatePhase(db, sessionId, "planning")
       const [pageIndexResult, clarifierResult] = await Promise.all([
         buildPageIndex(db, effectiveUserText),
-        runPhase0Clarifier(env.GEMINI_API_KEY, effectiveUserText, fileUris),
+        runPhase0Clarifier(env.GEMINI_API_KEY, effectiveUserText, fileUris, currentDatetime),
       ])
 
       if (clarifierResult.needsClarification) {
@@ -444,7 +454,13 @@ export async function runIngestionPipeline(
     // ------------------------------------------------------------------
     // Step 4: Phase 1 — Planner (merger logic is embedded in the prompt)
     // ------------------------------------------------------------------
-    const plan = await runPhase1Planner(env.GEMINI_API_KEY, effectiveUserText, fileUris, pageIndex)
+    const plan = await runPhase1Planner(
+      env.GEMINI_API_KEY,
+      effectiveUserText,
+      fileUris,
+      pageIndex,
+      currentDatetime,
+    )
 
     // ------------------------------------------------------------------
     // Step 5: Fetch existing page content for update ops
@@ -481,6 +497,7 @@ export async function runIngestionPipeline(
           op,
           pageIndex,
           createOps.filter((o) => o.tempId !== op.tempId),
+          currentDatetime,
         )
         done++
         await updatePhase(db, sessionId, `generating:${done}/${total}`)
@@ -498,6 +515,7 @@ export async function runIngestionPipeline(
           fileUris,
           op,
           markdown,
+          currentDatetime,
         )
         done++
         await updatePhase(db, sessionId, `generating:${done}/${total}`)

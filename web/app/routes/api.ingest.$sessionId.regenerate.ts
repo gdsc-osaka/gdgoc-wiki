@@ -68,6 +68,16 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
   // No file URIs for regeneration — Gemini File API URIs are ephemeral
   const fileUris: { uri: string; mimeType: string }[] = []
 
+  const currentDatetime = `${new Date().toLocaleString("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  })}（JST）`
+
   let updatedOp: ChangesetOperation
 
   try {
@@ -88,6 +98,7 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
         createOp,
         pageIndex,
         [],
+        currentDatetime,
       )
       updatedOp = { ...op, draft: newDraft }
     } else if (op.type === "update" && op.patch) {
@@ -104,6 +115,7 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
         fileUris,
         updateOp,
         existingMarkdown,
+        currentDatetime,
       )
       updatedOp = { ...op, patch: newPatch }
     } else {
