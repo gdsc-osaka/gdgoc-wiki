@@ -58,6 +58,13 @@
     "history": "History",
     "history_empty": "No edit history yet",
     "history_current": "Current",
+    "history_preview": "Preview",
+    "history_diff": "Diff",
+    "history_revert": "Revert to this version",
+    "history_reverting": "Reverting...",
+    "history_revert_title": "Revert page?",
+    "history_revert_confirm": "This will overwrite the current page with this version. The current version will be saved to history first.",
+    "history_no_content": "No content available.",
     "archive": "Archive",
     "archive_confirm": "Archive \"{{title}}\"? You can restore it later.",
     "comment": {

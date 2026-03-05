@@ -58,6 +58,13 @@
     "history": "編集履歴",
     "history_empty": "編集履歴はまだありません",
     "history_current": "現在",
+    "history_preview": "プレビュー",
+    "history_diff": "差分",
+    "history_revert": "このバージョンに戻す",
+    "history_reverting": "復元中...",
+    "history_revert_title": "ページを復元しますか？",
+    "history_revert_confirm": "現在のページ内容はこのバージョンで上書きされます。現在のバージョンは先に履歴に保存されます。",
+    "history_no_content": "コンテンツがありません。",
     "archive": "アーカイブ",
     "archive_confirm": "「{{title}}」をアーカイブしますか？後から復元できます。",
     "comment": {
