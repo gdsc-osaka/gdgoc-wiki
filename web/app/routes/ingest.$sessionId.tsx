@@ -237,10 +237,7 @@ function ClarificationScreen({
           answers: questions.map((q) => ({
             id: q.id,
             question: q.question,
-            answer: [...(selected[q.id] ?? []), freeText[q.id] ?? ""]
-              .map((s) => s.trim())
-              .filter(Boolean)
-              .join(", "),
+            answer: freeText[q.id] ?? "",
           })),
         }),
       })
@@ -286,10 +283,9 @@ function ClarificationScreen({
                   onClick={() =>
                     setSelected((prev) => {
                       const cur = prev[q.id] ?? []
-                      return {
-                        ...prev,
-                        [q.id]: cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s],
-                      }
+                      const next = cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]
+                      setFreeText((prevText) => ({ ...prevText, [q.id]: next.join(", ") }))
+                      return { ...prev, [q.id]: next }
                     })
                   }
                   className={`rounded-full border px-3 py-1 text-xs ${
