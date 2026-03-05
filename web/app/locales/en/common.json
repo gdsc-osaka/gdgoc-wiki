@@ -328,6 +328,30 @@
     "expand": "Expand",
     "dragHandle": "Drag to reorder"
   },
+  "lp": {
+    "hero_title": "GDGoC Japan Wiki",
+    "hero_subtitle": "AI-powered bilingual knowledge base for Google Developer Groups on Campus Japan",
+    "cta_signin": "Sign in with Google",
+    "cta_learn_more": "Learn more",
+    "feature_ingest_title": "AI-Powered Ingestion",
+    "feature_ingest_desc": "Import from Google Docs and let Gemini AI structure and translate your content automatically.",
+    "feature_bilingual_title": "Bilingual JA / EN",
+    "feature_bilingual_desc": "Every page is maintained in both Japanese and English with AI-assisted translation.",
+    "feature_kb_title": "Chapter Knowledge Base",
+    "feature_kb_desc": "Organize your chapter's activities, events, and resources in a searchable wiki.",
+    "feature_members_title": "Member Management",
+    "feature_members_desc": "Invite members, assign roles, and manage access across multiple chapters.",
+    "how_title": "How It Works",
+    "how_step1_title": "Import Content",
+    "how_step1_desc": "Paste text or a Google Doc link. Our AI reads and understands your content.",
+    "how_step2_title": "AI Generates Draft",
+    "how_step2_desc": "Gemini structures bilingual wiki pages and suggests tags automatically.",
+    "how_step3_title": "Publish to Wiki",
+    "how_step3_desc": "Review the draft, make edits, and publish to your chapter's knowledge base.",
+    "signin_modal_title": "Sign in to GDGoC Japan Wiki",
+    "signin_modal_subtitle": "Access is for GDGoC Japan chapter members only.",
+    "go_home": "Go to Home"
+  },
   "footer": {
     "privacy": "Privacy",
     "terms": "Terms"

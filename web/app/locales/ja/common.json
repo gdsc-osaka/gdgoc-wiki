@@ -328,6 +328,30 @@
     "expand": "展開する",
     "dragHandle": "ドラッグして並び替え"
   },
+  "lp": {
+    "hero_title": "GDGoC Japan Wiki",
+    "hero_subtitle": "GDGoC Japan チャプター向けAI搭載バイリンガルナレッジベース",
+    "cta_signin": "Googleでサインイン",
+    "cta_learn_more": "詳しく見る",
+    "feature_ingest_title": "AI自動取り込み",
+    "feature_ingest_desc": "GoogleドキュメントからインポートしてGemini AIがコンテンツを自動で整理・翻訳します。",
+    "feature_bilingual_title": "日英バイリンガル対応",
+    "feature_bilingual_desc": "すべてのページをAI翻訳支援で日本語と英語の両方で管理します。",
+    "feature_kb_title": "チャプターナレッジベース",
+    "feature_kb_desc": "チャプターの活動・イベント・リソースを検索可能なWikiで整理します。",
+    "feature_members_title": "メンバー管理",
+    "feature_members_desc": "メンバーを招待し、役割を割り当て、複数チャプターのアクセスを管理します。",
+    "how_title": "使い方",
+    "how_step1_title": "コンテンツをインポート",
+    "how_step1_desc": "テキストまたはGoogleドキュメントのリンクを貼るだけ。AIが内容を読み取ります。",
+    "how_step2_title": "AIが下書きを生成",
+    "how_step2_desc": "Geminiがバイリンガルのwikiページを構成し、タグを自動提案します。",
+    "how_step3_title": "Wikiに公開",
+    "how_step3_desc": "下書きを確認・編集してチャプターのナレッジベースに公開します。",
+    "signin_modal_title": "GDGoC Japan Wikiにサインイン",
+    "signin_modal_subtitle": "アクセスはGDGoC Japanチャプターメンバー限定です。",
+    "go_home": "ホームへ戻る"
+  },
   "footer": {
     "privacy": "プライバシー",
     "terms": "利用規約"
