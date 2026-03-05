@@ -446,7 +446,7 @@
   "pageTree": {
     "noPages": "ページはまだありません",
     "newPage": "新規ページ",
-    "newPage_ai": "AIで整理",
+    "newPage_ai": "AIで作成",
     "newPage_manual": "手動で作成",
     "collapse": "折りたたむ",
     "expand": "展開する",
