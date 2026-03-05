@@ -527,8 +527,32 @@ export async function uploadFileToGemini(
     throw new Error(`Gemini file upload failed: ${response.status} ${err}`)
   }
 
-  const result = (await response.json()) as { file: { uri: string } }
-  return result.file.uri
+  const result = (await response.json()) as { file: { name: string; uri: string; state?: string } }
+  const file = result.file
+
+  // PDFs (and some other types) start in PROCESSING state and need to be polled
+  // until they reach ACTIVE before they can be used in generation requests.
+  if (file.state && file.state !== "ACTIVE") {
+    const fileResourceName = file.name // e.g. "files/abc123"
+    const getUrl = `https://generativelanguage.googleapis.com/v1beta/${fileResourceName}?key=${apiKey}`
+    const deadline = Date.now() + 60_000 // 60 s max
+    let waitMs = 2_000
+
+    while (Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, waitMs))
+      waitMs = Math.min(waitMs * 2, 10_000)
+
+      const poll = await fetch(getUrl)
+      if (!poll.ok) break // best-effort; proceed with the URI anyway
+
+      const status = (await poll.json()) as { state?: string; uri?: string }
+      if (status.state === "ACTIVE") break
+      if (status.state === "FAILED")
+        throw new Error(`Gemini file processing failed: ${fileResourceName}`)
+    }
+  }
+
+  return file.uri
 }
 
 // ---------------------------------------------------------------------------
