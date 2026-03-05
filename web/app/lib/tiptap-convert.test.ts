@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { tiptapToMarkdown } from "./tiptap-convert.server"
-import type { TipTapDoc } from "./tiptap-convert.server"
+import { type SectionPatch, applyPatchesToMarkdown, tiptapToMarkdown } from "./tiptap-convert"
+import type { TipTapDoc } from "./tiptap-convert"
 
 describe("tiptapToMarkdown", () => {
   it("converts headings H1–H3", () => {
@@ -194,5 +194,104 @@ describe("tiptapToMarkdown", () => {
     }
     const result = tiptapToMarkdown(JSON.stringify(doc))
     expect(result).toContain("Hello")
+  })
+})
+
+describe("applyPatchesToMarkdown", () => {
+  const existingMarkdown = [
+    "## 概要",
+    "",
+    "配信ガイドラインです。",
+    "",
+    "## 担当スタッフ",
+    "",
+    "- Yuki Hirai (GDG Tokyo)",
+    "- Kosuke Itaya (GDGoC Osaka)",
+  ].join("\n")
+
+  it("appends content to a matching section", () => {
+    const patches: SectionPatch[] = [
+      {
+        headingMatch: "担当スタッフ",
+        operation: "append",
+        content: "- たくてぃん (GDG Greater Kwansai)",
+      },
+    ]
+    const result = applyPatchesToMarkdown(existingMarkdown, patches)
+    expect(result).toContain("## 概要")
+    expect(result).toContain("配信ガイドラインです。")
+    expect(result).toContain("- Yuki Hirai (GDG Tokyo)")
+    expect(result).toContain("- Kosuke Itaya (GDGoC Osaka)")
+    expect(result).toContain("- たくてぃん (GDG Greater Kwansai)")
+  })
+
+  it("preserves all existing sections when patching", () => {
+    const patches: SectionPatch[] = [
+      {
+        headingMatch: "担当スタッフ",
+        operation: "append",
+        content: "- New Person",
+      },
+    ]
+    const result = applyPatchesToMarkdown(existingMarkdown, patches)
+    const sections = result.split(/^## /m).filter(Boolean)
+    expect(sections).toHaveLength(2)
+  })
+
+  it("prepends content to a matching section", () => {
+    const patches: SectionPatch[] = [
+      {
+        headingMatch: "担当スタッフ",
+        operation: "prepend",
+        content: "- First Person",
+      },
+    ]
+    const result = applyPatchesToMarkdown(existingMarkdown, patches)
+    const staffIdx = result.indexOf("- First Person")
+    const existingIdx = result.indexOf("- Yuki Hirai")
+    expect(staffIdx).toBeLessThan(existingIdx)
+  })
+
+  it("appends unmatched heading as new section at the end", () => {
+    const patches: SectionPatch[] = [
+      {
+        headingMatch: "関連リンク",
+        operation: "append",
+        content: "- https://example.com",
+      },
+    ]
+    const result = applyPatchesToMarkdown(existingMarkdown, patches)
+    expect(result).toContain("## 関連リンク")
+    expect(result).toContain("- https://example.com")
+    // New section should be at the end
+    const staffIdx = result.indexOf("## 担当スタッフ")
+    const linksIdx = result.indexOf("## 関連リンク")
+    expect(linksIdx).toBeGreaterThan(staffIdx)
+  })
+
+  it("handles null headingMatch (append to end of document)", () => {
+    const patches: SectionPatch[] = [
+      {
+        headingMatch: null,
+        operation: "append",
+        newHeading: "備考",
+        content: "新しい備考",
+      },
+    ]
+    const result = applyPatchesToMarkdown(existingMarkdown, patches)
+    expect(result).toContain("## 備考")
+    expect(result).toContain("新しい備考")
+  })
+
+  it("renders patches as sections when no existing content", () => {
+    const patches: SectionPatch[] = [
+      {
+        headingMatch: "担当スタッフ",
+        operation: "append",
+        content: "- たくてぃん",
+      },
+    ]
+    const result = applyPatchesToMarkdown("", patches)
+    expect(result).toBe("## 担当スタッフ\n\n- たくてぃん")
   })
 })

@@ -16,7 +16,7 @@ import {
   type ChangesetOperation,
   buildPageIndex,
 } from "~/lib/ingestion-pipeline.server"
-import { tiptapToMarkdown } from "~/lib/tiptap-convert.server"
+import { tiptapToMarkdown } from "~/lib/tiptap-convert"
 
 type ResultDraft = Extract<AiDraftJson, { planRationale: string }>
 

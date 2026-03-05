@@ -1,5 +1,5 @@
 import { Fragment, type ReactNode } from "react"
-import type { TipTapDoc, TipTapNode } from "~/lib/tiptap-convert.server"
+import type { TipTapDoc, TipTapNode } from "~/lib/tiptap-convert"
 
 export type { TipTapDoc, TipTapNode }
 

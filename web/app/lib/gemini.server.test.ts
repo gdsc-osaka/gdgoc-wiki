@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest"
 import {
   OperationPlanSchema,
   PageDraftSchema,
+  type PageIndexEntry,
   SectionPatchResponseSchema,
   buildFeedbackSuffix,
+  formatPageIndexAsTree,
 } from "./gemini.server"
 
 describe("OperationPlanSchema", () => {
@@ -207,5 +209,96 @@ describe("buildFeedbackSuffix", () => {
     expect(suffix).toContain("前回の出力に対するフィードバック")
     expect(suffix).toContain("もっと具体的に書いてください")
     expect(suffix).toContain("再度JSONを出力してください")
+  })
+})
+
+describe("formatPageIndexAsTree", () => {
+  it("renders flat pages (no parents) as root-level items", () => {
+    const pages: PageIndexEntry[] = [
+      { id: "a", title: "Page A", summary: "Summary A", slug: "page-a", parentId: null },
+      { id: "b", title: "Page B", summary: "Summary B", slug: "page-b", parentId: null },
+    ]
+    const tree = formatPageIndexAsTree(pages)
+    expect(tree).toBe(
+      "- [id:a] Page A (slug: page-a) -- Summary A\n- [id:b] Page B (slug: page-b) -- Summary B",
+    )
+  })
+
+  it("renders nested parent-child hierarchy", () => {
+    const pages: PageIndexEntry[] = [
+      {
+        id: "root",
+        title: "配信ガイドライン",
+        summary: "配信全般",
+        slug: "streaming",
+        parentId: null,
+      },
+      { id: "child1", title: "OBS設定", summary: "OBS推奨設定", slug: "obs", parentId: "root" },
+      {
+        id: "grandchild",
+        title: "音声設定",
+        summary: "音声の詳細",
+        slug: "audio",
+        parentId: "child1",
+      },
+    ]
+    const tree = formatPageIndexAsTree(pages)
+    const lines = tree.split("\n")
+    expect(lines).toHaveLength(3)
+    expect(lines[0]).toBe("- [id:root] 配信ガイドライン (slug: streaming) -- 配信全般")
+    expect(lines[1]).toBe("  - [id:child1] OBS設定 (slug: obs) -- OBS推奨設定")
+    expect(lines[2]).toBe("    - [id:grandchild] 音声設定 (slug: audio) -- 音声の詳細")
+  })
+
+  it("treats orphaned pages (parentId not in index) as root-level", () => {
+    const pages: PageIndexEntry[] = [
+      { id: "a", title: "Page A", summary: "", slug: "a", parentId: "missing-id" },
+      { id: "b", title: "Page B", summary: "", slug: "b", parentId: null },
+    ]
+    const tree = formatPageIndexAsTree(pages)
+    const lines = tree.split("\n")
+    expect(lines).toHaveLength(2)
+    // Both should be at root level since "missing-id" is not in the index
+    expect(lines[0]).toMatch(/^- \[id:a\]/)
+    expect(lines[1]).toMatch(/^- \[id:b\]/)
+  })
+
+  it("omits summary suffix when summary is empty", () => {
+    const pages: PageIndexEntry[] = [
+      { id: "x", title: "No Summary", summary: "", slug: "no-summary", parentId: null },
+    ]
+    const tree = formatPageIndexAsTree(pages)
+    expect(tree).toBe("- [id:x] No Summary (slug: no-summary)")
+  })
+
+  it("returns empty string for empty input", () => {
+    expect(formatPageIndexAsTree([])).toBe("")
+  })
+})
+
+describe("OperationPlanSchema with existing parent ID", () => {
+  it("accepts suggestedParentId with an existing page ID string", () => {
+    const raw = {
+      planRationale: "既存ページの子ページとして作成",
+      operations: [
+        {
+          type: "create",
+          tempId: "new-1",
+          suggestedTitle: { ja: "VDO Ninja Tips" },
+          suggestedParentId: "existing-page-abc123",
+          pageType: "how-to-guide",
+          rationale: "配信ガイドラインのサブトピック",
+        },
+      ],
+    }
+    const result = OperationPlanSchema.safeParse(raw)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      const op = result.data.operations[0]
+      expect(op.type).toBe("create")
+      if (op.type === "create") {
+        expect(op.suggestedParentId).toBe("existing-page-abc123")
+      }
+    }
   })
 })

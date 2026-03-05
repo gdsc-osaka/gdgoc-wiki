@@ -6,7 +6,7 @@
  * when done or on error.
  */
 
-import { and, eq, sql } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/d1"
 import * as schema from "~/db/schema"
 import {
@@ -25,7 +25,7 @@ import {
   uploadFileToGemini,
 } from "./gemini.server"
 import { exportDocAsPdf, extractFileId, refreshAccessToken } from "./google-drive.server"
-import { tiptapToMarkdown } from "./tiptap-convert.server"
+import { tiptapToMarkdown } from "./tiptap-convert"
 
 // ---------------------------------------------------------------------------
 // Input / output types
@@ -363,57 +363,73 @@ export async function buildPageIndex(
   db: ReturnType<typeof drizzle>,
   userText: string,
 ): Promise<PageIndexEntry[]> {
+  // Always fetch all published pages so the AI planner never misses existing pages.
+  // FTS5 with unicode61 tokenizer cannot segment Japanese text, so relying on
+  // MATCH alone would miss obvious matches (e.g. "配信スタッフ" vs "配信ガイドライン").
+  // Instead, we fetch all pages and use FTS5 only to boost relevant ones to the top.
+
+  const allPages = await db
+    .select({
+      id: schema.pages.id,
+      titleJa: schema.pages.titleJa,
+      summaryJa: schema.pages.summaryJa,
+      slug: schema.pages.slug,
+      parentId: schema.pages.parentId,
+    })
+    .from(schema.pages)
+    .where(eq(schema.pages.status, "published"))
+    .limit(200)
+    .all()
+
+  if (allPages.length === 0) return []
+
+  // Try FTS5 to determine relevance ordering
+  const ftsRankedIds: string[] = []
   try {
+    // Sanitize FTS5 operators: strip quotes, wildcards, grouping, column filters,
+    // and the NOT operator (-) which would otherwise negate terms.
     const sanitized = userText
-      .replace(/["'*^()]/g, " ")
+      .replace(/["'*^():{}[\]<>~@#$&|\\+\-]/g, " ")
+      .replace(/\s+/g, " ")
       .trim()
       .slice(0, 500)
 
-    if (!sanitized) {
-      // No usable text — fall back to recency order
-      const fallback = await db
-        .select({
-          id: schema.pages.id,
-          titleJa: schema.pages.titleJa,
-          summaryJa: schema.pages.summaryJa,
-          slug: schema.pages.slug,
-        })
-        .from(schema.pages)
-        .where(eq(schema.pages.status, "published"))
-        .limit(200)
-        .all()
-      return fallback.map((r) => ({
-        id: r.id,
-        title: r.titleJa,
-        summary: r.summaryJa,
-        slug: r.slug,
-      }))
+    if (sanitized) {
+      // Use OR so any matching token contributes to ranking
+      const orQuery = sanitized.split(" ").filter(Boolean).join(" OR ")
+      const ftsResults = await db.all<{ page_id: string }>(
+        sql`SELECT page_id FROM pages_fts
+            WHERE pages_fts MATCH ${orQuery}
+            ORDER BY rank
+            LIMIT 200`,
+      )
+      for (const r of ftsResults) {
+        ftsRankedIds.push(r.page_id)
+      }
     }
-
-    const results = await db.all<{
-      id: string
-      title_ja: string
-      summary_ja: string
-      slug: string
-    }>(
-      sql`SELECT p.id, p.title_ja, p.summary_ja, p.slug
-          FROM pages_fts
-          JOIN pages p ON pages_fts.page_id = p.id
-          WHERE pages_fts MATCH ${sanitized}
-            AND p.status = 'published'
-          ORDER BY rank
-          LIMIT 200`,
-    )
-
-    return results.map((r) => ({
-      id: r.id,
-      title: r.title_ja,
-      summary: r.summary_ja,
-      slug: r.slug,
-    }))
   } catch {
-    return []
+    // FTS5 query failed — proceed with unranked pages
   }
+
+  // Build result: FTS-matched pages first (by relevance), then remaining pages
+  const ftsSet = new Set(ftsRankedIds)
+  const toEntry = (r: (typeof allPages)[number]): PageIndexEntry => ({
+    id: r.id,
+    title: r.titleJa,
+    summary: r.summaryJa,
+    slug: r.slug,
+    parentId: r.parentId,
+  })
+
+  const allPagesById = new Map(allPages.map((p) => [p.id, p]))
+  const ranked = ftsRankedIds
+    .map((id) => allPagesById.get(id))
+    .filter((p): p is (typeof allPages)[number] => p != null)
+    .map(toEntry)
+
+  const unranked = allPages.filter((p) => !ftsSet.has(p.id)).map(toEntry)
+
+  return [...ranked, ...unranked]
 }
 
 // ---------------------------------------------------------------------------

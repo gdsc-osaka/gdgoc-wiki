@@ -216,3 +216,89 @@ function convertInlineNode(node: TipTapNode): string {
   }
   return node.text ?? ""
 }
+
+// ---------------------------------------------------------------------------
+// Patch application: merge section patches into existing markdown
+// ---------------------------------------------------------------------------
+
+export interface SectionPatch {
+  headingMatch: string | null
+  operation: "append" | "prepend"
+  newHeading?: string
+  content: string
+}
+
+/**
+ * Applies section patches to existing markdown content.
+ * Splits existing markdown into sections by heading, then inserts patch
+ * content at the appropriate locations.
+ */
+export function applyPatchesToMarkdown(existingMarkdown: string, patches: SectionPatch[]): string {
+  if (!existingMarkdown.trim()) {
+    // No existing content — just render patches as sections
+    return patches
+      .map((p) => {
+        const heading = p.newHeading ?? p.headingMatch ?? "New Section"
+        return `## ${heading}\n\n${p.content}`
+      })
+      .join("\n\n")
+  }
+
+  // Split existing markdown into sections by heading (## or #)
+  const lines = existingMarkdown.split("\n")
+  const sections: { heading: string | null; lines: string[] }[] = []
+  let current: { heading: string | null; lines: string[] } = { heading: null, lines: [] }
+
+  for (const line of lines) {
+    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/)
+    if (headingMatch) {
+      if (current.heading !== null || current.lines.length > 0) {
+        sections.push(current)
+      }
+      current = { heading: headingMatch[2].trim(), lines: [line] }
+    } else {
+      current.lines.push(line)
+    }
+  }
+  sections.push(current)
+
+  // Apply each patch
+  for (const patch of patches) {
+    const patchBlock = patch.newHeading
+      ? `\n\n## ${patch.newHeading}\n\n${patch.content}`
+      : `\n${patch.content}`
+
+    if (patch.headingMatch === null) {
+      // null headingMatch → append/prepend to entire document
+      if (patch.operation === "prepend") {
+        sections[0].lines.unshift(patchBlock)
+      } else {
+        sections[sections.length - 1].lines.push(patchBlock)
+      }
+      continue
+    }
+
+    // Find matching section by heading text
+    const idx = sections.findIndex(
+      (s) => s.heading !== null && s.heading.trim() === patch.headingMatch?.trim(),
+    )
+
+    if (idx !== -1) {
+      if (patch.operation === "prepend") {
+        // Insert after heading line
+        sections[idx].lines.splice(1, 0, patchBlock)
+      } else {
+        sections[idx].lines.push(patchBlock)
+      }
+    } else {
+      // Heading not found — append as new section at the end
+      const heading = patch.newHeading ?? patch.headingMatch
+      sections.push({ heading, lines: [`## ${heading}`, "", patch.content] })
+    }
+  }
+
+  return sections
+    .map((s) => s.lines.join("\n"))
+    .join("\n")
+    .trim()
+}
