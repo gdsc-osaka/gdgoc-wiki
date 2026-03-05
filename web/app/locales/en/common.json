@@ -329,7 +329,10 @@
     "title": "Search Results",
     "results_count": "{{count}} results",
     "no_results": "No pages found for \"{{query}}\".",
-    "empty_query": "Enter a search term to find pages."
+    "no_results_tag": "No pages found with tag \"{{tag}}\".",
+    "empty_query": "Enter a search term to find pages.",
+    "tagged": "Tagged: {{tag}}",
+    "clear_tag": "Clear tag filter"
   },
   "notifications": {
     "title": "Notifications",

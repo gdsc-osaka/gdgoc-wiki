@@ -1,0 +1,23 @@
+name: CI — Discord Bot
+
+on:
+  push:
+    paths:
+      - "discord-bot/**"
+  pull_request:
+    paths:
+      - "discord-bot/**"
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: discord-bot
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm run typecheck

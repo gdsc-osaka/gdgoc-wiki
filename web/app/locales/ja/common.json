@@ -329,7 +329,10 @@
     "title": "検索結果",
     "results_count": "{{count}} 件の結果",
     "no_results": "「{{query}}」に一致するページは見つかりませんでした。",
-    "empty_query": "検索キーワードを入力してページを探しましょう。"
+    "no_results_tag": "タグ「{{tag}}」のページは見つかりませんでした。",
+    "empty_query": "検索キーワードを入力してページを探しましょう。",
+    "tagged": "タグ: {{tag}}",
+    "clear_tag": "タグフィルターをクリア"
   },
   "notifications": {
     "title": "通知",

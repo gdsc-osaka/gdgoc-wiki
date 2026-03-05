@@ -1,0 +1,21 @@
+{
+  "name": "gdgoc-wiki-discord-bot",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "register": "npx tsx scripts/register.ts"
+  },
+  "dependencies": {
+    "discord-hono": "^0.12.0",
+    "hono": "^4.7.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250224.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "wrangler": "^3.109.3"
+  }
+}

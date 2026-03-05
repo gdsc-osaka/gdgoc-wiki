@@ -1,0 +1,11 @@
+node_modules/
+build/
+.react-router/
+.wrangler/
+.env.local
+.env.*.local
+.dev.vars
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo

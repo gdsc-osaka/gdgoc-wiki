@@ -67,3 +67,8 @@ max_batch_timeout = 5
 # ---------------------------------------------------------------------------
 [[send_email]]
 name = "MAILER"
+
+# ---------------------------------------------------------------------------
+# Secrets (set via `wrangler secret put`)
+# WIKI_DISCORD_SECRET — shared secret for Discord bot → wiki API auth
+# ---------------------------------------------------------------------------

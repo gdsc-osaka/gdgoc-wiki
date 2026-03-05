@@ -1,0 +1,12 @@
+name = "gdgoc-wiki-discord-bot"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+
+[vars]
+WIKI_BASE_URL = "https://wiki.gdgoc.jp"
+
+# Secrets (set via `wrangler secret put`):
+# DISCORD_PUBLIC_KEY   — from Discord Developer Portal > App > General Information
+# DISCORD_BOT_TOKEN    — Bot token from Discord Developer Portal > App > Bot
+# DISCORD_APP_ID       — Application ID from Discord Developer Portal
+# WIKI_API_SECRET      — same value as WIKI_DISCORD_SECRET in the wiki worker

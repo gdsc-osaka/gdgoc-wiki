@@ -59,6 +59,18 @@ export async function action({ request, context }: Route.ActionArgs): Promise<Ac
     return { intent, ok: true, uiLang }
   }
 
+  if (intent === "updateDiscord") {
+    const discordId = (form.get("discordId") as string | null)?.trim() ?? ""
+    if (discordId && !/^\d{17,20}$/.test(discordId)) {
+      return { intent, ok: false, error: "invalid_discord_id" }
+    }
+    await db
+      .update(schema.user)
+      .set({ discordId: discordId || null, updatedAt: new Date() })
+      .where(eq(schema.user.id, user.id))
+    return { intent, ok: true }
+  }
+
   if (intent === "updateChapter") {
     const chapterId = (form.get("chapterId") as string | null) ?? ""
     if (chapterId) {
@@ -167,6 +179,18 @@ export default function SettingsPage() {
     }
   }, [langFetcher.state, langFetcher.data, i18n])
 
+  // ── Discord ───────────────────────────────────────────────────────────────
+  const discordFetcher = useFetcher<typeof action>()
+  const [discordSaved, setDiscordSaved] = useState(false)
+
+  useEffect(() => {
+    if (discordFetcher.state === "idle" && discordFetcher.data?.ok === true) {
+      setDiscordSaved(true)
+      const timer = setTimeout(() => setDiscordSaved(false), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [discordFetcher.state, discordFetcher.data])
+
   // ── Chapter Affiliation ───────────────────────────────────────────────────
   const chapterFetcher = useFetcher<typeof action>()
   const [chapterSaved, setChapterSaved] = useState(false)
@@ -266,6 +290,36 @@ export default function SettingsPage() {
             )}
             <SaveButton state={langFetcher.state} saved={langSaved} />
           </langFetcher.Form>
+        </SectionCard>
+
+        {/* Discord */}
+        <SectionCard
+          title={t("settings.discord.title")}
+          description={t("settings.discord.description")}
+        >
+          <discordFetcher.Form method="post">
+            <input type="hidden" name="intent" value="updateDiscord" />
+            <div className="mb-4">
+              <label htmlFor="discordId" className="mb-1 block text-sm font-medium text-gray-700">
+                {t("settings.discord.idLabel")}
+              </label>
+              <input
+                id="discordId"
+                name="discordId"
+                type="text"
+                defaultValue={user.discordId ?? ""}
+                placeholder="e.g. 123456789012345678"
+                className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              <p className="mt-1 text-xs text-gray-500">{t("settings.discord.idHint")}</p>
+              {discordFetcher.data?.ok === false && discordFetcher.data.error && (
+                <p className="mt-1 text-xs text-red-500">
+                  {t(`settings.errors.${discordFetcher.data.error}`, t("settings.save_error"))}
+                </p>
+              )}
+            </div>
+            <SaveButton state={discordFetcher.state} saved={discordSaved} />
+          </discordFetcher.Form>
         </SectionCard>
 
         {/* Chapter Affiliation */}

@@ -53,6 +53,10 @@ function initAuth(env: Env) {
           defaultValue: "ja",
           // "ja" | "en"
         },
+        discordId: {
+          type: "string",
+          required: false,
+        },
       },
     },
     databaseHooks: {

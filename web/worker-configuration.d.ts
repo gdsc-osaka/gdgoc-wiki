@@ -33,6 +33,7 @@ declare global {
     GEMINI_API_KEY: string
     GOOGLE_DOCS_CLIENT_ID: string
     GOOGLE_DOCS_CLIENT_SECRET: string
+    WIKI_DISCORD_SECRET: string
 
     // Vars (defined in wrangler.toml [vars])
     ENVIRONMENT: string
