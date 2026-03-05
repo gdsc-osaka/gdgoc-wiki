@@ -16,9 +16,9 @@ description: >
 ## Workflow
 
 ### 1. Read specs
-Read the relevant spec document(s) from `docs/v0.1/`:
+Read the relevant spec document(s) from `docs/vx.x/`:
 - If a document path was given, read that file first, then related files as needed.
-- Otherwise, skim all `docs/v0.1/*.md` files and identify sections relevant to the feature.
+- Otherwise, skim all `docs/vx.x/*.md` files and identify sections relevant to the feature.
 
 Internalize the data model, UI/UX requirements, AI integrations, and architecture constraints that apply.
 
