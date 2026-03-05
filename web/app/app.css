@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 /* md-editor-rt: keep code block headers below the navbar (z-50) when sticky-scrolling */
 .md-editor-preview .md-editor-code .md-editor-code-head {
@@ -101,4 +102,48 @@
   --color-pastel-red: #f8d8d8;
   --color-off-white: #f0f0f0;
   --color-black-02: #1e1e1e;
+}
+
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+  --color-gray-50: #1e1e1e;
+  --color-gray-100: #2a2a2a;
+  --color-gray-200: #444444;
+  --color-gray-300: #636363;
+  --color-gray-400: #888888;
+  --color-gray-500: #aaaaaa;
+  --color-gray-600: #cccccc;
+  --color-gray-700: #e4e4e4;
+  --color-gray-800: #f0f0f0;
+  --color-gray-900: #ffffff;
+  --color-gray-950: #ffffff;
+}
+
+.dark .bg-white {
+  background-color: var(--color-gray-100);
+}
+
+.dark .md-editor-dark {
+  --md-bk-color: #1e1e1e;
+  --md-bk-color-outstand: #2a2a2a;
+  --md-bk-hover-color: #2a2a2a;
+  --md-border-color: #444444;
+  --md-border-hover-color: #636363;
+  --md-border-active-color: #888888;
+  --md-color: #cccccc;
+  --md-hover-color: #f0f0f0;
+}
+
+.dark .md-editor-dark .md-editor-preview {
+  --md-theme-bg-color: #1e1e1e;
+  --md-theme-bg-color-inset: #2a2a2a;
+  --md-theme-border-color: #444444;
+  --md-theme-border-color-inset: #636363;
+  --md-theme-border-color-reverse: #cccccc;
+  --md-theme-color: #cccccc;
+  --md-theme-color-reverse: #1e1e1e;
 }

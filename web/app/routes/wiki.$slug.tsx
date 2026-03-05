@@ -10,6 +10,7 @@ import type { TocItem } from "~/components/WikiRightSidebar"
 import WikiRightSidebar from "~/components/WikiRightSidebar"
 import * as schema from "~/db/schema"
 import { useMediaQuery } from "~/hooks/useMediaQuery"
+import { useThemeMode } from "~/hooks/useThemeMode"
 import { requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
 import { canUserChangeVisibility, canUserSeePage } from "~/lib/page-visibility.server"
@@ -224,6 +225,7 @@ export default function WikiPage() {
   const { page, tags, author, editor, lang, userRole, visibility, canChangeVisibility, isStarred } =
     useLoaderData<typeof loader>()
   const { t } = useTranslation()
+  const theme = useThemeMode()
   const location = useLocation()
   const contentLangFetcher = useFetcher()
   const submitRef = contentLangFetcher.submit
@@ -410,6 +412,7 @@ export default function WikiPage() {
           {displayContent ? (
             <MdPreview
               modelValue={displayContent}
+              theme={theme}
               autoFoldThreshold={Number.POSITIVE_INFINITY}
               onGetCatalog={handleGetCatalog}
             />

@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, useBlocker, useFetcher } from "react-router"
+import { useThemeMode } from "~/hooks/useThemeMode"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -49,6 +50,7 @@ function formatRelativeTime(
 export default function PageEditor({ page, canPublish }: PageEditorProps) {
   const { t } = useTranslation()
   const fetcher = useFetcher<{ ok: boolean; savedAt: string }>()
+  const theme = useThemeMode()
 
   const [titleJa, setTitleJa] = useState(page.titleJa)
   const [titleEn, setTitleEn] = useState(page.titleEn)
@@ -131,7 +133,7 @@ export default function PageEditor({ page, canPublish }: PageEditorProps) {
       {/* ------------------------------------------------------------------ */}
       <div className="sticky top-14 z-10 grid grid-cols-2 items-center gap-x-2 gap-y-1 border-b border-gray-200 bg-white px-3 py-2 shadow-sm sm:flex sm:flex-wrap sm:gap-2">
         {/* Row 1 col 1 (mobile) / inline (desktop): back + title */}
-        <div className="flex min-w-0 items-center gap-1">
+        <div className="flex min-w-0 items-center gap-1 sm:flex-1">
           <Link
             to={`/wiki/${page.slug}`}
             className="shrink-0 rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
@@ -159,7 +161,7 @@ export default function PageEditor({ page, canPublish }: PageEditorProps) {
         </div>
 
         {/* Row 1 col 2 (mobile) / inline (desktop): lang switcher + actions */}
-        <div className="flex shrink-0 items-center justify-end gap-2">
+        <div className="flex shrink-0 items-center justify-end gap-2 sm:ml-auto">
           {/* Autosave status */}
           {statusText && (
             <span
@@ -185,7 +187,7 @@ export default function PageEditor({ page, canPublish }: PageEditorProps) {
                 onClick={() => setActiveLang(lang)}
                 className={`px-3 py-1 text-sm font-medium transition-colors ${
                   activeLang === lang
-                    ? "bg-gray-900 text-white"
+                    ? "bg-blue-600 text-white hover:bg-blue-700"
                     : "bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700"
                 }`}
               >
@@ -225,6 +227,7 @@ export default function PageEditor({ page, canPublish }: PageEditorProps) {
           modelValue={contentJa}
           onChange={setContentJa}
           language="en-US"
+          theme={theme}
           noUploadImg
           style={{ height: "100%" }}
         />
@@ -234,6 +237,7 @@ export default function PageEditor({ page, canPublish }: PageEditorProps) {
           modelValue={contentEn}
           onChange={setContentEn}
           language="en-US"
+          theme={theme}
           noUploadImg
           style={{ height: "100%" }}
         />
