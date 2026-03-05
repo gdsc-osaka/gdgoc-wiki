@@ -240,7 +240,7 @@ export default function SearchPage() {
       <h1 className="mb-4 text-lg font-semibold text-gray-900">{t("search.title")}</h1>
 
       {/* Mode toggle tabs */}
-      <div className="mb-4 flex gap-1 rounded-lg bg-gray-100 p-1">
+      <div className="mb-4 flex gap-1 rounded-lg bg-gray-200 p-1">
         <button
           type="button"
           onClick={() => handleModeSwitch("keyword")}
