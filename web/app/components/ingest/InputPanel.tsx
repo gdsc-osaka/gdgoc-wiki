@@ -9,7 +9,6 @@ interface InputPanelProps {
 
 const MAX_IMAGES = 5
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024 // 10 MB
-const MAX_EXCEL_SIZE = 10 * 1024 * 1024 // 10 MB
 const MAX_PDFS = 3
 const MAX_PDF_SIZE = 20 * 1024 * 1024 // 20 MB
 const MIN_TEXT_LENGTH = 10
@@ -20,10 +19,8 @@ export default function InputPanel({ driveConnected, serverError }: InputPanelPr
   const [images, setImages] = useState<File[]>([])
   const [pdfs, setPdfs] = useState<File[]>([])
   const [docUrl, setDocUrl] = useState("")
-  const [excelFile, setExcelFile] = useState<File | null>(null)
   const [errors, setErrors] = useState<string[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const excelInputRef = useRef<HTMLInputElement>(null)
   const pdfInputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
 
@@ -32,7 +29,7 @@ export default function InputPanel({ driveConnected, serverError }: InputPanelPr
     if (docUrl.trim() && !isGoogleDriveUrl(docUrl.trim())) {
       errs.push(t("ingest.errors.invalid_drive_url"))
     }
-    if (!docUrl.trim() && !excelFile && pdfs.length === 0 && text.trim().length < MIN_TEXT_LENGTH) {
+    if (!docUrl.trim() && pdfs.length === 0 && text.trim().length < MIN_TEXT_LENGTH) {
       errs.push(t("ingest.errors.text_too_short", { min: MIN_TEXT_LENGTH }))
     }
     return errs
@@ -183,64 +180,6 @@ export default function InputPanel({ driveConnected, serverError }: InputPanelPr
               />
             ))}
           </div>
-        )}
-      </div>
-
-      {/* Excel / Spreadsheet upload */}
-      <div>
-        <p className="mb-1.5 text-sm font-medium text-gray-700">{t("ingest.form.excel_label")}</p>
-        <p className="mb-2 text-xs text-gray-400">{t("ingest.form.excel_hint")}</p>
-        {excelFile ? (
-          <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-            <svg
-              className="h-4 w-4 shrink-0 text-green-600"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                fillRule="evenodd"
-                d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <span className="flex-1 truncate text-sm text-gray-700">{excelFile.name}</span>
-            <button
-              type="button"
-              onClick={() => {
-                setExcelFile(null)
-                if (excelInputRef.current) excelInputRef.current.value = ""
-              }}
-              className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white"
-            >
-              ×
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => excelInputRef.current?.click()}
-            className="w-full cursor-pointer rounded-lg border-2 border-dashed border-gray-200 p-4 text-center text-sm text-gray-500 transition-colors hover:border-gray-300 hover:bg-gray-50"
-          >
-            {t("ingest.form.excel_drop_hint")}
-            <input
-              ref={excelInputRef}
-              type="file"
-              name="excelFile"
-              accept=".xlsx,.xls"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0]
-                if (!f) return
-                if (f.size > MAX_EXCEL_SIZE) {
-                  setErrors([t("ingest.errors.excel_too_large", { name: f.name })])
-                  return
-                }
-                setExcelFile(f)
-                setErrors([])
-              }}
-            />
-          </button>
         )}
       </div>
 

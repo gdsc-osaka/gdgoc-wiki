@@ -25,6 +25,7 @@ import {
   runPhase2Patcher,
   uploadFileToGemini,
 } from "./gemini.server"
+import { isGoogleSheetsUrl } from "./google-drive-utils"
 import {
   exportFileAsPdf,
   exportFileAsText,
@@ -353,8 +354,9 @@ export async function runIngestionPipeline(
           sources.push({ url: docUrl, title: fileId })
         }
 
-        // Primary: extract plain text (must succeed)
-        const docText = await exportFileAsText(fileId, accessToken)
+        // Primary: extract plain text (CSV for Sheets, plain text for Docs/Slides)
+        const exportMime = isGoogleSheetsUrl(docUrl) ? "text/csv" : "text/plain"
+        const docText = await exportFileAsText(fileId, accessToken, exportMime)
         docTexts.push(docText)
 
         // Best-effort: upload PDF for rich content (images, tables)
@@ -431,66 +433,61 @@ export async function runIngestionPipeline(
     ) {
       await updatePhase(db, sessionId, "fetching_urls")
 
-      if (env.BROWSER) {
-        // Production: render each URL as a PDF and upload to Gemini File API
-        console.log("[ingestion-pipeline] step 2.6: fetching URLs as PDF (Browser Rendering)")
-        const fetchResults = await Promise.all(
-          resumeContext.selectedUrls.map((url) =>
-            fetchUrlAsPdf(env.BROWSER as unknown as BrowserWorker, url).then((result) => ({
-              url,
-              result,
-            })),
-          ),
-        )
-        for (const { url, result } of fetchResults) {
-          if (result.error !== undefined) {
-            console.warn("[ingestion-pipeline] URL PDF fetch failed:", url, result.error)
-            warnings.push(`URL取得失敗 ${url}: ${result.error}`)
-            sources.push({ url, title: url })
-          } else {
-            console.log("[ingestion-pipeline] URL PDF fetched ok:", url, "title:", result.title)
+      // For each URL: try Browser Rendering PDF first, fall back to Jina on any failure.
+      // env.BROWSER may be a non-functional stub in local dev, so we always fall back.
+      const jinaParts: string[] = []
+      for (const url of resumeContext.selectedUrls) {
+        let uploadedPdf = false
+
+        if (env.BROWSER) {
+          console.log("[ingestion-pipeline] step 2.6: trying PDF for", url)
+          const pdfResult = await fetchUrlAsPdf(env.BROWSER as unknown as BrowserWorker, url)
+          if (pdfResult.error === undefined) {
             const hostname = new URL(url).hostname
             const geminiUri = await uploadFileToGemini(
-              result.buffer,
+              pdfResult.buffer,
               "application/pdf",
               hostname,
               env.GEMINI_API_KEY,
             )
             fileUris.push({ uri: geminiUri, mimeType: "application/pdf" })
-            sources.push({ url, title: result.title || url })
+            sources.push({ url, title: pdfResult.title || url })
+            uploadedPdf = true
+            console.log("[ingestion-pipeline] URL PDF uploaded:", url, "→", geminiUri)
+          } else {
+            console.warn(
+              "[ingestion-pipeline] URL PDF failed, falling back to Jina:",
+              url,
+              pdfResult.error,
+            )
           }
         }
-      } else {
-        // Local dev fallback: fetch markdown via Jina and append to user text
-        console.log("[ingestion-pipeline] step 2.6: fetching URLs via Jina (no BROWSER binding)")
-        const fetchResults = await Promise.all(
-          resumeContext.selectedUrls.map((url) =>
-            fetchUrlViaJina(url).then((result) => ({ url, result })),
-          ),
-        )
-        const parts: string[] = []
-        for (const { url, result } of fetchResults) {
-          if (result.error !== undefined) {
-            console.warn("[ingestion-pipeline] URL Jina fetch failed:", url, result.error)
-            parts.push(`### ${url}\n(取得失敗: ${result.error})`)
+
+        if (!uploadedPdf) {
+          console.log("[ingestion-pipeline] step 2.6: fetching via Jina:", url)
+          const jinaResult = await fetchUrlViaJina(url)
+          if (jinaResult.error !== undefined) {
+            console.warn("[ingestion-pipeline] URL Jina fetch failed:", url, jinaResult.error)
+            jinaParts.push(`### ${url}\n(取得失敗: ${jinaResult.error})`)
             sources.push({ url, title: url })
           } else {
             console.log(
               "[ingestion-pipeline] URL Jina fetch ok:",
               url,
-              `${result.markdown.length} chars`,
-              result.truncated ? "(truncated)" : "",
+              `${jinaResult.markdown.length} chars`,
+              jinaResult.truncated ? "(truncated)" : "",
             )
-            const suffix = result.truncated ? "\n\n(... 10,000文字で切り詰めました)" : ""
-            parts.push(`### ${url}\n${result.markdown}${suffix}`)
-            const titleMatch = result.markdown?.match(/^(?:Title:\s*(.+)|#\s+(.+))/m)
+            const suffix = jinaResult.truncated ? "\n\n(... 10,000文字で切り詰めました)" : ""
+            jinaParts.push(`### ${url}\n${jinaResult.markdown}${suffix}`)
+            const titleMatch = jinaResult.markdown?.match(/^(?:Title:\s*(.+)|#\s+(.+))/m)
             const title = (titleMatch?.[1] ?? titleMatch?.[2])?.trim() || url
             sources.push({ url, title })
           }
         }
-        if (parts.length > 0) {
-          docTexts.push(`## 参考URL（ユーザーが選択した外部ページ）\n${parts.join("\n\n")}`)
-        }
+      }
+
+      if (jinaParts.length > 0) {
+        docTexts.push(`## 参考URL（ユーザーが選択した外部ページ）\n${jinaParts.join("\n\n")}`)
       }
     }
 

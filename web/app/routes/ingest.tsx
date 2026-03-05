@@ -7,7 +7,6 @@ import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react
 import InputPanel from "~/components/ingest/InputPanel"
 import * as schema from "~/db/schema"
 import { requireRole } from "~/lib/auth-utils.server"
-import { parseExcelToMarkdown } from "~/lib/excel-parse.server"
 import { isGoogleDriveUrl } from "~/lib/google-drive-utils"
 import { buildIngestionQueueMessage } from "~/lib/ingestion-jobs.server"
 import type { IngestionInputs } from "~/lib/ingestion-pipeline.server"
@@ -49,7 +48,6 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
 
 const MAX_IMAGES = 5
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024 // 10 MB
-const MAX_EXCEL_SIZE = 10 * 1024 * 1024 // 10 MB
 const MAX_PDFS = 3
 const MAX_PDF_SIZE = 20 * 1024 * 1024 // 20 MB
 const MIN_TEXT_LENGTH = 10
@@ -68,17 +66,6 @@ export async function action({ request, context }: ActionFunctionArgs) {
     return { errorKey: "ingest.errors.invalid_drive_url" }
   }
 
-  // Parse optional Excel file
-  const excelEntry = formData.get("excelFile")
-  let excelMarkdown = ""
-  if (excelEntry instanceof File && excelEntry.size > 0) {
-    if (excelEntry.size > MAX_EXCEL_SIZE) {
-      return { errorKey: "ingest.errors.excel_too_large", errorParams: { name: excelEntry.name } }
-    }
-    const buf = await excelEntry.arrayBuffer()
-    excelMarkdown = parseExcelToMarkdown(buf)
-  }
-
   // Collect image files
   const imageEntries = formData.getAll("images")
   const imageFiles: Array<{ key: string; buffer: ArrayBuffer; mimeType: string; name: string }> = []
@@ -95,10 +82,10 @@ export async function action({ request, context }: ActionFunctionArgs) {
     return { errorKey: "ingest.errors.too_many_pdfs", errorParams: { max: MAX_PDFS } }
   }
 
-  // Validate text (skip if a Google Drive URL, Excel file, or PDF is provided)
+  // Validate text (skip if a Google Drive URL or PDF is provided)
   // We can't check pdfFiles.length yet (files not parsed), so check pdfEntries
   const hasPdfInput = pdfEntries.some((e) => e instanceof File && e.size > 0)
-  if (!googleDocUrl && !excelMarkdown && !hasPdfInput && text.length < MIN_TEXT_LENGTH) {
+  if (!googleDocUrl && !hasPdfInput && text.length < MIN_TEXT_LENGTH) {
     return { errorKey: "ingest.errors.text_too_short", errorParams: { min: MIN_TEXT_LENGTH } }
   }
 
@@ -132,7 +119,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
 
   // Build inputs
   const inputs: IngestionInputs = {
-    texts: excelMarkdown ? [text, excelMarkdown].filter(Boolean) : [text],
+    texts: [text],
     imageKeys: imageFiles.map((f) => f.key),
     googleDocUrls: googleDocUrl ? [googleDocUrl] : [],
     imageFiles,

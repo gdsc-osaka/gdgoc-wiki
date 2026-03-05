@@ -185,8 +185,12 @@ export async function exportFileAsPdf(fileId: string, accessToken: string): Prom
 // Google Drive file export as plain text (for inline content in prompts)
 // ---------------------------------------------------------------------------
 
-export async function exportFileAsText(fileId: string, accessToken: string): Promise<string> {
-  const textUrl = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}/export?mimeType=text/plain`
+export async function exportFileAsText(
+  fileId: string,
+  accessToken: string,
+  exportMimeType = "text/plain",
+): Promise<string> {
+  const textUrl = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}/export?mimeType=${encodeURIComponent(exportMimeType)}`
   const response = await fetchWithTimeout(
     textUrl,
     { headers: { Authorization: `Bearer ${accessToken}` } },
