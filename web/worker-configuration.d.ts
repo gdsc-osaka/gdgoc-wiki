@@ -23,9 +23,9 @@ declare global {
     TRANSLATION_QUEUE: Queue
     INGESTION_QUEUE: Queue
     ASSETS: Fetcher
-    MAILER: SendEmail
 
     // Secrets (set via `wrangler secret put` or Cloudflare dashboard)
+    RESEND_API_KEY: string
     BETTER_AUTH_SECRET: string
     BETTER_AUTH_URL: string
     GOOGLE_CLIENT_ID: string

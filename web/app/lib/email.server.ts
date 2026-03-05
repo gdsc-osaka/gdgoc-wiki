@@ -1,4 +1,5 @@
 const FROM_ADDRESS = "GDGoC Japan Wiki <noreply@gdgoc-osaka.jp>"
+const RESEND_API_URL = "https://api.resend.com/emails"
 
 // ---------------------------------------------------------------------------
 // Security helpers
@@ -27,6 +28,27 @@ function requireHttpsUrl(url: string): string {
     throw new Error(`Non-HTTPS URL rejected: ${url}`)
   }
   return url
+}
+
+async function sendViaResend(
+  apiKey: string,
+  to: string,
+  subject: string,
+  html: string,
+  text: string,
+): Promise<void> {
+  const res = await fetch(RESEND_API_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ from: FROM_ADDRESS, to, subject, html, text }),
+  })
+  if (!res.ok) {
+    const body = await res.text()
+    throw new Error(`Resend API error ${res.status}: ${body}`)
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -91,30 +113,7 @@ export async function sendIngestionCompleteEmail(
     return
   }
 
-  const boundary = `boundary_${Date.now()}`
-  const rawMime = [
-    `From: ${FROM_ADDRESS}`,
-    `To: ${safeToHeader}`,
-    `Subject: ${subject}`,
-    "MIME-Version: 1.0",
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    "",
-    `--${boundary}`,
-    "Content-Type: text/plain; charset=UTF-8",
-    "",
-    textBody,
-    "",
-    `--${boundary}`,
-    "Content-Type: text/html; charset=UTF-8",
-    "",
-    htmlBody,
-    "",
-    `--${boundary}--`,
-  ].join("\r\n")
-
-  const { EmailMessage } = await import("cloudflare:email")
-  const message = new EmailMessage(FROM_ADDRESS, safeToHeader, rawMime)
-  await env.MAILER.send(message)
+  await sendViaResend(env.RESEND_API_KEY, safeToHeader, subject, htmlBody, textBody)
 }
 
 // ---------------------------------------------------------------------------
@@ -129,7 +128,7 @@ export interface InvitationEmailOpts {
 }
 
 /**
- * Sends an invitation email via Cloudflare Email Workers.
+ * Sends an invitation email via Resend.
  * In non-production environments, logs the email content instead.
  */
 export async function sendInvitationEmail(env: Env, opts: InvitationEmailOpts): Promise<void> {
@@ -181,31 +180,5 @@ export async function sendInvitationEmail(env: Env, opts: InvitationEmailOpts): 
     return
   }
 
-  // Build a minimal RFC 2822 MIME multipart message
-  const boundary = `boundary_${Date.now()}`
-  const rawMime = [
-    `From: ${FROM_ADDRESS}`,
-    `To: ${safeToHeader}`,
-    `Subject: ${subject}`,
-    "MIME-Version: 1.0",
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    "",
-    `--${boundary}`,
-    "Content-Type: text/plain; charset=UTF-8",
-    "",
-    textBody,
-    "",
-    `--${boundary}`,
-    "Content-Type: text/html; charset=UTF-8",
-    "",
-    htmlBody,
-    "",
-    `--${boundary}--`,
-  ].join("\r\n")
-
-  // Dynamic import so this module resolves only in the Workers runtime,
-  // not during Vitest / Node.js builds where cloudflare:email doesn't exist.
-  const { EmailMessage } = await import("cloudflare:email")
-  const message = new EmailMessage(FROM_ADDRESS, safeToHeader, rawMime)
-  await env.MAILER.send(message)
+  await sendViaResend(env.RESEND_API_KEY, safeToHeader, subject, htmlBody, textBody)
 }
