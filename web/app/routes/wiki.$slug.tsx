@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react-router"
 import { Link, useFetcher, useLoaderData, useLocation } from "react-router"
+import TagChip from "~/components/TagChip"
 import type { TocItem } from "~/components/WikiRightSidebar"
 import WikiRightSidebar from "~/components/WikiRightSidebar"
 import * as schema from "~/db/schema"
@@ -457,13 +458,14 @@ export default function WikiPage() {
           {tags.length > 0 && (
             <div className="mb-6 flex flex-wrap gap-2">
               {tags.map((tag) => (
-                <span
+                <TagChip
                   key={tag.tagSlug}
-                  className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium text-white"
-                  style={{ backgroundColor: tag.color }}
-                >
-                  {lang === "en" ? tag.labelEn : tag.labelJa}
-                </span>
+                  tagSlug={tag.tagSlug}
+                  labelJa={tag.labelJa}
+                  labelEn={tag.labelEn}
+                  color={tag.color}
+                  size="md"
+                />
               ))}
             </div>
           )}
@@ -495,7 +497,6 @@ export default function WikiPage() {
             author={author}
             editor={editor}
             updatedAt={page.updatedAt}
-            tags={tags}
             lang={lang}
             translationStatusJa={page.translationStatusJa}
             translationStatusEn={page.translationStatusEn}
@@ -567,13 +568,15 @@ export default function WikiPage() {
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {tags.map((tag) => (
-                      <span
+                      <TagChip
                         key={tag.tagSlug}
-                        className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium text-white"
-                        style={{ backgroundColor: tag.color }}
-                      >
-                        {lang === "en" ? tag.labelEn : tag.labelJa}
-                      </span>
+                        tagSlug={tag.tagSlug}
+                        labelJa={tag.labelJa}
+                        labelEn={tag.labelEn}
+                        color={tag.color}
+                        size="md"
+                        onClick={closeMobileContents}
+                      />
                     ))}
                   </div>
                 </div>

@@ -332,7 +332,9 @@
     "no_results_tag": "タグ「{{tag}}」のページは見つかりませんでした。",
     "empty_query": "検索キーワードを入力してページを探しましょう。",
     "tagged": "タグ: {{tag}}",
-    "clear_tag": "タグフィルターをクリア"
+    "clear_tag": "タグフィルターをクリア",
+    "filter_by_tag": "タグ:",
+    "all_tags": "すべてのタグ"
   },
   "notifications": {
     "title": "通知",

@@ -8,13 +8,6 @@ export interface TocItem {
   level: number
 }
 
-interface Tag {
-  tagSlug: string
-  labelJa: string
-  labelEn: string
-  color: string
-}
-
 interface Author {
   id: string
   name: string
@@ -31,11 +24,11 @@ interface WikiRightSidebarProps {
   author: Author | null
   editor: Editor | null
   updatedAt: Date | string | number | null
-  tags: Tag[]
   lang: "ja" | "en"
   translationStatusJa: string
   translationStatusEn: string
   sources?: { url: string; title: string }[]
+  attachments?: { r2Key: string; fileName: string; mimeType: string }[]
 }
 
 function timeAgo(date: Date, t: (key: string, opts?: Record<string, unknown>) => string): string {
@@ -54,11 +47,11 @@ export default function WikiRightSidebar({
   author,
   editor,
   updatedAt,
-  tags,
   lang,
   translationStatusJa,
   translationStatusEn,
   sources,
+  attachments,
 }: WikiRightSidebarProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
   const { t } = useTranslation()
@@ -158,26 +151,6 @@ export default function WikiRightSidebar({
           </span>
         )}
 
-        {/* Tags */}
-        {tags.length > 0 && (
-          <div>
-            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
-              {t("wiki.tags")}
-            </p>
-            <div className="flex flex-wrap gap-1">
-              {tags.map((tag) => (
-                <span
-                  key={tag.tagSlug}
-                  className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium text-white"
-                  style={{ backgroundColor: tag.color }}
-                >
-                  {lang === "en" ? tag.labelEn : tag.labelJa}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Sources */}
         {sources && sources.length > 0 && (
           <div>
@@ -239,6 +212,32 @@ export default function WikiRightSidebar({
                 )
               })}
             </ul>
+          </div>
+        )}
+
+        {/* Attached images */}
+        {attachments && attachments.length > 0 && (
+          <div>
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
+              {t("wiki.attached_images")}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {attachments.map(({ r2Key, fileName }) => (
+                <a
+                  key={r2Key}
+                  href={`/api/images/${r2Key}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={fileName}
+                >
+                  <img
+                    src={`/api/images/${r2Key}`}
+                    alt={fileName}
+                    className="max-h-24 rounded border border-gray-200 object-cover"
+                  />
+                </a>
+              ))}
+            </div>
           </div>
         )}
       </div>

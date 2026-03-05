@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 import { Link, useLoaderData } from "react-router"
 import type { LoaderFunctionArgs, MetaFunction } from "react-router"
 import LandingContent, { GoogleIcon } from "~/components/LandingContent"
+import TagChip from "~/components/TagChip"
 import * as schema from "~/db/schema"
 import { getSessionUser } from "~/lib/auth-utils.server"
 import { authClient } from "~/lib/auth.client"
@@ -265,15 +266,15 @@ export default function Index() {
         ) : (
           <div className="flex flex-wrap gap-2">
             {allTags.map((tag) => (
-              <Link
+              <TagChip
                 key={tag.slug}
-                to={`/?tag=${tag.slug}`}
-                className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors hover:text-white"
-                style={{ borderColor: tag.color, color: tag.color }}
-              >
-                {tag.labelEn}
-                {tag.pageCount > 0 && <span className="text-xs opacity-70">({tag.pageCount})</span>}
-              </Link>
+                tagSlug={tag.slug}
+                labelJa={tag.labelJa}
+                labelEn={tag.labelEn}
+                color={tag.color}
+                size="md"
+                pageCount={tag.pageCount}
+              />
             ))}
           </div>
         )}
