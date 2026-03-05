@@ -39,6 +39,8 @@ interface SidebarProps {
   currentSlug?: string
   userRole?: string
   isOpen?: boolean
+  isMobile?: boolean
+  onClose?: () => void
   onStarredClick?: () => void
 }
 
@@ -47,6 +49,8 @@ export default function Sidebar({
   currentSlug,
   userRole,
   isOpen = true,
+  isMobile = false,
+  onClose,
   onStarredClick,
 }: SidebarProps) {
   const { t } = useTranslation()
@@ -63,7 +67,8 @@ export default function Sidebar({
   const startWidth = useRef(0)
   const [isResizing, setIsResizing] = useState(false)
 
-  const isCollapsed = width < COLLAPSE_THRESHOLD
+  // On mobile: always expanded, never collapsed
+  const isCollapsed = isMobile ? false : width < COLLAPSE_THRESHOLD
   const displayWidth = isOpen ? width : 0
   const transition = isResizing ? "none" : "width 200ms ease"
 
@@ -111,6 +116,98 @@ export default function Sidebar({
     }
   }, [onMouseMove, onMouseUp])
 
+  const sidebarContent = (
+    <div className="flex h-full flex-col">
+      {/* Nav items */}
+      <nav aria-label="Main navigation" className="space-y-0.5 px-2 pb-1 pt-3">
+        <NavItem
+          to="/"
+          icon={<Home size={16} />}
+          label={t("nav.home")}
+          isCollapsed={isCollapsed}
+          isActive={location.pathname === "/"}
+        />
+        <NavItem
+          to="/recent"
+          icon={<Clock size={16} />}
+          label={t("nav.recent")}
+          isCollapsed={isCollapsed}
+          isActive={location.pathname === "/recent"}
+        />
+        {onStarredClick ? (
+          <button
+            type="button"
+            title={isCollapsed ? t("nav.starred") : undefined}
+            onClick={onStarredClick}
+            className="flex min-h-8 w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
+          >
+            <span className="flex-shrink-0">
+              <Star size={16} />
+            </span>
+            {!isCollapsed && <span className="truncate">{t("nav.starred")}</span>}
+          </button>
+        ) : (
+          <NavItem
+            to="/starred"
+            icon={<Star size={16} />}
+            label={t("nav.starred")}
+            isCollapsed={isCollapsed}
+            isActive={location.pathname === "/starred"}
+          />
+        )}
+        {userRole === "admin" && (
+          <NavItem
+            to="/admin"
+            icon={<Settings size={16} />}
+            label={t("nav.admin")}
+            isCollapsed={isCollapsed}
+            isActive={location.pathname.startsWith("/admin")}
+          />
+        )}
+      </nav>
+
+      {/* Divider */}
+      <div className="mx-2 my-1 border-t border-gray-100" />
+
+      {/* Page tree */}
+      <div className="min-h-0 flex-1">
+        <PageTree
+          pages={pages}
+          currentSlug={currentSlug}
+          isCollapsed={isCollapsed}
+          canReorder={
+            !isMobile && !isCollapsed && ["member", "lead", "admin"].includes(userRole ?? "")
+          }
+        />
+      </div>
+    </div>
+  )
+
+  if (isMobile) {
+    return (
+      <>
+        {/* Backdrop */}
+        {isOpen && (
+          <div
+            className="fixed inset-0 top-14 z-30 bg-black/40"
+            onClick={onClose}
+            onKeyDown={(e) => e.key === "Escape" && onClose?.()}
+            aria-hidden="true"
+          />
+        )}
+
+        {/* Drawer */}
+        <aside
+          className={`fixed bottom-0 left-0 top-14 z-40 w-64 overflow-hidden border-r border-gray-200 bg-white transition-transform duration-200 ease-in-out ${
+            isOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          {sidebarContent}
+        </aside>
+      </>
+    )
+  }
+
   return (
     <>
       {/* Sidebar */}
@@ -118,74 +215,13 @@ export default function Sidebar({
         style={{ width: displayWidth, transition }}
         className="fixed bottom-0 left-0 top-14 overflow-hidden border-r border-gray-200 bg-white"
       >
-        <div className="flex h-full flex-col">
-          {/* Nav items */}
-          <nav aria-label="Main navigation" className="px-2 pt-3 pb-1 space-y-0.5">
-            <NavItem
-              to="/"
-              icon={<Home size={16} />}
-              label={t("nav.home")}
-              isCollapsed={isCollapsed}
-              isActive={location.pathname === "/"}
-            />
-            <NavItem
-              to="/recent"
-              icon={<Clock size={16} />}
-              label={t("nav.recent")}
-              isCollapsed={isCollapsed}
-              isActive={location.pathname === "/recent"}
-            />
-            {onStarredClick ? (
-              <button
-                type="button"
-                title={isCollapsed ? t("nav.starred") : undefined}
-                onClick={onStarredClick}
-                className="flex min-h-8 w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
-              >
-                <span className="flex-shrink-0">
-                  <Star size={16} />
-                </span>
-                {!isCollapsed && <span className="truncate">{t("nav.starred")}</span>}
-              </button>
-            ) : (
-              <NavItem
-                to="/starred"
-                icon={<Star size={16} />}
-                label={t("nav.starred")}
-                isCollapsed={isCollapsed}
-                isActive={location.pathname === "/starred"}
-              />
-            )}
-            {userRole === "admin" && (
-              <NavItem
-                to="/admin"
-                icon={<Settings size={16} />}
-                label={t("nav.admin")}
-                isCollapsed={isCollapsed}
-                isActive={location.pathname.startsWith("/admin")}
-              />
-            )}
-          </nav>
-
-          {/* Divider */}
-          <div className="mx-2 my-1 border-t border-gray-100" />
-
-          {/* Page tree */}
-          <div className="min-h-0 flex-1">
-            <PageTree
-              pages={pages}
-              currentSlug={currentSlug}
-              isCollapsed={isCollapsed}
-              canReorder={!isCollapsed && ["member", "lead", "admin"].includes(userRole ?? "")}
-            />
-          </div>
-        </div>
+        {sidebarContent}
 
         {/* Drag handle */}
         {isOpen && (
           <div
             onMouseDown={onDragHandleMouseDown}
-            className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-200/50 active:bg-blue-300/50"
+            className="absolute bottom-0 right-0 top-0 w-1 cursor-col-resize hover:bg-blue-200/50 active:bg-blue-300/50"
             aria-hidden="true"
           />
         )}

@@ -12,7 +12,7 @@ export default function Toast({ message, onDismiss }: ToastProps) {
   }, [onDismiss])
 
   return (
-    <div className="fixed right-4 top-4 z-50 flex items-center gap-3 rounded-lg bg-green-500 px-4 py-3 text-white shadow-lg">
+    <div className="fixed right-4 top-16 z-50 flex max-w-[calc(100vw-2rem)] items-center gap-3 rounded-lg bg-green-500 px-4 py-3 text-white shadow-lg">
       <span className="text-sm font-medium">{message}</span>
       <button
         type="button"

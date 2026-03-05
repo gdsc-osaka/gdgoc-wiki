@@ -41,7 +41,8 @@
     "this_page": "このページ",
     "star_add": "追加",
     "star_remove": "削除",
-    "unstar": "お気に入りを外す"
+    "unstar": "お気に入りを外す",
+    "contents": "目次"
   },
   "home": {
     "recently_updated": "最近の更新",
@@ -327,7 +328,8 @@
     "saved_at": "{{time}} に保存",
     "autosave_failed": "自動保存に失敗しました",
     "title_ja": "タイトル（日本語）",
-    "title_en": "タイトル（英語）"
+    "title_en": "タイトル（英語）",
+    "save": "保存"
   },
   "privacy": {
     "title": "プライバシーポリシー",

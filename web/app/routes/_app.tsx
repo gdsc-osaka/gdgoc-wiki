@@ -1,13 +1,14 @@
 import { and, eq, isNull, sql } from "drizzle-orm"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Outlet, useLoaderData, useParams } from "react-router"
+import { Outlet, useLoaderData, useLocation, useParams } from "react-router"
 import type { LoaderFunctionArgs } from "react-router"
 import Footer from "~/components/Footer"
 import Navbar from "~/components/Navbar"
 import Sidebar from "~/components/Sidebar"
 import StarredDialog from "~/components/StarredDialog"
 import * as schema from "~/db/schema"
+import { useMediaQuery } from "~/hooks/useMediaQuery"
 import { requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
 import { buildTree } from "~/lib/page-tree"
@@ -56,32 +57,49 @@ export default function AppLayout() {
   const { user, pageTree, unreadNotificationCount } = useLoaderData<typeof loader>()
   const { slug } = useParams()
   const { i18n } = useTranslation()
+  const location = useLocation()
 
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const isMobile = useMediaQuery("(max-width: 767px)")
+
+  const [desktopOpen, setDesktopOpen] = useState(true)
+  const [mobileOpen, setMobileOpen] = useState(false)
   const [starredDialogOpen, setStarredDialogOpen] = useState(false)
 
   const lang: "ja" | "en" = i18n.language === "en" ? "en" : "ja"
 
+  // Restore desktop sidebar state from localStorage
   useEffect(() => {
     try {
       const stored = localStorage.getItem("gdgoc-sidebar-open")
-      if (stored !== null) setSidebarOpen(stored === "true")
+      if (stored !== null) setDesktopOpen(stored === "true")
     } catch {
       // ignore – localStorage unavailable
     }
   }, [])
 
+  // Close mobile drawer on route change
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional trigger on pathname change
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [location.pathname])
+
   function toggleSidebar() {
-    setSidebarOpen((v) => {
-      const next = !v
-      try {
-        localStorage.setItem("gdgoc-sidebar-open", String(next))
-      } catch {
-        // ignore
-      }
-      return next
-    })
+    if (isMobile) {
+      setMobileOpen((v) => !v)
+    } else {
+      setDesktopOpen((v) => {
+        const next = !v
+        try {
+          localStorage.setItem("gdgoc-sidebar-open", String(next))
+        } catch {
+          // ignore
+        }
+        return next
+      })
+    }
   }
+
+  const sidebarOpen = isMobile ? mobileOpen : desktopOpen
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -98,6 +116,8 @@ export default function AppLayout() {
           currentSlug={slug}
           userRole={user.role}
           isOpen={sidebarOpen}
+          isMobile={isMobile}
+          onClose={() => setMobileOpen(false)}
           onStarredClick={() => setStarredDialogOpen(true)}
         />
 

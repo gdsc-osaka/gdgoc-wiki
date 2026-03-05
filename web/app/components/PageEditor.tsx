@@ -129,86 +129,92 @@ export default function PageEditor({ page, canPublish }: PageEditorProps) {
       {/* ------------------------------------------------------------------ */}
       {/* Mini-header                                                          */}
       {/* ------------------------------------------------------------------ */}
-      <div className="sticky top-14 z-10 flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-2 shadow-sm">
-        {/* Back button */}
-        <Link
-          to={`/wiki/${page.slug}`}
-          className="shrink-0 rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-          aria-label={t("editor.back_to_page")}
-        >
-          <ArrowLeft size={18} />
-        </Link>
-
-        {/* Title inputs — toggled by active language, both always in DOM */}
-        <input
-          name="titleJa"
-          value={titleJa}
-          onChange={(e) => setTitleJa(e.target.value)}
-          placeholder={t("editor.title_ja")}
-          required
-          className={`min-w-0 flex-1 rounded bg-transparent px-2 py-1 text-base font-medium text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${activeLang !== "ja" ? "hidden" : ""}`}
-        />
-        <input
-          name="titleEn"
-          value={titleEn}
-          onChange={(e) => setTitleEn(e.target.value)}
-          placeholder={t("editor.title_en")}
-          className={`min-w-0 flex-1 rounded bg-transparent px-2 py-1 text-base font-medium text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${activeLang !== "en" ? "hidden" : ""}`}
-        />
-
-        {/* Autosave status */}
-        {statusText && (
-          <span
-            className={`shrink-0 text-xs ${fetcher.data && !fetcher.data.ok ? "text-red-500" : "text-gray-400"}`}
+      <div className="sticky top-14 z-10 grid grid-cols-2 items-center gap-x-2 gap-y-1 border-b border-gray-200 bg-white px-3 py-2 shadow-sm sm:flex sm:flex-wrap sm:gap-2">
+        {/* Row 1 col 1 (mobile) / inline (desktop): back + title */}
+        <div className="flex min-w-0 items-center gap-1">
+          <Link
+            to={`/wiki/${page.slug}`}
+            className="shrink-0 rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+            aria-label={t("editor.back_to_page")}
           >
-            {statusText}
-          </span>
-        )}
+            <ArrowLeft size={18} />
+          </Link>
 
-        {/* Draft badge */}
-        {page.status === "draft" && (
-          <span className="shrink-0 rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">
-            Draft
-          </span>
-        )}
-
-        {/* Language switcher */}
-        <div className="flex shrink-0 overflow-hidden rounded-md border border-gray-200">
-          {(["ja", "en"] as const).map((lang) => (
-            <button
-              key={lang}
-              type="button"
-              onClick={() => setActiveLang(lang)}
-              className={`px-3 py-1 text-sm font-medium transition-colors ${
-                activeLang === lang
-                  ? "bg-gray-900 text-white"
-                  : "bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700"
-              }`}
-            >
-              {lang === "ja" ? t("language.ja") : t("language.en")}
-            </button>
-          ))}
+          {/* Title inputs — toggled by active language, both always in DOM */}
+          <input
+            name="titleJa"
+            value={titleJa}
+            onChange={(e) => setTitleJa(e.target.value)}
+            placeholder={t("editor.title_ja")}
+            required
+            className={`min-w-0 flex-1 rounded bg-transparent px-2 py-1 text-base font-medium text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${activeLang !== "ja" ? "hidden" : ""}`}
+          />
+          <input
+            name="titleEn"
+            value={titleEn}
+            onChange={(e) => setTitleEn(e.target.value)}
+            placeholder={t("editor.title_en")}
+            className={`min-w-0 flex-1 rounded bg-transparent px-2 py-1 text-base font-medium text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${activeLang !== "en" ? "hidden" : ""}`}
+          />
         </div>
 
-        {/* Action buttons */}
-        <button
-          type="submit"
-          name="intent"
-          value="save"
-          className="shrink-0 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          {t("editor.save_draft")}
-        </button>
-        {canPublish && (
+        {/* Row 1 col 2 (mobile) / inline (desktop): lang switcher + actions */}
+        <div className="flex shrink-0 items-center justify-end gap-2">
+          {/* Autosave status */}
+          {statusText && (
+            <span
+              className={`hidden shrink-0 text-xs sm:inline ${fetcher.data && !fetcher.data.ok ? "text-red-500" : "text-gray-400"}`}
+            >
+              {statusText}
+            </span>
+          )}
+
+          {/* Draft badge */}
+          {page.status === "draft" && (
+            <span className="hidden shrink-0 rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800 sm:inline">
+              Draft
+            </span>
+          )}
+
+          {/* Language switcher */}
+          <div className="flex shrink-0 overflow-hidden rounded-md border border-gray-200">
+            {(["ja", "en"] as const).map((lang) => (
+              <button
+                key={lang}
+                type="button"
+                onClick={() => setActiveLang(lang)}
+                className={`px-3 py-1 text-sm font-medium transition-colors ${
+                  activeLang === lang
+                    ? "bg-gray-900 text-white"
+                    : "bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                }`}
+              >
+                {lang === "ja" ? t("language.ja") : t("language.en")}
+              </button>
+            ))}
+          </div>
+
+          {/* Action buttons */}
           <button
             type="submit"
             name="intent"
-            value="publish"
-            className="shrink-0 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value="save"
+            className="shrink-0 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            {t("editor.publish")} ↗
+            <span className="hidden sm:inline">{t("editor.save_draft")}</span>
+            <span className="sm:hidden">{t("editor.save")}</span>
           </button>
-        )}
+          {canPublish && (
+            <button
+              type="submit"
+              name="intent"
+              value="publish"
+              className="shrink-0 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {t("editor.publish")} ↗
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ------------------------------------------------------------------ */}

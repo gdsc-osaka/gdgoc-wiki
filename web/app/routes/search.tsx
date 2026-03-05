@@ -135,7 +135,7 @@ export default function SearchPage() {
   const isJa = i18n.language === "ja"
 
   return (
-    <div className="max-w-3xl px-8 py-8">
+    <div className="max-w-3xl px-4 py-6 md:px-8 md:py-8">
       <h1 className="mb-1 text-lg font-semibold text-gray-900">{t("search.title")}</h1>
 
       {!q ? (

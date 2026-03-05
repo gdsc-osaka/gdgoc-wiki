@@ -146,7 +146,7 @@ export default function NotificationBell({ initialCount }: { initialCount: numbe
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-72 rounded-md border border-gray-200 bg-white shadow-lg">
+        <div className="absolute right-0 top-full z-50 mt-1 w-[calc(100vw-1.5rem)] max-w-72 rounded-md border border-gray-200 bg-white shadow-lg sm:w-72">
           <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
             <p className="text-sm font-semibold text-gray-900">{t("notifications.title")}</p>
             {unreadCount > 0 && (
