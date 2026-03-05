@@ -19,16 +19,19 @@ if (!APP_ID || !BOT_TOKEN) {
 const commands = [
   {
     name: "wiki-ingest",
-    description:
-      "Collect the last N minutes of messages and send to the GDGoC Wiki ingestion pipeline",
+    description: "Collect channel messages in a time range and send to the GDGoC Wiki ingestion pipeline",
     options: [
       {
-        name: "minutes",
-        description: "How many minutes back to collect (1–1440)",
-        type: 4, // INTEGER
+        name: "since",
+        description: "Start datetime, e.g. 2024-06-01 09:00 (JST) or ISO 8601",
+        type: 3, // STRING
         required: true,
-        min_value: 1,
-        max_value: 1440,
+      },
+      {
+        name: "until",
+        description: "End datetime (default: now), e.g. 2024-06-01 12:00 (JST) or ISO 8601",
+        type: 3, // STRING
+        required: false,
       },
     ],
   },
