@@ -175,6 +175,7 @@
     "complete_toast": "AIによる取り込みが完了しました！下書きを確認してください。",
     "processing_message": "AIが分析中...",
     "processing_hint": "少々お待ちください",
+    "processing_leave_hint": "このページを離れても大丈夫です — 処理はバックグラウンドで続きます。",
     "phase_step_1": "入力を処理中",
     "phase_step_2": "ページ構成を計画中",
     "phase_step_3": "ページ内容を生成中",

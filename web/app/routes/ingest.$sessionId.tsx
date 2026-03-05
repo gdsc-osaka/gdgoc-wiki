@@ -165,6 +165,7 @@ function ProcessingScreen({
         })}
       </div>
       <p className="text-sm text-gray-500">{t("ingest.processing_hint")}</p>
+      <p className="text-xs text-gray-400">{t("ingest.processing_leave_hint")}</p>
     </div>
   )
 }

@@ -175,6 +175,7 @@
     "complete_toast": "AI ingestion complete! Review your draft below.",
     "processing_message": "AI is analyzing...",
     "processing_hint": "Please wait a moment",
+    "processing_leave_hint": "You can safely leave this page — processing will continue in the background.",
     "phase_step_1": "Processing input",
     "phase_step_2": "Planning page structure",
     "phase_step_3": "Generating page content",
