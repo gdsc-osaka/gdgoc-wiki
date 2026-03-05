@@ -63,12 +63,7 @@ max_batch_size = 1
 max_batch_timeout = 5
 
 # ---------------------------------------------------------------------------
-# Cloudflare Email Workers — send invitation emails
-# ---------------------------------------------------------------------------
-[[send_email]]
-name = "MAILER"
-
-# ---------------------------------------------------------------------------
 # Secrets (set via `wrangler secret put`)
+# RESEND_API_KEY     — Resend transactional email API key
 # WIKI_DISCORD_SECRET — shared secret for Discord bot → wiki API auth
 # ---------------------------------------------------------------------------
