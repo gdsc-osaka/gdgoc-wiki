@@ -3,6 +3,8 @@
     "app/**/*.ts",
     "app/**/*.tsx",
     "workers/**/*.ts",
+    "tests/**/*.ts",
+    "tests/**/*.tsx",
     "worker-configuration.d.ts",
     ".react-router/types/**/*"
   ],

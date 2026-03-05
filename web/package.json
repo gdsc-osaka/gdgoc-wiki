@@ -13,6 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:golden": "vitest run tests/golden",
+    "test:golden:update": "vitest run tests/golden -u",
     "test:e2e": "playwright test --pass-with-no-tests",
     "deploy": "pnpm build && wrangler deploy",
     "migrate:local": "wrangler d1 migrations apply gdgoc-wiki-production-db --local",
