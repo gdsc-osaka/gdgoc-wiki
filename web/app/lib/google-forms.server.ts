@@ -78,7 +78,7 @@ export async function fetchFormStructure(
 
   if (!res.ok) {
     const body = await res.text()
-    throw new Error(`Google Forms API error (structure): ${res.status} ${body}`)
+    throwFormsApiError("structure", res.status, body)
   }
 
   const data = (await res.json()) as GoogleFormsApiForm
@@ -95,11 +95,24 @@ export async function fetchFormResponses(
 
   if (!res.ok) {
     const body = await res.text()
-    throw new Error(`Google Forms API error (responses): ${res.status} ${body}`)
+    throwFormsApiError("responses", res.status, body)
   }
 
   const data = (await res.json()) as { responses?: GoogleFormsApiResponse[] }
   return (data.responses ?? []).map(parseFormResponse)
+}
+
+function throwFormsApiError(phase: string, status: number, body: string): never {
+  if (
+    status === 403 &&
+    (body.includes("ACCESS_TOKEN_SCOPE_INSUFFICIENT") || body.includes("insufficient"))
+  ) {
+    throw new Error(
+      'Google Forms permission missing. Please click the "Connect Google" button again ' +
+        "to re-authorize with the required permissions.",
+    )
+  }
+  throw new Error(`Google Forms API error (${phase}): ${status} ${body}`)
 }
 
 export async function fetchFormData(formId: string, accessToken: string): Promise<FormData> {

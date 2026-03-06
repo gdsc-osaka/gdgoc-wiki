@@ -177,7 +177,7 @@ function AnalyzeForm() {
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
           <p className="text-sm text-amber-800">{t("analyze.form.connect_hint")}</p>
           <a
-            href="/api/google-drive/auth"
+            href="/api/google-drive/auth?returnTo=/analyze"
             className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm font-medium text-amber-800 transition-colors hover:bg-amber-100"
           >
             {t("analyze.form.connect_google")}
