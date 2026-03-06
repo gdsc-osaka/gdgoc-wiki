@@ -482,6 +482,10 @@
     "message": "Your account is not authorized to access this wiki. Please contact your chapter lead or an admin to request an invitation.",
     "sign_out": "Sign Out"
   },
+  "viewer": {
+    "title": "Access Not Granted",
+    "message": "Please contact chapter organizers or administrator for invitation."
+  },
   "search": {
     "title": "Search Results",
     "results_count": "{{count}} results",

@@ -1,20 +1,24 @@
 import { useTranslation } from "react-i18next"
 import { redirect } from "react-router"
 import type { LoaderFunctionArgs } from "react-router"
+import { useLoaderData } from "react-router"
 import { authClient } from "~/lib/auth.client"
 import { createAuth } from "~/lib/auth.server"
 
 export async function loader({ request, context }: LoaderFunctionArgs) {
   const auth = createAuth(context.cloudflare.env)
   const session = await auth.api.getSession({ headers: request.headers })
-  // Only pending users should see this page; redirect others to home
+  // Only pending/viewer users should see this page; redirect others to home
   if (!session) throw redirect("/login")
-  if (session.user.role !== "pending") throw redirect("/")
-  return {}
+  const role = session.user.role
+  if (role !== "pending" && role !== "viewer") throw redirect("/")
+  return { role }
 }
 
 export default function PendingPage() {
   const { t } = useTranslation()
+  const { role } = useLoaderData<typeof loader>()
+  const isViewer = role === "viewer"
 
   async function handleSignOut() {
     await authClient.signOut({
@@ -34,8 +38,12 @@ export default function PendingPage() {
             ⚠
           </span>
         </div>
-        <h1 className="mt-4 text-xl font-semibold text-gray-900">{t("pending.title")}</h1>
-        <p className="mt-3 text-sm text-gray-500">{t("pending.message")}</p>
+        <h1 className="mt-4 text-xl font-semibold text-gray-900">
+          {t(isViewer ? "viewer.title" : "pending.title")}
+        </h1>
+        <p className="mt-3 text-sm text-gray-500">
+          {t(isViewer ? "viewer.message" : "pending.message")}
+        </p>
         <button
           type="button"
           onClick={handleSignOut}

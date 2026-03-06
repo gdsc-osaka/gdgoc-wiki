@@ -1,7 +1,7 @@
 import { and, eq, isNull, sql } from "drizzle-orm"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Outlet, useLoaderData, useLocation, useParams } from "react-router"
+import { Outlet, redirect, useLoaderData, useLocation, useParams } from "react-router"
 import type { LoaderFunctionArgs } from "react-router"
 import Footer from "~/components/Footer"
 import Navbar from "~/components/Navbar"
@@ -21,6 +21,8 @@ import { buildVisibilityFilter } from "~/lib/page-visibility.server"
 export async function loader({ request, context }: LoaderFunctionArgs) {
   const { env } = context.cloudflare
   const user = await getSessionUser(request, env)
+
+  if (user?.role === "pending" || user?.role === "viewer") throw redirect("/pending")
 
   if (!user) {
     return { user: null, pageTree: [] as ReturnType<typeof buildTree>, unreadNotificationCount: 0 }
