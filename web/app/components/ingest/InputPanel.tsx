@@ -27,6 +27,7 @@ export default function InputPanel({ driveConnected, serverError }: InputPanelPr
 
   function validate(): string[] {
     const errs: string[] = []
+
     if (docUrl.trim() && !isGoogleDriveUrl(docUrl.trim())) {
       errs.push(t("ingest.errors.invalid_drive_url"))
     }

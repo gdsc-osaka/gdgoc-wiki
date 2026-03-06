@@ -21,6 +21,7 @@ const PAGE_TYPE_VALUES = [
   "project-log",
   "how-to-guide",
   "onboarding-guide",
+  "survey-report",
 ] as const
 
 const CANONICAL_TAG_SLUGS = [

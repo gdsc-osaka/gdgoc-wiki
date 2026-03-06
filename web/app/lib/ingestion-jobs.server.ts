@@ -18,6 +18,8 @@ type SessionInputsJson = {
   imageKeys: string[]
   googleDocUrls: string[]
   pdfKeys?: string[]
+  googleFormUrl?: string
+  eventTitle?: string
 }
 
 function isStringArray(value: unknown): value is string[] {
@@ -63,5 +65,7 @@ export function parseSessionInputsJson(inputsJson: string): IngestionInputs {
     imageKeys: parsed.imageKeys,
     googleDocUrls: parsed.googleDocUrls,
     pdfKeys: parsed.pdfKeys ?? [],
+    googleFormUrl: parsed.googleFormUrl,
+    eventTitle: parsed.eventTitle,
   }
 }

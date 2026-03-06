@@ -19,6 +19,7 @@ import {
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import {
+  ChartPie,
   ChevronDown,
   ChevronRight,
   FileText,
@@ -531,6 +532,14 @@ export default function PageTree({
             >
               <span>✦</span>
               <span>{t("pageTree.newPage_ai")}</span>
+            </Link>
+            <Link
+              to="/analyze"
+              onClick={() => setDropdownOpen(false)}
+              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+            >
+              <ChartPie size={14} />
+              <span>{t("pageTree.newPage_analyze")}</span>
             </Link>
             <Link
               to="/wiki/new"

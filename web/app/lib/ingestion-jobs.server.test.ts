@@ -41,6 +41,29 @@ describe("ingestion-jobs helpers", () => {
       imageKeys: ["ingestion/u1/s1/a.png"],
       googleDocUrls: [],
       pdfKeys: [],
+      googleFormUrl: undefined,
+      eventTitle: undefined,
+    })
+  })
+
+  it("parses session inputs JSON with Google Form fields", () => {
+    const parsed = parseSessionInputsJson(
+      JSON.stringify({
+        texts: ["Tech Talk 2025"],
+        imageKeys: [],
+        googleDocUrls: [],
+        googleFormUrl: "https://docs.google.com/forms/d/abc123/viewform",
+        eventTitle: "Tech Talk 2025",
+      }),
+    )
+
+    expect(parsed).toEqual({
+      texts: ["Tech Talk 2025"],
+      imageKeys: [],
+      googleDocUrls: [],
+      pdfKeys: [],
+      googleFormUrl: "https://docs.google.com/forms/d/abc123/viewform",
+      eventTitle: "Tech Talk 2025",
     })
   })
 

@@ -160,7 +160,7 @@ export const pages = sqliteTable("pages", {
   status: text("status").notNull().default("draft"),
   // "draft" | "published" | "archived"
   pageType: text("page_type"),
-  // "event-report" | "speaker-profile" | "project-log" | "how-to-guide" | "onboarding-guide" | null
+  // "event-report" | "speaker-profile" | "project-log" | "how-to-guide" | "onboarding-guide" | "survey-report" | null
   pageMetadata: text("page_metadata"),
   ingestionSessionId: text("ingestion_session_id").references(() => ingestionSessions.id),
   actionabilityScore: integer("actionability_score"),

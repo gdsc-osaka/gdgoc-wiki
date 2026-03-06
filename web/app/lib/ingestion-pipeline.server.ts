@@ -33,6 +33,8 @@ import {
   getDriveFileName,
   refreshAccessToken,
 } from "./google-drive.server"
+import { extractFormId, fetchFormData } from "./google-forms.server"
+import { computeSurveyStats, formatSurveyStatsAsText } from "./survey-stats.server"
 import { tiptapToMarkdown } from "./tiptap-convert"
 import { type ExtractedUrl, extractUrls, fetchUrlAsPdf, fetchUrlViaJina } from "./url-extract"
 
@@ -52,6 +54,8 @@ export interface IngestionInputs {
   imageFiles?: Array<{ key: string; buffer: ArrayBuffer; mimeType: string; name: string }>
   pdfKeys?: string[]
   pdfFiles?: Array<{ key: string; buffer: ArrayBuffer; mimeType: string; name: string }>
+  googleFormUrl?: string
+  eventTitle?: string
 }
 
 export interface ChangesetOperation {
@@ -186,6 +190,7 @@ export async function runIngestionPipeline(
     const warnings: string[] = []
     const docTexts: string[] = []
     const sources: SourceUrl[] = resumeContext?.priorSources ? [...resumeContext.priorSources] : []
+    let skipPhase0 = false
 
     // Determine resume type
     const isPostClarification = !!resumeContext?.clarificationAnswers
@@ -380,6 +385,73 @@ export async function runIngestionPipeline(
       }
 
       // ------------------------------------------------------------------
+      // Step 2.4: Google Forms pre-processing (fetch structure + responses → stats)
+      // ------------------------------------------------------------------
+
+      if (inputs.googleFormUrl) {
+        const formId = extractFormId(inputs.googleFormUrl)
+        if (!formId) {
+          throw new Error("Invalid Google Form URL")
+        }
+
+        // Use the same Google Drive token (which now includes forms.responses.readonly scope)
+        const tokenRow = await db
+          .select()
+          .from(schema.googleDriveTokens)
+          .where(eq(schema.googleDriveTokens.userId, userId))
+          .get()
+
+        if (!tokenRow) {
+          throw new Error("Googleの認証が見つかりません。設定画面からGoogleを接続してください。")
+        }
+
+        let accessToken = tokenRow.accessToken
+        const now = new Date()
+        if (tokenRow.expiresAt < now && tokenRow.refreshToken) {
+          try {
+            const refreshed = await refreshAccessToken(
+              tokenRow.refreshToken,
+              env.GOOGLE_DOCS_CLIENT_ID,
+              env.GOOGLE_DOCS_CLIENT_SECRET,
+            )
+            accessToken = refreshed.accessToken
+            await db
+              .update(schema.googleDriveTokens)
+              .set({
+                accessToken: refreshed.accessToken,
+                expiresAt: refreshed.expiresAt,
+                updatedAt: now,
+              })
+              .where(eq(schema.googleDriveTokens.userId, userId))
+          } catch (refreshErr) {
+            const msg = refreshErr instanceof Error ? refreshErr.message : String(refreshErr)
+            throw new Error(
+              `Googleのアクセスが無効になりました。設定画面からGoogleを再接続してください。(${msg})`,
+            )
+          }
+        }
+
+        const formData = await fetchFormData(formId, accessToken)
+        const stats = computeSurveyStats(formData)
+        const statsText = formatSurveyStatsAsText(
+          stats,
+          inputs.eventTitle ?? formData.structure.title,
+        )
+
+        // Prepend structured stats to user text so Gemini uses pre-computed numbers
+        docTexts.push(statsText)
+
+        // Add form URL as a source
+        sources.push({
+          url: inputs.googleFormUrl,
+          title: `Google Form: ${formData.structure.title}`,
+        })
+
+        // Skip Phase 0 (Clarifier) — form data is already structured
+        skipPhase0 = true
+      }
+
+      // ------------------------------------------------------------------
       // Step 2.5: Extract URLs from user text + Google Doc text
       // ------------------------------------------------------------------
       const allExtractedUrls: ExtractedUrl[] = []
@@ -513,33 +585,39 @@ export async function runIngestionPipeline(
 
     if (!isPostClarification) {
       await updatePhase(db, sessionId, "planning")
-      const [pageIndexResult, clarifierResult] = await Promise.all([
-        buildPageIndex(db, effectiveUserText),
-        runPhase0Clarifier(env.GEMINI_API_KEY, effectiveUserText, fileUris, currentDatetime),
-      ])
 
-      if (clarifierResult.needsClarification) {
-        const aiDraftJson: AiDraftJson = {
-          phase: "clarification",
-          questions: clarifierResult.questions,
-          summary: clarifierResult.summary,
-          fileUris,
-          googleDocText: docTexts.join("\n\n---\n\n"),
-          sources: sources.length > 0 ? sources : undefined,
+      if (skipPhase0) {
+        // Google Forms input — data is already structured, skip clarification
+        pageIndex = await buildPageIndex(db, effectiveUserText)
+      } else {
+        const [pageIndexResult, clarifierResult] = await Promise.all([
+          buildPageIndex(db, effectiveUserText),
+          runPhase0Clarifier(env.GEMINI_API_KEY, effectiveUserText, fileUris, currentDatetime),
+        ])
+
+        if (clarifierResult.needsClarification) {
+          const aiDraftJson: AiDraftJson = {
+            phase: "clarification",
+            questions: clarifierResult.questions,
+            summary: clarifierResult.summary,
+            fileUris,
+            googleDocText: docTexts.join("\n\n---\n\n"),
+            sources: sources.length > 0 ? sources : undefined,
+          }
+          await db
+            .update(schema.ingestionSessions)
+            .set({
+              aiDraftJson: JSON.stringify(aiDraftJson),
+              status: "awaiting_clarification",
+              phaseMessage: null,
+              updatedAt: new Date(),
+            })
+            .where(eq(schema.ingestionSessions.id, sessionId))
+          return
         }
-        await db
-          .update(schema.ingestionSessions)
-          .set({
-            aiDraftJson: JSON.stringify(aiDraftJson),
-            status: "awaiting_clarification",
-            phaseMessage: null,
-            updatedAt: new Date(),
-          })
-          .where(eq(schema.ingestionSessions.id, sessionId))
-        return
-      }
 
-      pageIndex = pageIndexResult
+        pageIndex = pageIndexResult
+      }
     } else {
       await updatePhase(db, sessionId, "planning")
       pageIndex = await buildPageIndex(db, effectiveUserText)
@@ -739,12 +817,14 @@ export async function runIngestionPipeline(
   } catch (err) {
     console.error(`[ingestion-pipeline] session=${sessionId} error:`, err)
     const rawMessage = err instanceof Error ? err.message : String(err)
-    // Surface Google Drive / auth errors directly to the user
-    const isGoogleDriveError =
-      /google\s*(drive|doc)|invalid_grant|invalid_token|refresh.?token|drive\.googleapis\.com|drive\s*api|oauth|access.?token/i.test(
+    // Surface Google Drive / Forms / auth errors directly to the user
+    const isGoogleApiError =
+      /google\s*(drive|doc|form)|invalid_grant|invalid_token|refresh.?token|drive\.googleapis\.com|forms\.googleapis\.com|drive\s*api|forms\s*api|oauth|access.?token|UNAUTHENTICATED|認証|接続/i.test(
         rawMessage,
-      ) || rawMessage.includes("401")
-    const errorMessage = isGoogleDriveError
+      ) ||
+      rawMessage.includes("401") ||
+      rawMessage.includes("403")
+    const errorMessage = isGoogleApiError
       ? rawMessage
       : "Ingestion failed due to an internal error."
     const errorDb = drizzle(env.DB, { schema })

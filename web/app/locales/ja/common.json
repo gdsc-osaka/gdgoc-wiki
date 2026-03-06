@@ -277,7 +277,14 @@
       "pdfs_label": "PDFファイル（最大{{max}}件・各20MB以下）",
       "pdfs_hint": "AI分析のソースとしてPDFドキュメントをアップロードします",
       "pdfs_drop_hint": "クリックまたはドラッグ&ドロップでPDFファイルを追加",
-      "submit": "AI で作成する →"
+      "submit": "AI で作成する →",
+      "mode_text": "テキスト / ファイル",
+      "mode_google_form": "Google フォーム",
+      "form_url_label": "Google フォーム URL",
+      "event_title_label": "イベント名",
+      "event_title_placeholder": "例: GDGoC Tech Talk 2025",
+      "form_connect_hint": "Google フォームへのアクセスにはGoogleアカウントの接続が必要です。Google ドライブと同じ接続を使用します。",
+      "form_connect_google": "Google を接続"
     },
     "errors": {
       "text_too_short": "入力が少なすぎます。最低{{min}}文字以上入力してください。",
@@ -288,7 +295,11 @@
       "too_many_pdfs": "PDFファイルは最大{{max}}件までです。",
       "pdf_too_large": "{{name}} は20MBを超えています。",
       "not_a_pdf": "{{name}} はPDFファイルではありません。",
-      "enqueue_failed": "取り込みジョブの開始に失敗しました。もう一度お試しください。"
+      "enqueue_failed": "取り込みジョブの開始に失敗しました。もう一度お試しください。",
+      "form_not_connected": "まず Google アカウントを接続してください。",
+      "invalid_form_url": "有効な Google フォーム URL を入力してください。",
+      "form_url_required": "Google フォーム URL は必須です。",
+      "event_title_required": "イベント名は必須です。"
     },
     "review": {
       "ai_rationale": "AIの判断理由",
@@ -317,7 +328,8 @@
         "speaker-profile": "スピーカープロファイル",
         "project-log": "プロジェクトログ",
         "how-to-guide": "ハウツーガイド",
-        "onboarding-guide": "オンボーディングガイド"
+        "onboarding-guide": "オンボーディングガイド",
+        "survey-report": "アンケートレポート"
       },
       "tag": {
         "event-operations": "イベント運営",
@@ -354,6 +366,25 @@
         "credential": "認証情報",
         "other": "その他"
       }
+    }
+  },
+  "analyze": {
+    "title": "AIで分析する (Beta)",
+    "description": "Google フォームのURLを入力すると、アンケート分析のWikiページをグラフ付きで自動作成します。",
+    "form": {
+      "form_url_label": "Google フォーム URL",
+      "event_title_label": "イベント名",
+      "event_title_placeholder": "例: GDGoC Tech Talk 2025",
+      "connect_hint": "Google フォームへのアクセスにはGoogleアカウントの接続が必要です。Google ドライブと同じ接続を使用します。",
+      "connect_google": "Google を接続",
+      "submit": "AI で分析する →"
+    },
+    "errors": {
+      "form_not_connected": "まず Google アカウントを接続してください。",
+      "invalid_form_url": "有効な Google フォーム URL を入力してください。",
+      "form_url_required": "Google フォーム URL は必須です。",
+      "event_title_required": "イベント名は必須です。",
+      "enqueue_failed": "分析ジョブの開始に失敗しました。もう一度お試しください。"
     }
   },
   "settings": {
@@ -485,6 +516,7 @@
     "noPages": "ページはまだありません",
     "newPage": "新規ページ",
     "newPage_ai": "AIで作成",
+    "newPage_analyze": "AIで分析 (Beta)",
     "newPage_manual": "手動で作成",
     "collapse": "折りたたむ",
     "expand": "展開する",

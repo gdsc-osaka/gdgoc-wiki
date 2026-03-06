@@ -43,6 +43,7 @@ const CreateOperationSchema = z.object({
     "project-log",
     "how-to-guide",
     "onboarding-guide",
+    "survey-report",
   ]),
   rationale: z.string(),
 })
@@ -89,6 +90,7 @@ export const PageDraftSchema = z.object({
     "project-log",
     "how-to-guide",
     "onboarding-guide",
+    "survey-report",
   ]),
   pageTypeConfidence: z.enum(["high", "medium", "low"]),
   title: z.object({ ja: z.string() }),
@@ -182,6 +184,7 @@ const OPERATION_PLAN_RESPONSE_SCHEMA = {
               "project-log",
               "how-to-guide",
               "onboarding-guide",
+              "survey-report",
             ],
           },
           rationale: { type: "string" },
@@ -200,7 +203,14 @@ const PAGE_DRAFT_RESPONSE_SCHEMA = {
   properties: {
     suggestedPageType: {
       type: "string",
-      enum: ["event-report", "speaker-profile", "project-log", "how-to-guide", "onboarding-guide"],
+      enum: [
+        "event-report",
+        "speaker-profile",
+        "project-log",
+        "how-to-guide",
+        "onboarding-guide",
+        "survey-report",
+      ],
     },
     pageTypeConfidence: { type: "string", enum: ["high", "medium", "low"] },
     title: { type: "object", properties: { ja: { type: "string" } }, required: ["ja"] },
@@ -453,6 +463,9 @@ const PHASE2_SYSTEM_PROMPT = `あなたはGDGoC Japan（Google Developer Groups 
 ### onboarding-guide
 このガイドについて / About This Guide → 対象者 / Who This Is For → はじめの一歩 / Getting Started → 重要な連絡先・リソース / Key Contacts & Resources → よくある質問 / FAQ
 
+### survey-report
+イベント概要 / Event Overview (タイトル, 日付, 回答者数, 回答率) → 主な発見 / Key Findings (データに基づくトップ3〜5のインサイト) → 質問別分析 / Per-Question Analysis (定量: Mermaidチャート付き, 定性: テーマクラスタリング) → 改善提案 / Actionable Recommendations (次回改善すべき点) → データ付録 / Data Appendix (全質問のサマリーテーブル)
+
 ## タグ分類（最大5つ選択）
 以下のslugと日本語ラベルを使用してください:
 event-operations（イベント運営）/ speaker-management（スピーカー管理）/
@@ -465,7 +478,15 @@ technical（技術）/ template（テンプレート）
 - 手順・プロセス系は番号付きリスト、その他の情報は箇条書き（\`-\`）を使用する
 - 3文以上の連続した散文段落は禁止。必ず箇条書きに分解すること
 - 各箇条書き項目は1〜2文以内に収める
-- サブ箇条書き（インデント付き \`-\`）で階層的に詳細を補足してよい`
+- サブ箇条書き（インデント付き \`-\`）で階層的に詳細を補足してよい
+
+## Mermaidチャート（survey-reportページ専用）
+survey-reportページでは、定量的な質問の分析にMermaidダイアグラムを埋め込んでください:
+- 選択肢が8個以下の多肢選択問題には \`pie\` チャートを使用
+- 評価・スケール系の質問には \`xychart-beta\` の棒グラフを使用
+- \`\`\`mermaid コードブロックで囲む
+- 事前計算された統計値をそのまま使用し、再計算しないこと
+- 他のページタイプではMermaidチャートを使用しないこと`
 
 // ---------------------------------------------------------------------------
 // File upload helper (REST — works in Cloudflare Workers)

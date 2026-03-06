@@ -1,4 +1,13 @@
-import { Globe, LogOut, Moon, PanelLeft, PanelLeftClose, Settings, Sun } from "lucide-react"
+import {
+  ChartPie,
+  Globe,
+  LogOut,
+  Moon,
+  PanelLeft,
+  PanelLeftClose,
+  Settings,
+  Sun,
+} from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Form, Link, useFetcher, useSearchParams } from "react-router"
@@ -206,6 +215,14 @@ function NewPageDropdown() {
           >
             <span>✦</span>
             <span>{t("pageTree.newPage_ai")}</span>
+          </Link>
+          <Link
+            to="/analyze"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+          >
+            <ChartPie size={14} />
+            <span>{t("pageTree.newPage_analyze")}</span>
           </Link>
           <Link
             to="/wiki/new"

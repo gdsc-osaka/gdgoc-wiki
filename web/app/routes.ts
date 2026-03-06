@@ -63,6 +63,7 @@ export default [
     route("/chapter", "routes/chapter.tsx"),
     route("/ingest", "routes/ingest.tsx"),
     route("/ingest/:sessionId", "routes/ingest.$sessionId.tsx"),
+    route("/analyze", "routes/analyze.tsx"),
     route("/settings", "routes/settings.tsx"),
   ]),
 ] satisfies RouteConfig

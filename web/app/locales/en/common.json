@@ -277,7 +277,14 @@
       "pdfs_label": "PDF Files (max {{max}}, up to 20 MB each)",
       "pdfs_hint": "Upload PDF documents as source material for AI analysis",
       "pdfs_drop_hint": "Click or drag & drop to add PDF files",
-      "submit": "Create with AI →"
+      "submit": "Create with AI →",
+      "mode_text": "Text / Files",
+      "mode_google_form": "Google Form",
+      "form_url_label": "Google Form URL",
+      "event_title_label": "Event Title",
+      "event_title_placeholder": "e.g. GDGoC Tech Talk 2025",
+      "form_connect_hint": "Google Forms access requires connecting your Google account. This uses the same connection as Google Drive.",
+      "form_connect_google": "Connect Google"
     },
     "errors": {
       "text_too_short": "Not enough text. Please enter at least {{min}} characters.",
@@ -288,7 +295,11 @@
       "too_many_pdfs": "You can attach up to {{max}} PDF files.",
       "pdf_too_large": "{{name}} exceeds 20 MB.",
       "not_a_pdf": "{{name}} is not a PDF file.",
-      "enqueue_failed": "Failed to start ingestion. Please try again."
+      "enqueue_failed": "Failed to start ingestion. Please try again.",
+      "form_not_connected": "Please connect your Google account first.",
+      "invalid_form_url": "Please enter a valid Google Forms URL.",
+      "form_url_required": "Google Form URL is required.",
+      "event_title_required": "Event title is required."
     },
     "review": {
       "ai_rationale": "AI's Reasoning",
@@ -317,7 +328,8 @@
         "speaker-profile": "Speaker Profile",
         "project-log": "Project Log",
         "how-to-guide": "How-to Guide",
-        "onboarding-guide": "Onboarding Guide"
+        "onboarding-guide": "Onboarding Guide",
+        "survey-report": "Survey Report"
       },
       "tag": {
         "event-operations": "Event Operations",
@@ -354,6 +366,25 @@
         "credential": "Credentials",
         "other": "Other"
       }
+    }
+  },
+  "analyze": {
+    "title": "Analyze with AI (Beta)",
+    "description": "Paste a Google Form URL to auto-generate a survey analysis wiki page with charts.",
+    "form": {
+      "form_url_label": "Google Form URL",
+      "event_title_label": "Event Title",
+      "event_title_placeholder": "e.g. GDGoC Tech Talk 2025",
+      "connect_hint": "Google Forms access requires connecting your Google account. This uses the same connection as Google Drive.",
+      "connect_google": "Connect Google",
+      "submit": "Analyze with AI →"
+    },
+    "errors": {
+      "form_not_connected": "Please connect your Google account first.",
+      "invalid_form_url": "Please enter a valid Google Forms URL.",
+      "form_url_required": "Google Form URL is required.",
+      "event_title_required": "Event title is required.",
+      "enqueue_failed": "Failed to start analysis. Please try again."
     }
   },
   "settings": {
@@ -485,6 +516,7 @@
     "noPages": "No pages yet",
     "newPage": "New Page",
     "newPage_ai": "Create with AI",
+    "newPage_analyze": "Analyze with AI (Beta)",
     "newPage_manual": "Write manually",
     "collapse": "Collapse",
     "expand": "Expand",
