@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm"
 import type { drizzle } from "drizzle-orm/d1"
 import * as schema from "~/db/schema"
 import { chunkPageContent } from "./chunker.server"
@@ -83,11 +83,16 @@ export async function indexPageEmbeddings(env: Env, db: Db, pageId: string): Pro
     allEmbeddings.push(...data)
   }
 
-  // Delete old vectors for this page
+  // Delete old vectors for this page — use stored chunkCount to avoid over-generating IDs
+  const existingStatus = await db
+    .select({ chunkCount: schema.pageEmbeddingStatus.chunkCount })
+    .from(schema.pageEmbeddingStatus)
+    .where(eq(schema.pageEmbeddingStatus.pageId, pageId))
+    .get()
+  const oldChunkLimit = Math.max(existingStatus?.chunkCount ?? 0, 200)
   const oldIds: string[] = []
-  // Generate potential old IDs for both languages and reasonable chunk counts
   for (const lang of ["ja", "en"]) {
-    for (let i = 0; i < 200; i++) {
+    for (let i = 0; i < oldChunkLimit; i++) {
       oldIds.push(`${pageId}:${lang}:${i}`)
     }
   }
@@ -97,10 +102,20 @@ export async function indexPageEmbeddings(env: Env, db: Db, pageId: string): Pro
     // Ignore errors from deleting non-existent IDs
   }
 
+  // Validate embedding count matches chunk count
+  const validPairs = chunks
+    .map((chunk, i) => ({ chunk, embedding: allEmbeddings[i] }))
+    .filter((p): p is typeof p & { embedding: number[] } => p.embedding !== undefined)
+  if (validPairs.length !== chunks.length) {
+    console.error(
+      `embedding-pipeline: embedding count mismatch for ${pageId}: got ${validPairs.length} embeddings for ${chunks.length} chunks`,
+    )
+  }
+
   // Upsert new vectors
-  const vectors = chunks.map((chunk, i) => ({
+  const vectors = validPairs.map(({ chunk, embedding }) => ({
     id: `${pageId}:${chunk.language}:${chunk.chunkIndex}`,
-    values: allEmbeddings[i],
+    values: embedding,
     metadata: {
       pageId: chunk.pageId,
       language: chunk.language,
@@ -122,9 +137,16 @@ export async function indexPageEmbeddings(env: Env, db: Db, pageId: string): Pro
 export async function deletePageEmbeddings(env: Env, db: Db, pageId: string): Promise<void> {
   if (!env.VECTORIZE) return
 
+  const existing = await db
+    .select({ chunkCount: schema.pageEmbeddingStatus.chunkCount })
+    .from(schema.pageEmbeddingStatus)
+    .where(eq(schema.pageEmbeddingStatus.pageId, pageId))
+    .get()
+  const limit = Math.max(existing?.chunkCount ?? 0, 200)
+
   const ids: string[] = []
   for (const lang of ["ja", "en"]) {
-    for (let i = 0; i < 200; i++) {
+    for (let i = 0; i < limit; i++) {
       ids.push(`${pageId}:${lang}:${i}`)
     }
   }
@@ -146,26 +168,9 @@ async function upsertStatus(
   errorMessage: string | null,
 ): Promise<void> {
   const now = new Date()
-  const existing = await db
-    .select({ pageId: schema.pageEmbeddingStatus.pageId })
-    .from(schema.pageEmbeddingStatus)
-    .where(eq(schema.pageEmbeddingStatus.pageId, pageId))
-    .get()
-
-  if (existing) {
-    await db
-      .update(schema.pageEmbeddingStatus)
-      .set({
-        status,
-        chunkCount,
-        contentHash,
-        lastIndexedAt: status === "indexed" ? now : undefined,
-        errorMessage,
-        updatedAt: now,
-      })
-      .where(eq(schema.pageEmbeddingStatus.pageId, pageId))
-  } else {
-    await db.insert(schema.pageEmbeddingStatus).values({
+  await db
+    .insert(schema.pageEmbeddingStatus)
+    .values({
       pageId,
       status,
       chunkCount,
@@ -175,5 +180,15 @@ async function upsertStatus(
       createdAt: now,
       updatedAt: now,
     })
-  }
+    .onConflictDoUpdate({
+      target: schema.pageEmbeddingStatus.pageId,
+      set: {
+        status,
+        chunkCount,
+        contentHash,
+        errorMessage,
+        updatedAt: now,
+        lastIndexedAt: status === "indexed" ? now : sql`last_indexed_at`,
+      },
+    })
 }

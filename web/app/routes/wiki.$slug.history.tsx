@@ -138,8 +138,7 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
   }
 
   const userRole = sessionUser.role as string
-  const canRevert =
-    hasRole(userRole, "member") && (hasRole(userRole, "lead") || page.authorId === sessionUser.id)
+  const canRevert = hasRole(userRole, "lead") || page.authorId === sessionUser.id
 
   return {
     page: {

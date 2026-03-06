@@ -97,7 +97,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
       return { errorKey: "ingest.errors.image_too_large", errorParams: { name: entry.name } }
     }
     const buffer = await entry.arrayBuffer()
-    const key = `ingestion/${user.id}/${sessionId}/${entry.name}`
+    const key = `ingestion/${user.id}/${sessionId}/${crypto.randomUUID()}-${entry.name}`
     // Store in R2
     await env.BUCKET.put(key, buffer, { httpMetadata: { contentType: entry.type } })
     imageFiles.push({ key, buffer, mimeType: entry.type, name: entry.name })
@@ -112,7 +112,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
       return { errorKey: "ingest.errors.not_a_pdf", errorParams: { name: entry.name } }
     }
     const buffer = await entry.arrayBuffer()
-    const key = `ingestion/${user.id}/${sessionId}/${entry.name}`
+    const key = `ingestion/${user.id}/${sessionId}/${crypto.randomUUID()}-${entry.name}`
     await env.BUCKET.put(key, buffer, { httpMetadata: { contentType: "application/pdf" } })
     pdfFiles.push({ key, buffer, mimeType: "application/pdf", name: entry.name })
   }

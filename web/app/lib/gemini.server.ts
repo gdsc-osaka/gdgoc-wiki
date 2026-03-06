@@ -564,7 +564,12 @@ export async function uploadFileToGemini(
       waitMs = Math.min(waitMs * 2, 10_000)
 
       const poll = await fetch(getUrl)
-      if (!poll.ok) break // best-effort; proceed with the URI anyway
+      if (!poll.ok) {
+        console.warn(
+          `gemini: poll non-ok for ${fileResourceName}: ${poll.status} ${poll.statusText}`,
+        )
+        continue
+      }
 
       const status = (await poll.json()) as { state?: string; uri?: string }
       if (status.state === "ACTIVE") break

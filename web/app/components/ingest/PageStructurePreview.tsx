@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { ChangesetOperation } from "~/lib/ingestion-pipeline.server"
 
@@ -152,7 +152,10 @@ export default function PageStructurePreview({
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
 
-  const roots = buildPreviewTree(pageIndex, operations, opStates)
+  const roots = useMemo(
+    () => buildPreviewTree(pageIndex, operations, opStates),
+    [pageIndex, operations, opStates],
+  )
 
   return (
     <div className="rounded-lg border border-gray-200 bg-gray-50">

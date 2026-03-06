@@ -13,7 +13,9 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireRole(request, cloudflare.env, "viewer")
   const db = getDb(cloudflare.env)
   const chapters = await db.select().from(schema.chapters).orderBy(schema.chapters.nameJa).all()
-  return { user, chapters }
+  const canChangeChapter =
+    hasRole(user.role as string, "lead") || hasRole(user.role as string, "admin")
+  return { user, chapters, canChangeChapter }
 }
 
 type ActionErrors = { name?: string; lang?: string; discordId?: string; chapterId?: string }
@@ -128,7 +130,7 @@ function SettingsSection({
 // Settings page component
 // ---------------------------------------------------------------------------
 export default function SettingsPage() {
-  const { user, chapters } = useLoaderData<typeof loader>()
+  const { user, chapters, canChangeChapter } = useLoaderData<typeof loader>()
   const { t, i18n } = useTranslation()
 
   const fetcher = useFetcher<typeof action>()
@@ -148,7 +150,6 @@ export default function SettingsPage() {
 
   const errors = fetcher.data?.ok === false ? fetcher.data.errors : undefined
   const isJa = i18n.language !== "en"
-  const canChangeChapter = user.role === "lead" || user.role === "admin"
 
   return (
     <div className="px-8 py-8">

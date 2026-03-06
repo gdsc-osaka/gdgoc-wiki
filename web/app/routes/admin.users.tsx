@@ -233,6 +233,7 @@ function ChapterSelect({
 }) {
   const fetcher = useFetcher()
   const { t } = useTranslation()
+  const isSubmitting = fetcher.state !== "idle"
   return (
     <fetcher.Form method="post">
       <input type="hidden" name="intent" value="updateChapter" />
@@ -240,6 +241,8 @@ function ChapterSelect({
       <select
         name="chapterId"
         defaultValue={user.chapterId ?? ""}
+        disabled={isSubmitting}
+        aria-busy={isSubmitting}
         onChange={(e) => {
           const form = e.currentTarget.form
           if (form) fetcher.submit(form)

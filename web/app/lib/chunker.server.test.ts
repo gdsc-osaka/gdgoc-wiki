@@ -132,6 +132,9 @@ describe("chunkPageContent", () => {
     })
 
     // tiptapToMarkdown falls back to returning the string as-is for non-JSON
-    expect(chunks.length).toBeGreaterThanOrEqual(0)
+    expect(chunks.length).toBe(1)
+    expect(chunks[0].text).toContain(
+      "これは通常のテキストです。JSONではないコンテンツをテストしています。",
+    )
   })
 })

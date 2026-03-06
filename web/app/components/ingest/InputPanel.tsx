@@ -59,7 +59,7 @@ export default function InputPanel({ driveConnected, serverError }: InputPanelPr
       valid.push(f)
     }
 
-    setErrors(errs)
+    setErrors((prev) => [...prev, ...errs])
     setPdfs((prev) => [...prev, ...valid])
   }
 
@@ -85,7 +85,7 @@ export default function InputPanel({ driveConnected, serverError }: InputPanelPr
       valid.push(f)
     }
 
-    setErrors(errs)
+    setErrors((prev) => [...prev, ...errs])
     setImages((prev) => [...prev, ...valid])
   }
 

@@ -41,6 +41,16 @@ export type { PageNode }
 const INDENT_WIDTH = 16
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+function getLocalizedTitle(
+  node: { titleJa?: string | null; titleEn?: string | null },
+  lang: string,
+): string | undefined {
+  return (lang === "en" ? node.titleEn || node.titleJa : node.titleJa || node.titleEn) ?? undefined
+}
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 interface PageTreeProps {
@@ -180,7 +190,7 @@ function SortableTreeItem({
   const { t, i18n } = useTranslation()
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition } =
     useSortable({ id: node.id })
-  const title = i18n.language === "en" ? node.titleEn || node.titleJa : node.titleJa || node.titleEn
+  const title = getLocalizedTitle(node, i18n.language)
   const isCurrent = node.slug === currentSlug
   const hasChildren = node.children.length > 0
 
@@ -407,7 +417,7 @@ function TreeNode({ node, currentSlug, depth, isCollapsed }: TreeNodeProps) {
   const [expanded, setExpanded] = useState(true)
   const hasChildren = node.children.length > 0
   const isCurrent = node.slug === currentSlug
-  const title = i18n.language === "en" ? node.titleEn || node.titleJa : node.titleJa || node.titleEn
+  const title = getLocalizedTitle(node, i18n.language)
 
   return (
     <li>

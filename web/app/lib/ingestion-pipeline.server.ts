@@ -661,7 +661,7 @@ export async function runIngestionPipeline(
     await updatePhase(db, sessionId, `generating:0/${total}`)
 
     // Derive image + PDF file names for AI hints
-    const imageNames: string[] = [
+    const assetNames: string[] = [
       ...(inputs.imageFiles && inputs.imageFiles.length > 0
         ? inputs.imageFiles.map((f) => f.name)
         : inputs.imageKeys.map((k) => k.split("/").at(-1) ?? k)),
@@ -680,7 +680,7 @@ export async function runIngestionPipeline(
           pageIndex,
           createOps.filter((o) => o.tempId !== op.tempId),
           currentDatetime,
-          imageNames,
+          assetNames,
         )
         done++
         await updatePhase(db, sessionId, `generating:${done}/${total}`)
@@ -699,7 +699,7 @@ export async function runIngestionPipeline(
           op,
           markdown,
           currentDatetime,
-          imageNames,
+          assetNames,
         )
         done++
         await updatePhase(db, sessionId, `generating:${done}/${total}`)

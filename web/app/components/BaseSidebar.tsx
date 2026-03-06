@@ -30,6 +30,7 @@ export default function BaseSidebar({
   const startX = useRef(0)
   const startWidth = useRef(0)
   const [isResizing, setIsResizing] = useState(false)
+  const originalOverflowRef = useRef<string | null>(null)
 
   const isCollapsed = isMobile ? false : width < COLLAPSE_THRESHOLD
   const displayWidth = isOpen ? width : 0
@@ -94,10 +95,13 @@ export default function BaseSidebar({
   // Lock body scroll when mobile drawer is open
   useEffect(() => {
     if (!isMobile) return
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = isOpen ? "hidden" : previousOverflow
+    if (isOpen && originalOverflowRef.current === null) {
+      originalOverflowRef.current = document.body.style.overflow
+    }
+    document.body.style.overflow = isOpen ? "hidden" : (originalOverflowRef.current ?? "")
     return () => {
-      document.body.style.overflow = previousOverflow
+      document.body.style.overflow = originalOverflowRef.current ?? ""
+      if (!isOpen) originalOverflowRef.current = null
     }
   }, [isMobile, isOpen])
 

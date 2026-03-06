@@ -149,21 +149,23 @@ export default function ChangesetReview({
       parentId: null,
     }
 
-    // Prepend the new op
-    setOperations((prev) => [newOp, ...prev])
-    setOpStates((prev) => {
-      // Update existing root-level CREATE ops to be children of newTempId
-      const updated = prev.map((s, i) => {
-        if (operations[i]?.type === "create" && s.parentId === null) {
-          return { ...s, parentId: newTempId }
-        }
-        return s
+    // Prepend the new op, nesting all state updates inside functional updater
+    setOperations((prevOps) => {
+      const newOps = [newOp, ...prevOps]
+      setOpStates((prevStates) => {
+        const updated = prevStates.map((s, i) => {
+          if (prevOps[i]?.type === "create" && s.parentId === null) {
+            return { ...s, parentId: newTempId }
+          }
+          return s
+        })
+        return [newState, ...updated]
       })
-      return [newState, ...updated]
+      setFeedback((prev) => ["", ...prev])
+      setRegenerating((prev) => [false, ...prev])
+      setRegenerateErrors((prev) => [null, ...prev])
+      return newOps
     })
-    setFeedback((prev) => ["", ...prev])
-    setRegenerating((prev) => [false, ...prev])
-    setRegenerateErrors((prev) => [null, ...prev])
   }
 
   async function handleRegenerate(idx: number) {
