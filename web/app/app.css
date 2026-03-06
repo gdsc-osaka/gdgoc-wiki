@@ -110,6 +110,8 @@
 
 .dark {
   color-scheme: dark;
+
+  /* ── Gray scale: fully inverted (light ↔ dark) ── */
   --color-gray-50: #1e1e1e;
   --color-gray-100: #2a2a2a;
   --color-gray-200: #444444;
@@ -121,6 +123,38 @@
   --color-gray-800: #f0f0f0;
   --color-gray-900: #ffffff;
   --color-gray-950: #ffffff;
+
+  /*
+   * Accent tint inversion — same principle as the gray scale:
+   * "surface tint" values (50/100) become dark; "on-tint text" values (700/800) become light.
+   * This makes bg-blue-50, bg-green-50, etc. automatically work in dark mode without
+   * per-component dark: overrides. Values above (200–600, 900–950) are intentionally
+   * left unchanged so existing dark:bg-blue-950 overrides keep their dark appearance.
+   */
+
+  /* ── Blue ── */
+  --color-blue-50: #082566; /* tinted surface (was blue-950) */
+  --color-blue-100: #0d3880; /* subtle surface / border (was blue-900) */
+  --color-blue-700: #57caff; /* on-surface text — bright (was blue-300) */
+  --color-blue-800: #a8d8f0; /* on-surface text — muted (was blue-200) */
+
+  /* ── Green ── */
+  --color-green-50: #063a16; /* tinted surface (was green-950) */
+  --color-green-100: #09501f; /* subtle surface (was green-900) */
+  --color-green-700: #5cdb6d; /* on-surface text — bright (was green-300) */
+  --color-green-800: #a8eaa0; /* on-surface text — muted (was green-200) */
+
+  /* ── Red ── */
+  --color-red-50: #3d0d08; /* tinted surface (was red-950) */
+  --color-red-100: #63150d; /* subtle surface (was red-900) */
+  --color-red-700: #f07070; /* on-surface text — bright (was red-300) */
+  --color-red-800: #f0b8b8; /* on-surface text — muted (was red-200) */
+
+  /* ── Yellow ── */
+  --color-yellow-50: #6e3700; /* tinted surface (was yellow-950) */
+  --color-yellow-100: #9a4d00; /* subtle surface (was yellow-900) */
+  --color-yellow-700: #ffd427; /* on-surface text — bright (was yellow-300) */
+  --color-yellow-800: #ffd880; /* on-surface text — muted (was yellow-200) */
 }
 
 .dark .bg-white {
@@ -135,10 +169,10 @@
   color: var(--color-blue-600);
 }
 .dark .reaction-active {
-  background-color: var(--color-blue-800);
+  background-color: var(--color-blue-900); /* blue-900 stays dark (#0d3880) */
 }
 .dark .reaction-active .reaction-count {
-  color: var(--color-blue-200);
+  color: var(--color-blue-200); /* blue-200 stays light (#a8d8f0) */
 }
 
 /* Force light mode for landing page sections regardless of user theme */

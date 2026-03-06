@@ -1,4 +1,6 @@
 import i18next from "i18next"
+import { config as mdEditorConfig } from "md-editor-rt"
+import mermaid from "mermaid"
 import { StrictMode, startTransition } from "react"
 import { hydrateRoot } from "react-dom/client"
 import { initReactI18next } from "react-i18next"
@@ -6,6 +8,9 @@ import { HydratedRouter } from "react-router/dom"
 import { defaultNS, fallbackLng, supportedLngs } from "./i18n"
 import enCommon from "./locales/en/common.json"
 import jaCommon from "./locales/ja/common.json"
+
+// Configure md-editor-rt to use mermaid for diagram rendering
+mdEditorConfig({ editorExtensions: { mermaid: { instance: mermaid } } })
 
 // Initialize with the SSR locale so hydration matches the server-rendered HTML.
 i18next

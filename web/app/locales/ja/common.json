@@ -58,6 +58,13 @@
     "history": "編集履歴",
     "history_empty": "編集履歴はまだありません",
     "history_current": "現在",
+    "history_preview": "プレビュー",
+    "history_diff": "差分",
+    "history_revert": "このバージョンに戻す",
+    "history_reverting": "復元中...",
+    "history_revert_title": "ページを復元しますか？",
+    "history_revert_confirm": "現在のページ内容はこのバージョンで上書きされます。現在のバージョンは先に履歴に保存されます。",
+    "history_no_content": "コンテンツがありません。",
     "archive": "アーカイブ",
     "archive_confirm": "「{{title}}」をアーカイブしますか？後から復元できます。",
     "comment": {
@@ -92,7 +99,16 @@
     "recently_updated": "最近の更新",
     "browse_by_tag": "タグで探す",
     "no_pages_yet": "公開済みのページはまだありません。",
-    "no_tags_yet": "タグはまだありません。"
+    "no_tags_yet": "タグはまだありません。",
+    "cta_heading": "AIで新しいページを作成する",
+    "cta_subheading": "メモやGoogleドキュメントのリンク、PDFを貼るだけ。GeminiがバイリンガルのWikiページを数秒で下書きします。",
+    "cta_button": "AIで作成する",
+    "activity_heading": "最近の動き",
+    "activity_pages_heading": "最近のページ",
+    "activity_comments_heading": "最近のコメント",
+    "activity_commented_on": "がコメントしました：",
+    "no_activity_pages": "最近のページ活動はありません。",
+    "no_activity_comments": "最近のコメントはありません。"
   },
   "recent": {
     "title": "最近",
@@ -255,18 +271,35 @@
       "char_count": "{{count}} 文字",
       "images_label": "画像添付（最大{{max}}枚・各10MB以下）",
       "drop_hint": "クリックまたはドラッグ&ドロップで画像を追加",
-      "doc_url_label": "Googleドキュメント / スライド URL",
+      "doc_url_label": "Googleドキュメント / スライド / スプレッドシート URL",
       "drive_connected": "接続済み",
       "drive_connect": "Driveを接続",
-      "submit": "AI で整理する →"
+      "pdfs_label": "PDFファイル（最大{{max}}件・各20MB以下）",
+      "pdfs_hint": "AI分析のソースとしてPDFドキュメントをアップロードします",
+      "pdfs_drop_hint": "クリックまたはドラッグ&ドロップでPDFファイルを追加",
+      "submit": "AI で作成する →",
+      "mode_text": "テキスト / ファイル",
+      "mode_google_form": "Google フォーム",
+      "form_url_label": "Google フォーム URL",
+      "event_title_label": "イベント名",
+      "event_title_placeholder": "例: GDGoC Tech Talk 2025",
+      "form_connect_hint": "Google フォームへのアクセスにはGoogleアカウントの接続が必要です。Google ドライブと同じ接続を使用します。",
+      "form_connect_google": "Google を接続"
     },
     "errors": {
       "text_too_short": "入力が少なすぎます。最低{{min}}文字以上入力してください。",
       "too_many_images": "画像は最大{{max}}枚までです。",
       "image_too_large": "{{name}} は10MBを超えています。",
       "not_an_image": "{{name}} は画像ファイルではありません。",
-      "invalid_drive_url": "GoogleドキュメントまたはGoogleスライドの有効なURLを入力してください。",
-      "enqueue_failed": "取り込みジョブの開始に失敗しました。もう一度お試しください。"
+      "invalid_drive_url": "Googleドキュメント、スライドまたはスプレッドシートの有効なURLを入力してください。",
+      "too_many_pdfs": "PDFファイルは最大{{max}}件までです。",
+      "pdf_too_large": "{{name}} は20MBを超えています。",
+      "not_a_pdf": "{{name}} はPDFファイルではありません。",
+      "enqueue_failed": "取り込みジョブの開始に失敗しました。もう一度お試しください。",
+      "form_not_connected": "まず Google アカウントを接続してください。",
+      "invalid_form_url": "有効な Google フォーム URL を入力してください。",
+      "form_url_required": "Google フォーム URL は必須です。",
+      "event_title_required": "イベント名は必須です。"
     },
     "review": {
       "ai_rationale": "AIの判断理由",
@@ -295,7 +328,8 @@
         "speaker-profile": "スピーカープロファイル",
         "project-log": "プロジェクトログ",
         "how-to-guide": "ハウツーガイド",
-        "onboarding-guide": "オンボーディングガイド"
+        "onboarding-guide": "オンボーディングガイド",
+        "survey-report": "アンケートレポート"
       },
       "tag": {
         "event-operations": "イベント運営",
@@ -306,7 +340,14 @@
         "community-ops": "コミュニティ運営",
         "technical": "技術",
         "template": "テンプレート"
-      }
+      },
+      "field_parent_page": "親ページ",
+      "parent_none": "（なし — ルートレベル）",
+      "existing_pages": "既存ページ",
+      "new_pages_in_changeset": "今回作成する新規ページ",
+      "structure_preview": "ページ構造プレビュー",
+      "sibling_warning": "{{count}} 件の新規ページがルートレベルに追加されます。親ページでまとめることを検討してください。",
+      "add_parent_page": "親ページを追加してまとめる"
     },
     "sensitive": {
       "title": "機微情報が見つかりました",
@@ -325,6 +366,25 @@
         "credential": "認証情報",
         "other": "その他"
       }
+    }
+  },
+  "analyze": {
+    "title": "AIで分析する (Beta)",
+    "description": "Google フォームのURLを入力すると、アンケート分析のWikiページをグラフ付きで自動作成します。",
+    "form": {
+      "form_url_label": "Google フォーム URL",
+      "event_title_label": "イベント名",
+      "event_title_placeholder": "例: GDGoC Tech Talk 2025",
+      "connect_hint": "Google フォームへのアクセスにはGoogleアカウントの接続が必要です。Google ドライブと同じ接続を使用します。",
+      "connect_google": "Google を接続",
+      "submit": "AI で分析する →"
+    },
+    "errors": {
+      "form_not_connected": "まず Google アカウントを接続してください。",
+      "invalid_form_url": "有効な Google フォーム URL を入力してください。",
+      "form_url_required": "Google フォーム URL は必須です。",
+      "event_title_required": "イベント名は必須です。",
+      "enqueue_failed": "分析ジョブの開始に失敗しました。もう一度お試しください。"
     }
   },
   "settings": {
@@ -349,7 +409,8 @@
       "title": "チャプター所属",
       "description": "所属するGDGoC Japanチャプターを選択してください。",
       "label": "チャプター",
-      "none": "なし"
+      "none": "なし",
+      "readonly_notice": "チャプター所属はリードまたは管理者のみ変更できます。"
     },
     "discord": {
       "title": "Discord",
@@ -430,7 +491,15 @@
     "tagged": "タグ: {{tag}}",
     "clear_tag": "タグフィルターをクリア",
     "filter_by_tag": "タグ:",
-    "all_tags": "すべてのタグ"
+    "all_tags": "すべてのタグ",
+    "mode_keyword": "キーワード",
+    "mode_ai": "AI検索",
+    "ai_answer": "AIの回答",
+    "ai_sources": "ソース",
+    "ai_searching": "AIで検索中...",
+    "ai_no_results": "AI検索で関連するページが見つかりませんでした。",
+    "ai_error": "AI検索でエラーが発生しました。もう一度お試しください。",
+    "ai_unavailable": "AI検索はこの環境では利用できません。"
   },
   "notifications": {
     "title": "通知",
@@ -446,7 +515,8 @@
   "pageTree": {
     "noPages": "ページはまだありません",
     "newPage": "新規ページ",
-    "newPage_ai": "AIで整理",
+    "newPage_ai": "AIで作成",
+    "newPage_analyze": "AIで分析 (Beta)",
     "newPage_manual": "手動で作成",
     "collapse": "折りたたむ",
     "expand": "展開する",

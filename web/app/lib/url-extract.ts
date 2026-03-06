@@ -1,8 +1,22 @@
+import puppeteer, { type Browser, type BrowserWorker } from "@cloudflare/puppeteer"
+
 export interface ExtractedUrl {
   id: string
   url: string
   source: "user_text" | "google_doc"
   context: string
+}
+
+export interface UrlPdfResult {
+  buffer: ArrayBuffer
+  title: string
+  error?: undefined
+}
+
+export interface UrlPdfError {
+  buffer?: undefined
+  title?: undefined
+  error: string
 }
 
 export interface JinaResult {
@@ -64,7 +78,47 @@ export function extractUrls(
 }
 
 /**
+ * Render a URL as a PDF using Cloudflare Browser Rendering.
+ * Only available in production (requires BROWSER binding).
+ */
+export async function fetchUrlAsPdf(
+  browser: BrowserWorker,
+  url: string,
+  timeoutMs = 30000,
+): Promise<UrlPdfResult | UrlPdfError> {
+  // @cloudflare/puppeteer types don't expose the Workers-specific launch(BrowserWorker) API
+  const launchBrowser = (
+    puppeteer as unknown as { launch: (endpoint: BrowserWorker) => Promise<Browser> }
+  ).launch
+  let b: Browser | undefined
+  try {
+    b = await launchBrowser(browser)
+    const page = await b.newPage()
+    await page.goto(url, { waitUntil: "networkidle2", timeout: timeoutMs })
+    const title = await page.title()
+    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true })
+    const arrayBuffer = pdfBuffer.buffer.slice(
+      pdfBuffer.byteOffset,
+      pdfBuffer.byteOffset + pdfBuffer.byteLength,
+    ) as ArrayBuffer
+    return { buffer: arrayBuffer, title }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return { error: msg }
+  } finally {
+    if (b) {
+      try {
+        await b.close()
+      } catch {
+        // ignore close errors
+      }
+    }
+  }
+}
+
+/**
  * Fetch a URL via Jina.ai reader API, returning clean markdown.
+ * Used as a fallback when the BROWSER binding is unavailable (local dev).
  */
 export async function fetchUrlViaJina(
   url: string,

@@ -16,7 +16,7 @@ type PageLike = {
 
 export function canUserSeePage(user: UserLike, page: PageLike): boolean {
   if (hasRole(user.role, "admin")) return true
-  if (page.visibility === "public") return true
+  if (page.visibility === "public" && hasRole(user.role, "member")) return true
   if (user.id === page.authorId) return true
 
   if (page.visibility === "private_to_chapter") {
@@ -42,7 +42,11 @@ export function canUserChangeVisibility(user: UserLike, page: PageLike): boolean
 export function buildVisibilityFilter(user: UserLike): SQL | undefined {
   if (hasRole(user.role, "admin")) return undefined
 
-  const conditions: SQL[] = [eq(pages.visibility, "public"), eq(pages.authorId, user.id)]
+  const conditions: SQL[] = [eq(pages.authorId, user.id)]
+
+  if (hasRole(user.role, "member")) {
+    conditions.push(eq(pages.visibility, "public"))
+  }
 
   if (user.chapterId) {
     const chapterMatch = and(

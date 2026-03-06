@@ -69,6 +69,28 @@ jobs:
           name: coverage-report
           path: web/coverage/
 
+  golden-test:
+    name: Golden Tests (snapshot)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:golden
+      - name: Snapshot update instructions
+        if: failure()
+        run: |
+          echo "Golden snapshot mismatch. To update locally:"
+          echo "  cd web && pnpm test:golden:update   # runs: vitest run tests/golden -u"
+          echo "Then review tests/golden/__snapshots__/ and commit."
+
   e2e-test:
     name: E2E Tests
     runs-on: ubuntu-latest

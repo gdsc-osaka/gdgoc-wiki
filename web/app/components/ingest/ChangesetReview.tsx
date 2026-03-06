@@ -1,7 +1,9 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import TipTapEditor from "~/components/TipTapEditor"
+import PageStructurePreview from "~/components/ingest/PageStructurePreview"
 import type { ChangesetOperation } from "~/lib/ingestion-pipeline.server"
+import { buildTree, flattenTree } from "~/lib/page-tree"
 import { applyPatchesToMarkdown, tiptapToMarkdown } from "~/lib/tiptap-convert"
 
 type ResultDraft = Extract<
@@ -19,6 +21,7 @@ const PAGE_TYPE_VALUES = [
   "project-log",
   "how-to-guide",
   "onboarding-guide",
+  "survey-report",
 ] as const
 
 const CANONICAL_TAG_SLUGS = [
@@ -36,6 +39,14 @@ const CANONICAL_TAG_SLUGS = [
 // Types
 // ---------------------------------------------------------------------------
 
+interface PageIndexEntry {
+  id: string
+  titleJa: string
+  titleEn: string
+  slug: string
+  parentId: string | null
+}
+
 interface OperationState {
   title: string
   tiptapJson: string
@@ -43,6 +54,8 @@ interface OperationState {
   pageType: string
   tags: string[]
   pageMetadata: Record<string, string>
+  suggestedSlug?: string
+  parentId: string | null
 }
 
 interface ChangesetReviewProps {
@@ -50,6 +63,7 @@ interface ChangesetReviewProps {
   sessionId: string
   userRole: string
   imageKeys?: string[]
+  pageIndex?: PageIndexEntry[]
 }
 
 // ---------------------------------------------------------------------------
@@ -61,6 +75,7 @@ export default function ChangesetReview({
   sessionId,
   userRole,
   imageKeys,
+  pageIndex = [],
 }: ChangesetReviewProps) {
   const { t } = useTranslation()
   const imageUrlMap = buildImageUrlMap(imageKeys ?? [])
@@ -74,6 +89,23 @@ export default function ChangesetReview({
   const [regenerateErrors, setRegenerateErrors] = useState<(string | null)[]>(
     draft.operations.map(() => null),
   )
+
+  // Flat list of existing pages for the parent selector (ordered by tree depth)
+  const existingPageFlatList = useMemo(
+    () => flattenTree(buildTree(pageIndex.map((p) => ({ ...p, sortOrder: 0 })))),
+    [pageIndex],
+  )
+
+  // Sibling warning — count CREATE ops with no parent
+  const rootLevelCreateCount = useMemo(
+    () =>
+      operations.reduce((count, op, idx) => {
+        if (op.type === "create" && opStates[idx]?.parentId === null) return count + 1
+        return count
+      }, 0),
+    [operations, opStates],
+  )
+  const showSiblingWarning = rootLevelCreateCount >= 2
 
   function updateOp(idx: number, updates: Partial<OperationState>) {
     setOpStates((prev) => {
@@ -94,6 +126,45 @@ export default function ChangesetReview({
         tags: removing ? tags.filter((t) => t !== slug) : [...tags, slug],
       }
       return next
+    })
+  }
+
+  function handleAddParentPage() {
+    const newTempId = crypto.randomUUID()
+
+    const newOp: ChangesetOperation = {
+      type: "create",
+      tempId: newTempId,
+      rationale: t("ingest.review.add_parent_page"),
+      draft: null,
+      patch: null,
+    }
+    const newState: OperationState = {
+      title: "",
+      tiptapJson: "",
+      summaryJa: "",
+      pageType: "how-to-guide",
+      tags: [],
+      pageMetadata: {},
+      parentId: null,
+    }
+
+    // Prepend the new op, nesting all state updates inside functional updater
+    setOperations((prevOps) => {
+      const newOps = [newOp, ...prevOps]
+      setOpStates((prevStates) => {
+        const updated = prevStates.map((s, i) => {
+          if (prevOps[i]?.type === "create" && s.parentId === null) {
+            return { ...s, parentId: newTempId }
+          }
+          return s
+        })
+        return [newState, ...updated]
+      })
+      setFeedback((prev) => ["", ...prev])
+      setRegenerating((prev) => [false, ...prev])
+      setRegenerateErrors((prev) => [null, ...prev])
+      return newOps
     })
   }
 
@@ -121,7 +192,8 @@ export default function ChangesetReview({
         })
         setOpStates((prev) => {
           const next = [...prev]
-          next[idx] = initOpState(data.operation)
+          const prevParentId = next[idx]?.parentId ?? null
+          next[idx] = { ...initOpState(data.operation), parentId: prevParentId }
           return next
         })
         setRegenerateErrors((prev) => {
@@ -162,7 +234,8 @@ export default function ChangesetReview({
           pageType: opStates[idx].pageType,
           pageMetadata: opStates[idx].pageMetadata,
           tags: opStates[idx].tags,
-          suggestedParentId: op.draft?.suggestedParentId ?? null,
+          suggestedSlug: opStates[idx].suggestedSlug,
+          suggestedParentId: opStates[idx].parentId,
           actionabilityScore: op.draft?.actionabilityScore ?? op.patch?.actionabilityScore ?? 2,
         })),
         sources: draft.sources ?? [],
@@ -207,6 +280,22 @@ export default function ChangesetReview({
         </div>
       )}
 
+      {/* Sibling warning */}
+      {showSiblingWarning && (
+        <div className="flex items-start justify-between gap-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <p className="text-sm text-amber-800">
+            {t("ingest.review.sibling_warning", { count: rootLevelCreateCount })}
+          </p>
+          <button
+            type="button"
+            onClick={handleAddParentPage}
+            className="shrink-0 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-50"
+          >
+            {t("ingest.review.add_parent_page")}
+          </button>
+        </div>
+      )}
+
       {/* Operation cards */}
       {operations.map((op, idx) => {
         const state = opStates[idx]
@@ -221,6 +310,11 @@ export default function ChangesetReview({
           imageUrlMap,
         )
         const opKey = op.tempId ?? op.pageId ?? String(idx)
+
+        // Other CREATE ops in this changeset (for parent selector)
+        const otherCreateOps = operations
+          .map((o, i) => ({ op: o, state: opStates[i], idx: i }))
+          .filter(({ op: o, idx: i }) => i !== idx && o.type === "create" && o.tempId)
 
         return (
           <div key={opKey} className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -250,6 +344,45 @@ export default function ChangesetReview({
                   {score === 1 && ` ${t("ingest.review.actionability_regen_hint")}`}
                 </strong>
                 {notes && <p className="mt-1">{notes}</p>}
+              </div>
+            )}
+
+            {/* Parent page selector (CREATE only) */}
+            {op.type === "create" && (
+              <div className="mb-4">
+                <label
+                  htmlFor={`parent-${idx}`}
+                  className="mb-1 block text-xs font-medium text-gray-600"
+                >
+                  {t("ingest.review.field_parent_page")}
+                </label>
+                <select
+                  id={`parent-${idx}`}
+                  value={state?.parentId ?? ""}
+                  onChange={(e) => updateOp(idx, { parentId: e.target.value || null })}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="">{t("ingest.review.parent_none")}</option>
+                  {existingPageFlatList.length > 0 && (
+                    <optgroup label={t("ingest.review.existing_pages")}>
+                      {existingPageFlatList.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {"\u2003".repeat(p.depth)}
+                          {p.titleJa || p.titleEn || p.slug}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {otherCreateOps.length > 0 && (
+                    <optgroup label={t("ingest.review.new_pages_in_changeset")}>
+                      {otherCreateOps.map(({ op: o, state: s }) => (
+                        <option key={o.tempId} value={o.tempId ?? ""}>
+                          {s?.title || "(Untitled)"}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                </select>
               </div>
             )}
 
@@ -383,6 +516,9 @@ export default function ChangesetReview({
         )
       })}
 
+      {/* Page structure preview */}
+      <PageStructurePreview pageIndex={pageIndex} operations={operations} opStates={opStates} />
+
       {/* Submit buttons */}
       <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">
         <button
@@ -421,6 +557,8 @@ function initOpState(op: ChangesetOperation): OperationState {
     pageType: draft?.suggestedPageType ?? "how-to-guide",
     tags: draft?.suggestedTags ?? [],
     pageMetadata: draft?.metadata ?? {},
+    suggestedSlug: draft?.suggestedSlug,
+    parentId: draft?.suggestedParentId ?? null,
   }
 }
 

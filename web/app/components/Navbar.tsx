@@ -1,4 +1,13 @@
-import { Globe, LogOut, Moon, PanelLeft, PanelLeftClose, Settings, Sun } from "lucide-react"
+import {
+  ChartPie,
+  Globe,
+  LogOut,
+  Moon,
+  PanelLeft,
+  PanelLeftClose,
+  Settings,
+  Sun,
+} from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Form, Link, useFetcher, useSearchParams } from "react-router"
@@ -208,6 +217,14 @@ function NewPageDropdown() {
             <span>{t("pageTree.newPage_ai")}</span>
           </Link>
           <Link
+            to="/analyze"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+          >
+            <ChartPie size={14} />
+            <span>{t("pageTree.newPage_analyze")}</span>
+          </Link>
+          <Link
             to="/wiki/new"
             onClick={() => setOpen(false)}
             className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
@@ -275,7 +292,7 @@ export default function Navbar({
           value={queryInput}
           onChange={(e) => setQueryInput(e.target.value)}
           placeholder={`${t("nav.search")}…`}
-          className="w-full max-w-[400px] rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="w-full max-w-[400px] rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:bg-white dark:focus:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
       </Form>
 

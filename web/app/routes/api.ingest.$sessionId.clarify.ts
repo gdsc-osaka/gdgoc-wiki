@@ -58,7 +58,6 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
 
   const fileUris = storedDraft.fileUris
   const googleDocText = storedDraft.googleDocText ?? ""
-  const fetchedUrlContent = storedDraft.fetchedUrlContent
 
   // Build clarification answers string
   const clarificationAnswers = [
@@ -71,7 +70,6 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
     fileUris,
     clarificationAnswers,
     googleDocText: googleDocText || undefined,
-    fetchedUrlContent,
     sources: storedDraft.sources,
   }
 

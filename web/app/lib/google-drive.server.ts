@@ -23,7 +23,8 @@ export function getGoogleDriveAuthUrl(
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: "code",
-    scope: "https://www.googleapis.com/auth/drive.readonly",
+    scope:
+      "https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/forms.responses.readonly",
     access_type: "offline",
     prompt: "consent",
     state,
@@ -185,8 +186,12 @@ export async function exportFileAsPdf(fileId: string, accessToken: string): Prom
 // Google Drive file export as plain text (for inline content in prompts)
 // ---------------------------------------------------------------------------
 
-export async function exportFileAsText(fileId: string, accessToken: string): Promise<string> {
-  const textUrl = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}/export?mimeType=text/plain`
+export async function exportFileAsText(
+  fileId: string,
+  accessToken: string,
+  exportMimeType = "text/plain",
+): Promise<string> {
+  const textUrl = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}/export?mimeType=${encodeURIComponent(exportMimeType)}`
   const response = await fetchWithTimeout(
     textUrl,
     { headers: { Authorization: `Bearer ${accessToken}` } },

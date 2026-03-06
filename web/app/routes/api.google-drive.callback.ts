@@ -34,6 +34,12 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
     throw redirect("/ingest?error=drive_auth_state_mismatch")
   }
 
+  // Extract returnTo path from state (format: "nonce:/path")
+  const colonIdx = state.indexOf(":")
+  const returnTo = colonIdx >= 0 ? state.slice(colonIdx + 1) : "/ingest"
+  // Ensure returnTo is a relative path to prevent open redirect
+  const safePath = returnTo.startsWith("/") ? returnTo : "/ingest"
+
   const redirectUri = `${url.origin}/api/google-drive/callback`
 
   try {
@@ -69,11 +75,11 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error("Google Drive OAuth callback error:", msg)
-    throw redirect("/ingest?error=drive_auth_failed")
+    throw redirect(`${safePath}?error=drive_auth_failed`)
   }
 
   // Clear state cookie and redirect back
-  throw redirect("/ingest", {
+  throw redirect(safePath, {
     headers: {
       "Set-Cookie": "gdrive_oauth_state=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Secure",
     },

@@ -58,6 +58,13 @@
     "history": "History",
     "history_empty": "No edit history yet",
     "history_current": "Current",
+    "history_preview": "Preview",
+    "history_diff": "Diff",
+    "history_revert": "Revert to this version",
+    "history_reverting": "Reverting...",
+    "history_revert_title": "Revert page?",
+    "history_revert_confirm": "This will overwrite the current page with this version. The current version will be saved to history first.",
+    "history_no_content": "No content available.",
     "archive": "Archive",
     "archive_confirm": "Archive \"{{title}}\"? You can restore it later.",
     "comment": {
@@ -92,7 +99,16 @@
     "recently_updated": "Recently Updated",
     "browse_by_tag": "Browse by Tag",
     "no_pages_yet": "No published pages yet.",
-    "no_tags_yet": "No tags yet."
+    "no_tags_yet": "No tags yet.",
+    "cta_heading": "Create a new page with AI",
+    "cta_subheading": "Paste notes, a Google Doc link, or a PDF — Gemini will draft a bilingual wiki page in seconds.",
+    "cta_button": "Create with AI",
+    "activity_heading": "Discover what's happening",
+    "activity_pages_heading": "Recent pages",
+    "activity_comments_heading": "Recent comments",
+    "activity_commented_on": "commented on",
+    "no_activity_pages": "No recent page activity.",
+    "no_activity_comments": "No recent comments."
   },
   "recent": {
     "title": "Recent",
@@ -255,18 +271,35 @@
       "char_count": "{{count}} chars",
       "images_label": "Images (max {{max}}, up to 10MB each)",
       "drop_hint": "Click or drag & drop to add images",
-      "doc_url_label": "Google Docs / Slides URL",
+      "doc_url_label": "Google Docs / Slides / Sheets URL",
       "drive_connected": "Connected",
       "drive_connect": "Connect Drive",
-      "submit": "Organize with AI →"
+      "pdfs_label": "PDF Files (max {{max}}, up to 20 MB each)",
+      "pdfs_hint": "Upload PDF documents as source material for AI analysis",
+      "pdfs_drop_hint": "Click or drag & drop to add PDF files",
+      "submit": "Create with AI →",
+      "mode_text": "Text / Files",
+      "mode_google_form": "Google Form",
+      "form_url_label": "Google Form URL",
+      "event_title_label": "Event Title",
+      "event_title_placeholder": "e.g. GDGoC Tech Talk 2025",
+      "form_connect_hint": "Google Forms access requires connecting your Google account. This uses the same connection as Google Drive.",
+      "form_connect_google": "Connect Google"
     },
     "errors": {
       "text_too_short": "Not enough text. Please enter at least {{min}} characters.",
       "too_many_images": "You can attach up to {{max}} images.",
       "image_too_large": "{{name}} exceeds 10MB.",
       "not_an_image": "{{name}} is not an image file.",
-      "invalid_drive_url": "Please enter a valid Google Docs or Google Slides URL.",
-      "enqueue_failed": "Failed to start ingestion. Please try again."
+      "invalid_drive_url": "Please enter a valid Google Docs, Slides, or Sheets URL.",
+      "too_many_pdfs": "You can attach up to {{max}} PDF files.",
+      "pdf_too_large": "{{name}} exceeds 20 MB.",
+      "not_a_pdf": "{{name}} is not a PDF file.",
+      "enqueue_failed": "Failed to start ingestion. Please try again.",
+      "form_not_connected": "Please connect your Google account first.",
+      "invalid_form_url": "Please enter a valid Google Forms URL.",
+      "form_url_required": "Google Form URL is required.",
+      "event_title_required": "Event title is required."
     },
     "review": {
       "ai_rationale": "AI's Reasoning",
@@ -295,7 +328,8 @@
         "speaker-profile": "Speaker Profile",
         "project-log": "Project Log",
         "how-to-guide": "How-to Guide",
-        "onboarding-guide": "Onboarding Guide"
+        "onboarding-guide": "Onboarding Guide",
+        "survey-report": "Survey Report"
       },
       "tag": {
         "event-operations": "Event Operations",
@@ -306,7 +340,14 @@
         "community-ops": "Community Operations",
         "technical": "Technical",
         "template": "Template"
-      }
+      },
+      "field_parent_page": "Parent Page",
+      "parent_none": "(None — root level)",
+      "existing_pages": "Existing Pages",
+      "new_pages_in_changeset": "New Pages in This Import",
+      "structure_preview": "Page Structure Preview",
+      "sibling_warning": "{{count}} new pages will be added at the root level. Consider grouping them under a parent page.",
+      "add_parent_page": "Add a parent page to group them"
     },
     "sensitive": {
       "title": "Sensitive Information Found",
@@ -325,6 +366,25 @@
         "credential": "Credentials",
         "other": "Other"
       }
+    }
+  },
+  "analyze": {
+    "title": "Analyze with AI (Beta)",
+    "description": "Paste a Google Form URL to auto-generate a survey analysis wiki page with charts.",
+    "form": {
+      "form_url_label": "Google Form URL",
+      "event_title_label": "Event Title",
+      "event_title_placeholder": "e.g. GDGoC Tech Talk 2025",
+      "connect_hint": "Google Forms access requires connecting your Google account. This uses the same connection as Google Drive.",
+      "connect_google": "Connect Google",
+      "submit": "Analyze with AI →"
+    },
+    "errors": {
+      "form_not_connected": "Please connect your Google account first.",
+      "invalid_form_url": "Please enter a valid Google Forms URL.",
+      "form_url_required": "Google Form URL is required.",
+      "event_title_required": "Event title is required.",
+      "enqueue_failed": "Failed to start analysis. Please try again."
     }
   },
   "settings": {
@@ -349,7 +409,8 @@
       "title": "Chapter Affiliation",
       "description": "Select the GDGoC Japan chapter you belong to.",
       "label": "Chapter",
-      "none": "None"
+      "none": "None",
+      "readonly_notice": "Only leads and admins can change chapter affiliation."
     },
     "discord": {
       "title": "Discord",
@@ -430,7 +491,15 @@
     "tagged": "Tagged: {{tag}}",
     "clear_tag": "Clear tag filter",
     "filter_by_tag": "Tag:",
-    "all_tags": "All tags"
+    "all_tags": "All tags",
+    "mode_keyword": "Keyword",
+    "mode_ai": "AI Search",
+    "ai_answer": "AI Answer",
+    "ai_sources": "Sources",
+    "ai_searching": "Searching with AI...",
+    "ai_no_results": "AI search found no relevant pages.",
+    "ai_error": "AI search encountered an error. Please try again.",
+    "ai_unavailable": "AI search is not available in this environment."
   },
   "notifications": {
     "title": "Notifications",
@@ -446,7 +515,8 @@
   "pageTree": {
     "noPages": "No pages yet",
     "newPage": "New Page",
-    "newPage_ai": "Organize with AI",
+    "newPage_ai": "Create with AI",
+    "newPage_analyze": "Analyze with AI (Beta)",
     "newPage_manual": "Write manually",
     "collapse": "Collapse",
     "expand": "Expand",

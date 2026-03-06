@@ -54,7 +54,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
   const isPublish = intent === "publish" && canLead
 
   // Generate unique slug
-  const baseSlug = generateSlug(titleJa || titleEn)
+  const baseSlug = generateSlug(titleJa || titleEn, titleEn)
   let slug = baseSlug
   const existing = await db
     .select({ id: schema.pages.id })

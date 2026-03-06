@@ -6,6 +6,7 @@
  * when done or on error.
  */
 
+import type { BrowserWorker } from "@cloudflare/puppeteer"
 import { eq, sql } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/d1"
 import * as schema from "~/db/schema"
@@ -24,6 +25,7 @@ import {
   runPhase2Patcher,
   uploadFileToGemini,
 } from "./gemini.server"
+import { isGoogleSheetsUrl } from "./google-drive-utils"
 import {
   exportFileAsPdf,
   exportFileAsText,
@@ -31,8 +33,10 @@ import {
   getDriveFileName,
   refreshAccessToken,
 } from "./google-drive.server"
+import { extractFormId, fetchFormData } from "./google-forms.server"
+import { computeSurveyStats, formatSurveyStatsAsText } from "./survey-stats.server"
 import { tiptapToMarkdown } from "./tiptap-convert"
-import { type ExtractedUrl, extractUrls, fetchUrlViaJina } from "./url-extract"
+import { type ExtractedUrl, extractUrls, fetchUrlAsPdf, fetchUrlViaJina } from "./url-extract"
 
 // ---------------------------------------------------------------------------
 // Input / output types
@@ -48,6 +52,10 @@ export interface IngestionInputs {
   imageKeys: string[] // R2 keys for uploaded images
   googleDocUrls: string[]
   imageFiles?: Array<{ key: string; buffer: ArrayBuffer; mimeType: string; name: string }>
+  pdfKeys?: string[]
+  pdfFiles?: Array<{ key: string; buffer: ArrayBuffer; mimeType: string; name: string }>
+  googleFormUrl?: string
+  eventTitle?: string
 }
 
 export interface ChangesetOperation {
@@ -70,7 +78,6 @@ export type AiDraftJson =
       summary: string
       fileUris: { uri: string; mimeType: string }[]
       googleDocText?: string
-      fetchedUrlContent?: string
       sources?: SourceUrl[]
     }
   | {
@@ -84,7 +91,6 @@ export type AiDraftJson =
       fileUris: { uri: string; mimeType: string }[]
       clarificationAnswers: string
       googleDocText?: string
-      fetchedUrlContent?: string
       sources?: SourceUrl[]
     }
   | {
@@ -101,6 +107,7 @@ export type AiDraftJson =
       warnings: string[]
       sources: SourceUrl[]
       imageKeys: string[]
+      pdfKeys: string[]
     }
 
 export type IngestionResumePostClarificationDraft = Extract<
@@ -150,7 +157,6 @@ export async function runIngestionPipeline(
     clarificationAnswers: string
     googleDocText?: string
     selectedUrls?: string[]
-    fetchedUrlContent?: string
     priorSources?: SourceUrl[]
   },
 ): Promise<void> {
@@ -184,6 +190,7 @@ export async function runIngestionPipeline(
     const warnings: string[] = []
     const docTexts: string[] = []
     const sources: SourceUrl[] = resumeContext?.priorSources ? [...resumeContext.priorSources] : []
+    let skipPhase0 = false
 
     // Determine resume type
     const isPostClarification = !!resumeContext?.clarificationAnswers
@@ -270,6 +277,37 @@ export async function runIngestionPipeline(
       }
 
       // ------------------------------------------------------------------
+      // Step 1b: Upload PDFs to Gemini File API
+      // ------------------------------------------------------------------
+      if (inputs.pdfFiles && inputs.pdfFiles.length > 0) {
+        const pdfUris = await Promise.all(
+          inputs.pdfFiles.map((pdf) =>
+            uploadFileToGemini(pdf.buffer, pdf.mimeType, pdf.name, env.GEMINI_API_KEY).then(
+              (uri) => ({ uri, mimeType: pdf.mimeType }),
+            ),
+          ),
+        )
+        fileUris.push(...pdfUris)
+      } else if (inputs.pdfKeys && inputs.pdfKeys.length > 0) {
+        const pdfUris = await Promise.all(
+          inputs.pdfKeys.map(async (key) => {
+            const obj = await env.BUCKET.get(key)
+            if (!obj) throw new Error(`Uploaded PDF not found in R2: ${key}`)
+            const buffer = await obj.arrayBuffer()
+            const name = key.split("/").at(-1) ?? key
+            const uri = await uploadFileToGemini(
+              buffer,
+              "application/pdf",
+              name,
+              env.GEMINI_API_KEY,
+            )
+            return { uri, mimeType: "application/pdf" }
+          }),
+        )
+        fileUris.push(...pdfUris)
+      }
+
+      // ------------------------------------------------------------------
       // Step 2: If Google Drive URL, export text (required) + PDF (best-effort)
       // ------------------------------------------------------------------
       for (const docUrl of inputs.googleDocUrls) {
@@ -321,8 +359,9 @@ export async function runIngestionPipeline(
           sources.push({ url: docUrl, title: fileId })
         }
 
-        // Primary: extract plain text (must succeed)
-        const docText = await exportFileAsText(fileId, accessToken)
+        // Primary: extract plain text (CSV for Sheets, plain text for Docs/Slides)
+        const exportMime = isGoogleSheetsUrl(docUrl) ? "text/csv" : "text/plain"
+        const docText = await exportFileAsText(fileId, accessToken, exportMime)
         docTexts.push(docText)
 
         // Best-effort: upload PDF for rich content (images, tables)
@@ -343,6 +382,73 @@ export async function runIngestionPipeline(
             `Google DriveファイルのPDFアップロードに失敗しました（テキストは取得済み）: ${msg}`,
           )
         }
+      }
+
+      // ------------------------------------------------------------------
+      // Step 2.4: Google Forms pre-processing (fetch structure + responses → stats)
+      // ------------------------------------------------------------------
+
+      if (inputs.googleFormUrl) {
+        const formId = extractFormId(inputs.googleFormUrl)
+        if (!formId) {
+          throw new Error("Invalid Google Form URL")
+        }
+
+        // Use the same Google Drive token (which now includes forms.responses.readonly scope)
+        const tokenRow = await db
+          .select()
+          .from(schema.googleDriveTokens)
+          .where(eq(schema.googleDriveTokens.userId, userId))
+          .get()
+
+        if (!tokenRow) {
+          throw new Error("Googleの認証が見つかりません。設定画面からGoogleを接続してください。")
+        }
+
+        let accessToken = tokenRow.accessToken
+        const now = new Date()
+        if (tokenRow.expiresAt < now && tokenRow.refreshToken) {
+          try {
+            const refreshed = await refreshAccessToken(
+              tokenRow.refreshToken,
+              env.GOOGLE_DOCS_CLIENT_ID,
+              env.GOOGLE_DOCS_CLIENT_SECRET,
+            )
+            accessToken = refreshed.accessToken
+            await db
+              .update(schema.googleDriveTokens)
+              .set({
+                accessToken: refreshed.accessToken,
+                expiresAt: refreshed.expiresAt,
+                updatedAt: now,
+              })
+              .where(eq(schema.googleDriveTokens.userId, userId))
+          } catch (refreshErr) {
+            const msg = refreshErr instanceof Error ? refreshErr.message : String(refreshErr)
+            throw new Error(
+              `Googleのアクセスが無効になりました。設定画面からGoogleを再接続してください。(${msg})`,
+            )
+          }
+        }
+
+        const formData = await fetchFormData(formId, accessToken)
+        const stats = computeSurveyStats(formData)
+        const statsText = formatSurveyStatsAsText(
+          stats,
+          inputs.eventTitle ?? formData.structure.title,
+        )
+
+        // Prepend structured stats to user text so Gemini uses pre-computed numbers
+        docTexts.push(statsText)
+
+        // Add form URL as a source
+        sources.push({
+          url: inputs.googleFormUrl,
+          title: `Google Form: ${formData.structure.title}`,
+        })
+
+        // Skip Phase 0 (Clarifier) — form data is already structured
+        skipPhase0 = true
       }
 
       // ------------------------------------------------------------------
@@ -390,47 +496,86 @@ export async function runIngestionPipeline(
     }
 
     // ------------------------------------------------------------------
-    // Step 2.6: Fetch selected URLs via Jina.ai (if resuming from URL selection)
+    // Step 2.6: Fetch selected URLs as PDFs and upload to Gemini File API
     // ------------------------------------------------------------------
-    let fetchedUrlContent = resumeContext?.fetchedUrlContent ?? ""
-
     if (
       isPostUrlSelection &&
       resumeContext?.selectedUrls &&
       resumeContext.selectedUrls.length > 0
     ) {
       await updatePhase(db, sessionId, "fetching_urls")
-      const fetchResults = await Promise.all(
-        resumeContext.selectedUrls.map((url) =>
-          fetchUrlViaJina(url).then((result) => ({ url, result })),
-        ),
-      )
-      const parts: string[] = []
-      for (const { url, result } of fetchResults) {
-        if (result.error) {
-          parts.push(`### ${url}\n(取得失敗: ${result.error})`)
-          sources.push({ url, title: url })
-        } else {
-          const suffix = result.truncated ? "\n\n(... 10,000文字で切り詰めました)" : ""
-          parts.push(`### ${url}\n${result.markdown}${suffix}`)
-          const titleMatch = result.markdown?.match(/^(?:Title:\s*(.+)|#\s+(.+))/m)
-          const title = (titleMatch?.[1] ?? titleMatch?.[2])?.trim() || url
-          sources.push({ url, title })
+
+      // For each URL: try Browser Rendering PDF first, fall back to Jina on any failure.
+      // env.BROWSER may be a non-functional stub in local dev, so we always fall back.
+      const jinaParts: string[] = []
+      for (const url of resumeContext.selectedUrls) {
+        let uploadedPdf = false
+
+        if (env.BROWSER) {
+          console.log("[ingestion-pipeline] step 2.6: trying PDF for", url)
+          const pdfResult = await fetchUrlAsPdf(env.BROWSER as unknown as BrowserWorker, url)
+          if (pdfResult.error === undefined) {
+            const hostname = new URL(url).hostname
+            const geminiUri = await uploadFileToGemini(
+              pdfResult.buffer,
+              "application/pdf",
+              hostname,
+              env.GEMINI_API_KEY,
+            )
+            fileUris.push({ uri: geminiUri, mimeType: "application/pdf" })
+            sources.push({ url, title: pdfResult.title || url })
+            uploadedPdf = true
+            console.log("[ingestion-pipeline] URL PDF uploaded:", url, "→", geminiUri)
+          } else {
+            console.warn(
+              "[ingestion-pipeline] URL PDF failed, falling back to Jina:",
+              url,
+              pdfResult.error,
+            )
+          }
+        }
+
+        if (!uploadedPdf) {
+          console.log("[ingestion-pipeline] step 2.6: fetching via Jina:", url)
+          const jinaResult = await fetchUrlViaJina(url)
+          if (jinaResult.error !== undefined) {
+            console.warn("[ingestion-pipeline] URL Jina fetch failed:", url, jinaResult.error)
+            jinaParts.push(`### ${url}\n(取得失敗: ${jinaResult.error})`)
+            sources.push({ url, title: url })
+          } else {
+            console.log(
+              "[ingestion-pipeline] URL Jina fetch ok:",
+              url,
+              `${jinaResult.markdown.length} chars`,
+              jinaResult.truncated ? "(truncated)" : "",
+            )
+            const suffix = jinaResult.truncated ? "\n\n(... 10,000文字で切り詰めました)" : ""
+            jinaParts.push(`### ${url}\n${jinaResult.markdown}${suffix}`)
+            const titleMatch = jinaResult.markdown?.match(/^(?:Title:\s*(.+)|#\s+(.+))/m)
+            const title = (titleMatch?.[1] ?? titleMatch?.[2])?.trim() || url
+            sources.push({ url, title })
+          }
         }
       }
-      fetchedUrlContent = parts.join("\n\n")
+
+      if (jinaParts.length > 0) {
+        docTexts.push(`## 参考URL（ユーザーが選択した外部ページ）\n${jinaParts.join("\n\n")}`)
+      }
     }
 
     // Build final user text (prepend clarification answers if resuming)
     const userText = buildUserText(baseUserText, docTexts)
 
-    let effectiveUserText = isPostClarification
+    const effectiveUserText = isPostClarification
       ? `${resumeContext?.clarificationAnswers}\n\n${userText}`
       : userText
 
-    if (fetchedUrlContent) {
-      effectiveUserText += `\n\n---\n## 参考URL（ユーザーが選択した外部ページ）\n${fetchedUrlContent}`
-    }
+    console.log(
+      "[ingestion-pipeline] effectiveUserText length:",
+      effectiveUserText.length,
+      "fileUris:",
+      fileUris.length,
+    )
 
     // ------------------------------------------------------------------
     // Phase 0: Clarifier (runs on first run OR after URL selection)
@@ -440,34 +585,39 @@ export async function runIngestionPipeline(
 
     if (!isPostClarification) {
       await updatePhase(db, sessionId, "planning")
-      const [pageIndexResult, clarifierResult] = await Promise.all([
-        buildPageIndex(db, effectiveUserText),
-        runPhase0Clarifier(env.GEMINI_API_KEY, effectiveUserText, fileUris, currentDatetime),
-      ])
 
-      if (clarifierResult.needsClarification) {
-        const aiDraftJson: AiDraftJson = {
-          phase: "clarification",
-          questions: clarifierResult.questions,
-          summary: clarifierResult.summary,
-          fileUris,
-          googleDocText: docTexts.join("\n\n---\n\n"),
-          fetchedUrlContent: fetchedUrlContent || undefined,
-          sources: sources.length > 0 ? sources : undefined,
+      if (skipPhase0) {
+        // Google Forms input — data is already structured, skip clarification
+        pageIndex = await buildPageIndex(db, effectiveUserText)
+      } else {
+        const [pageIndexResult, clarifierResult] = await Promise.all([
+          buildPageIndex(db, effectiveUserText),
+          runPhase0Clarifier(env.GEMINI_API_KEY, effectiveUserText, fileUris, currentDatetime),
+        ])
+
+        if (clarifierResult.needsClarification) {
+          const aiDraftJson: AiDraftJson = {
+            phase: "clarification",
+            questions: clarifierResult.questions,
+            summary: clarifierResult.summary,
+            fileUris,
+            googleDocText: docTexts.join("\n\n---\n\n"),
+            sources: sources.length > 0 ? sources : undefined,
+          }
+          await db
+            .update(schema.ingestionSessions)
+            .set({
+              aiDraftJson: JSON.stringify(aiDraftJson),
+              status: "awaiting_clarification",
+              phaseMessage: null,
+              updatedAt: new Date(),
+            })
+            .where(eq(schema.ingestionSessions.id, sessionId))
+          return
         }
-        await db
-          .update(schema.ingestionSessions)
-          .set({
-            aiDraftJson: JSON.stringify(aiDraftJson),
-            status: "awaiting_clarification",
-            phaseMessage: null,
-            updatedAt: new Date(),
-          })
-          .where(eq(schema.ingestionSessions.id, sessionId))
-        return
-      }
 
-      pageIndex = pageIndexResult
+        pageIndex = pageIndexResult
+      }
     } else {
       await updatePhase(db, sessionId, "planning")
       pageIndex = await buildPageIndex(db, effectiveUserText)
@@ -510,11 +660,15 @@ export async function runIngestionPipeline(
 
     await updatePhase(db, sessionId, `generating:0/${total}`)
 
-    // Derive image file names for AI hints
-    const imageNames: string[] =
-      inputs.imageFiles && inputs.imageFiles.length > 0
+    // Derive image + PDF file names for AI hints
+    const assetNames: string[] = [
+      ...(inputs.imageFiles && inputs.imageFiles.length > 0
         ? inputs.imageFiles.map((f) => f.name)
-        : inputs.imageKeys.map((k) => k.split("/").at(-1) ?? k)
+        : inputs.imageKeys.map((k) => k.split("/").at(-1) ?? k)),
+      ...(inputs.pdfFiles && inputs.pdfFiles.length > 0
+        ? inputs.pdfFiles.map((f) => f.name)
+        : (inputs.pdfKeys ?? []).map((k) => k.split("/").at(-1) ?? k)),
+    ]
 
     const creatorResults = await Promise.all(
       createOps.map(async (op) => {
@@ -526,7 +680,7 @@ export async function runIngestionPipeline(
           pageIndex,
           createOps.filter((o) => o.tempId !== op.tempId),
           currentDatetime,
-          imageNames,
+          assetNames,
         )
         done++
         await updatePhase(db, sessionId, `generating:${done}/${total}`)
@@ -545,7 +699,7 @@ export async function runIngestionPipeline(
           op,
           markdown,
           currentDatetime,
-          imageNames,
+          assetNames,
         )
         done++
         await updatePhase(db, sessionId, `generating:${done}/${total}`)
@@ -592,6 +746,7 @@ export async function runIngestionPipeline(
       warnings,
       sources,
       imageKeys: inputs.imageKeys,
+      pdfKeys: inputs.pdfKeys ?? [],
     }
 
     // ------------------------------------------------------------------
@@ -662,12 +817,14 @@ export async function runIngestionPipeline(
   } catch (err) {
     console.error(`[ingestion-pipeline] session=${sessionId} error:`, err)
     const rawMessage = err instanceof Error ? err.message : String(err)
-    // Surface Google Drive / auth errors directly to the user
-    const isGoogleDriveError =
-      /google\s*(drive|doc)|invalid_grant|invalid_token|refresh.?token|drive\.googleapis\.com|drive\s*api|oauth|access.?token/i.test(
+    // Surface Google Drive / Forms / auth errors directly to the user
+    const isGoogleApiError =
+      /google\s*(drive|doc|form)|invalid_grant|invalid_token|refresh.?token|drive\.googleapis\.com|forms\.googleapis\.com|drive\s*api|forms\s*api|oauth|access.?token|UNAUTHENTICATED|認証|接続/i.test(
         rawMessage,
-      ) || rawMessage.includes("401")
-    const errorMessage = isGoogleDriveError
+      ) ||
+      rawMessage.includes("401") ||
+      rawMessage.includes("403")
+    const errorMessage = isGoogleApiError
       ? rawMessage
       : "Ingestion failed due to an internal error."
     const errorDb = drizzle(env.DB, { schema })
@@ -786,9 +943,10 @@ export async function buildPageIndex(
 // Slug generation from title
 // ---------------------------------------------------------------------------
 
-export function generateSlug(title: string): string {
+export function generateSlug(title: string, englishHint?: string): string {
+  const source = englishHint?.trim() || title
   return (
-    title
+    source
       .toLowerCase()
       .replace(/[\s\u3000]+/g, "-")
       .replace(/[^\w-]/g, "")

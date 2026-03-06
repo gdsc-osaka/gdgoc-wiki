@@ -160,7 +160,7 @@ export const pages = sqliteTable("pages", {
   status: text("status").notNull().default("draft"),
   // "draft" | "published" | "archived"
   pageType: text("page_type"),
-  // "event-report" | "speaker-profile" | "project-log" | "how-to-guide" | "onboarding-guide" | null
+  // "event-report" | "speaker-profile" | "project-log" | "how-to-guide" | "onboarding-guide" | "survey-report" | null
   pageMetadata: text("page_metadata"),
   ingestionSessionId: text("ingestion_session_id").references(() => ingestionSessions.id),
   actionabilityScore: integer("actionability_score"),
@@ -297,6 +297,23 @@ export const commentReactions = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.commentId, t.userId, t.emoji] })],
 )
+
+// ---------------------------------------------------------------------------
+// page_embedding_status (Vectorize embedding tracking)
+// ---------------------------------------------------------------------------
+export const pageEmbeddingStatus = sqliteTable("page_embedding_status", {
+  pageId: text("page_id")
+    .primaryKey()
+    .references(() => pages.id, { onDelete: "cascade" }),
+  status: text("status").notNull().default("pending"),
+  // "pending" | "indexed" | "error"
+  chunkCount: integer("chunk_count").notNull().default(0),
+  contentHash: text("content_hash"),
+  lastIndexedAt: integer("last_indexed_at", { mode: "timestamp" }),
+  errorMessage: text("error_message"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+})
 
 // ---------------------------------------------------------------------------
 // page_views (per-user view tracking for "Recently Viewed")

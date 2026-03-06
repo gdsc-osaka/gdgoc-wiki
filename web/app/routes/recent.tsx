@@ -15,7 +15,7 @@ export const meta: MetaFunction = () => [{ title: "Recent — GDGoC Japan Wiki" 
 
 export async function loader({ request, context }: LoaderFunctionArgs) {
   const { env } = context.cloudflare
-  const user = await requireRole(request, env, "viewer")
+  const user = await requireRole(request, env, "member")
   const db = getDb(env)
 
   const visFilter = buildVisibilityFilter(user)
@@ -144,12 +144,12 @@ function PageGrid({ pages, emptyKey }: { pages: PageCard[]; emptyKey: string }) 
             className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white p-4 transition-all hover:border-blue-500/40 hover:shadow-sm"
           >
             <h3 className="line-clamp-2 font-medium text-gray-900">
-              {page.titleEn || page.titleJa}
+              {isJa ? page.titleJa || page.titleEn : page.titleEn || page.titleJa}
             </h3>
 
             {(page.summaryEn || page.summaryJa) && (
               <p className="line-clamp-2 text-sm text-gray-500">
-                {page.summaryEn || page.summaryJa}
+                {isJa ? page.summaryJa || page.summaryEn : page.summaryEn || page.summaryJa}
               </p>
             )}
 

@@ -43,6 +43,7 @@ const CreateOperationSchema = z.object({
     "project-log",
     "how-to-guide",
     "onboarding-guide",
+    "survey-report",
   ]),
   rationale: z.string(),
 })
@@ -89,6 +90,7 @@ export const PageDraftSchema = z.object({
     "project-log",
     "how-to-guide",
     "onboarding-guide",
+    "survey-report",
   ]),
   pageTypeConfidence: z.enum(["high", "medium", "low"]),
   title: z.object({ ja: z.string() }),
@@ -97,6 +99,7 @@ export const PageDraftSchema = z.object({
   sections: z.array(SectionSchema),
   suggestedParentId: z.string().nullable(),
   suggestedTags: z.array(z.string()).max(5),
+  suggestedSlug: z.string().optional(),
   actionabilityScore: z.union([z.literal(1), z.literal(2), z.literal(3)]),
   actionabilityNotes: z.string(),
   sensitiveItems: z.array(SensitiveItemSchema),
@@ -181,6 +184,7 @@ const OPERATION_PLAN_RESPONSE_SCHEMA = {
               "project-log",
               "how-to-guide",
               "onboarding-guide",
+              "survey-report",
             ],
           },
           rationale: { type: "string" },
@@ -199,7 +203,14 @@ const PAGE_DRAFT_RESPONSE_SCHEMA = {
   properties: {
     suggestedPageType: {
       type: "string",
-      enum: ["event-report", "speaker-profile", "project-log", "how-to-guide", "onboarding-guide"],
+      enum: [
+        "event-report",
+        "speaker-profile",
+        "project-log",
+        "how-to-guide",
+        "onboarding-guide",
+        "survey-report",
+      ],
     },
     pageTypeConfidence: { type: "string", enum: ["high", "medium", "low"] },
     title: { type: "object", properties: { ja: { type: "string" } }, required: ["ja"] },
@@ -233,6 +244,7 @@ const PAGE_DRAFT_RESPONSE_SCHEMA = {
     },
     suggestedParentId: { type: "string", nullable: true },
     suggestedTags: { type: "array", items: { type: "string" } },
+    suggestedSlug: { type: "string" },
     actionabilityScore: { type: "integer", enum: [1, 2, 3] },
     actionabilityNotes: { type: "string" },
     sensitiveItems: {
@@ -425,6 +437,9 @@ const PHASE2_SYSTEM_PROMPT = `あなたはGDGoC Japan（Google Developer Groups 
 2. ページタイプを判定し、推奨構成を参考にしつつ、入力内容に合ったセクションのみを出力してください。
 3. 情報ボックスに構造化メタデータを抽出してください。
 4. 個人の連絡先・財務情報・個人への批評など機微情報はsensitiveItemsに列挙してください。
+6. suggestedSlug: ページタイトルの意味を英語で表現したURLスラッグを生成してください。
+     - 小文字の英数字とハイフンのみ（例: "event-reflection-summary-2025"）
+     - 最大80文字。日本語のローマ字読みではなく、意味の英訳を使用すること
 5. 最後にactionabilityScoreとactionabilityNotesを自己評価として出力してください。
    - スコア3: 入力に日付・場所・担当者・手順など具体情報が十分に含まれており、読者がすぐ行動できる
    - スコア2: 一部の具体情報はあるが、行動するには追加情報が必要
@@ -448,6 +463,9 @@ const PHASE2_SYSTEM_PROMPT = `あなたはGDGoC Japan（Google Developer Groups 
 ### onboarding-guide
 このガイドについて / About This Guide → 対象者 / Who This Is For → はじめの一歩 / Getting Started → 重要な連絡先・リソース / Key Contacts & Resources → よくある質問 / FAQ
 
+### survey-report
+イベント概要 / Event Overview (タイトル, 日付, 回答者数, 回答率) → 主な発見 / Key Findings (データに基づくトップ3〜5のインサイト) → 質問別分析 / Per-Question Analysis (定量: Mermaidチャート付き, 定性: テーマクラスタリング) → 改善提案 / Actionable Recommendations (次回改善すべき点) → データ付録 / Data Appendix (全質問のサマリーテーブル)
+
 ## タグ分類（最大5つ選択）
 以下のslugと日本語ラベルを使用してください:
 event-operations（イベント運営）/ speaker-management（スピーカー管理）/
@@ -460,7 +478,15 @@ technical（技術）/ template（テンプレート）
 - 手順・プロセス系は番号付きリスト、その他の情報は箇条書き（\`-\`）を使用する
 - 3文以上の連続した散文段落は禁止。必ず箇条書きに分解すること
 - 各箇条書き項目は1〜2文以内に収める
-- サブ箇条書き（インデント付き \`-\`）で階層的に詳細を補足してよい`
+- サブ箇条書き（インデント付き \`-\`）で階層的に詳細を補足してよい
+
+## Mermaidチャート（survey-reportページ専用）
+survey-reportページでは、定量的な質問の分析にMermaidダイアグラムを埋め込んでください:
+- 選択肢が8個以下の多肢選択問題には \`pie\` チャートを使用
+- 評価・スケール系の質問には \`xychart-beta\` の棒グラフを使用
+- \`\`\`mermaid コードブロックで囲む
+- 事前計算された統計値をそのまま使用し、再計算しないこと
+- 他のページタイプではMermaidチャートを使用しないこと`
 
 // ---------------------------------------------------------------------------
 // File upload helper (REST — works in Cloudflare Workers)
@@ -522,8 +548,37 @@ export async function uploadFileToGemini(
     throw new Error(`Gemini file upload failed: ${response.status} ${err}`)
   }
 
-  const result = (await response.json()) as { file: { uri: string } }
-  return result.file.uri
+  const result = (await response.json()) as { file: { name: string; uri: string; state?: string } }
+  const file = result.file
+
+  // PDFs (and some other types) start in PROCESSING state and need to be polled
+  // until they reach ACTIVE before they can be used in generation requests.
+  if (file.state && file.state !== "ACTIVE") {
+    const fileResourceName = file.name // e.g. "files/abc123"
+    const getUrl = `https://generativelanguage.googleapis.com/v1beta/${fileResourceName}?key=${apiKey}`
+    const deadline = Date.now() + 60_000 // 60 s max
+    let waitMs = 2_000
+
+    while (Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, waitMs))
+      waitMs = Math.min(waitMs * 2, 10_000)
+
+      const poll = await fetch(getUrl)
+      if (!poll.ok) {
+        console.warn(
+          `gemini: poll non-ok for ${fileResourceName}: ${poll.status} ${poll.statusText}`,
+        )
+        continue
+      }
+
+      const status = (await poll.json()) as { state?: string; uri?: string }
+      if (status.state === "ACTIVE") break
+      if (status.state === "FAILED")
+        throw new Error(`Gemini file processing failed: ${fileResourceName}`)
+    }
+  }
+
+  return file.uri
 }
 
 // ---------------------------------------------------------------------------
@@ -785,17 +840,33 @@ ${contentJa}`
 // ---------------------------------------------------------------------------
 // Prompt re-generation with feedback
 // ---------------------------------------------------------------------------
-const FILE_ATTACHMENT_HINT =
-  "【添付ファイルについて】以下の添付ファイルは補足資料（画像・表・レイアウト情報）です。メインのテキスト内容は上記「ユーザー入力」に含まれています。添付ファイルは視覚的な情報の参照用としてのみ使用してください。"
+const PDF_ATTACHMENT_HINT =
+  "【添付PDFについて】以下のPDFドキュメントは一次資料です。PDFの全内容（テキスト・図表・レイアウト）を読み込み、Wikiページ作成の主要な情報源として使用してください。"
+
+const IMAGE_ATTACHMENT_HINT =
+  "【添付画像について】以下の画像は補足資料（視覚的なレイアウト・図表情報）です。テキスト内容は上記「ユーザー入力」に含まれています。画像は視覚的な情報の参照用としてのみ使用してください。"
 
 function pushFilePartsWithHint(
   parts: Array<{ text: string } | { fileData: { mimeType: string; fileUri: string } }>,
   fileUris: { uri: string; mimeType: string }[],
 ): void {
   if (fileUris.length === 0) return
-  parts.push({ text: FILE_ATTACHMENT_HINT })
-  for (const f of fileUris) {
-    parts.push({ fileData: { mimeType: f.mimeType, fileUri: f.uri } })
+
+  const pdfs = fileUris.filter((f) => f.mimeType === "application/pdf")
+  const images = fileUris.filter((f) => f.mimeType !== "application/pdf")
+
+  if (pdfs.length > 0) {
+    parts.push({ text: PDF_ATTACHMENT_HINT })
+    for (const f of pdfs) {
+      parts.push({ fileData: { mimeType: f.mimeType, fileUri: f.uri } })
+    }
+  }
+
+  if (images.length > 0) {
+    parts.push({ text: IMAGE_ATTACHMENT_HINT })
+    for (const f of images) {
+      parts.push({ fileData: { mimeType: f.mimeType, fileUri: f.uri } })
+    }
   }
 }
 
