@@ -97,7 +97,11 @@ export async function fetchUrlAsPdf(
     await page.goto(url, { waitUntil: "networkidle2", timeout: timeoutMs })
     const title = await page.title()
     const pdfBuffer = await page.pdf({ format: "A4", printBackground: true })
-    return { buffer: pdfBuffer.buffer as ArrayBuffer, title }
+    const arrayBuffer = pdfBuffer.buffer.slice(
+      pdfBuffer.byteOffset,
+      pdfBuffer.byteOffset + pdfBuffer.byteLength,
+    ) as ArrayBuffer
+    return { buffer: arrayBuffer, title }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     return { error: msg }
