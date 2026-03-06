@@ -20,7 +20,10 @@ export async function action({ request, context }: ActionFunctionArgs) {
     .where(
       and(
         eq(schema.pages.status, "published"),
-        or(isNull(schema.pageEmbeddingStatus.status), ne(schema.pageEmbeddingStatus.status, "indexed")),
+        or(
+          isNull(schema.pageEmbeddingStatus.status),
+          ne(schema.pageEmbeddingStatus.status, "indexed"),
+        ),
       ),
     )
     .limit(50)

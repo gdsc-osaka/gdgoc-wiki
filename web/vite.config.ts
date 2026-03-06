@@ -5,12 +5,7 @@ import { defineConfig } from "vite"
 import tsconfigPaths from "vite-tsconfig-paths"
 
 export default defineConfig({
-  plugins: [
-    cloudflareDevProxy({ experimental: { remoteBindings: false } }),
-    reactRouter(),
-    tailwindcss(),
-    tsconfigPaths(),
-  ],
+  plugins: [cloudflareDevProxy(), reactRouter(), tailwindcss(), tsconfigPaths()],
   build: {
     rollupOptions: {
       external: ["cloudflare:email"],
