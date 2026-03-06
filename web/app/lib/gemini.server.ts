@@ -582,6 +582,55 @@ export async function uploadFileToGemini(
 }
 
 // ---------------------------------------------------------------------------
+// PDF Converter (sub-agent for URL-fetched PDFs)
+// ---------------------------------------------------------------------------
+const PDF_CONVERTER_SYSTEM_PROMPT = `You are an expert at extracting and converting PDF documents into structured text.
+Your goal is to preserve as much information as possible from the PDF.
+Convert the entire content of the attached PDF to Markdown format, including:
+- All text content (headings, paragraphs, lists, tables)
+- Images and figures (describe their content in detail)
+- Key metadata (title, dates, locations, contact info, names)
+- Structured data (schedules, forms, pricing, links)
+- Any action items, registration steps, or deadlines
+Preserve the original structure as much as possible. Do not summarize or omit any details.
+Output in the original language of the document.`
+
+export async function runPdfConverter(
+  apiKey: string,
+  fileUri: string,
+  sourceUrl: string,
+): Promise<string> {
+  console.log("[runPdfConverter] start — fileUri:", fileUri, "source:", sourceUrl)
+  const ai = new GoogleGenAI({ apiKey })
+  const parts = [
+    { fileData: { mimeType: "application/pdf", fileUri } },
+    {
+      text: `Convert the above PDF (source URL: ${sourceUrl}) to Markdown, preserving all information.`,
+    },
+  ]
+  console.log("[runPdfConverter] calling Gemini model: gemini-3-flash-preview")
+  let response: Awaited<ReturnType<typeof ai.models.generateContent>>
+  try {
+    response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: [{ role: "user", parts }],
+      config: { systemInstruction: PDF_CONVERTER_SYSTEM_PROMPT },
+    })
+  } catch (err) {
+    console.error("[runPdfConverter] Gemini API error:", err)
+    throw err
+  }
+  console.log(
+    "[runPdfConverter] response received — text length:",
+    response.text?.length ?? 0,
+    "finishReason:",
+    response.candidates?.[0]?.finishReason,
+  )
+  if (!response.text) throw new Error("Empty response from PDF converter")
+  return response.text
+}
+
+// ---------------------------------------------------------------------------
 // Phase 0: Clarifier
 // ---------------------------------------------------------------------------
 export async function runPhase0Clarifier(

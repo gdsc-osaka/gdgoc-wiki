@@ -19,6 +19,7 @@ import {
   type PageIndexEntry,
   type SectionPatchResponse,
   type UpdateOperation,
+  runPdfConverter,
   runPhase0Clarifier,
   runPhase1Planner,
   runPhase2Creator,
@@ -277,34 +278,80 @@ export async function runIngestionPipeline(
       }
 
       // ------------------------------------------------------------------
-      // Step 1b: Upload PDFs to Gemini File API
+      // Step 1b: Upload PDFs to Gemini File API, then convert to Markdown
       // ------------------------------------------------------------------
+      console.log(
+        "[ingestion-pipeline] step 1b: pdfFiles:",
+        inputs.pdfFiles?.length ?? 0,
+        "pdfKeys:",
+        inputs.pdfKeys?.length ?? 0,
+        inputs.pdfKeys,
+      )
       if (inputs.pdfFiles && inputs.pdfFiles.length > 0) {
-        const pdfUris = await Promise.all(
-          inputs.pdfFiles.map((pdf) =>
-            uploadFileToGemini(pdf.buffer, pdf.mimeType, pdf.name, env.GEMINI_API_KEY).then(
-              (uri) => ({ uri, mimeType: pdf.mimeType }),
-            ),
-          ),
+        console.log("[ingestion-pipeline] step 1b: using pdfFiles path")
+        const pdfTexts = await Promise.all(
+          inputs.pdfFiles.map(async (pdf) => {
+            console.log("[ingestion-pipeline] step 1b: uploading pdfFile:", pdf.name)
+            const uri = await uploadFileToGemini(
+              pdf.buffer,
+              pdf.mimeType,
+              pdf.name,
+              env.GEMINI_API_KEY,
+            )
+            console.log("[ingestion-pipeline] step 1b: uploaded pdfFile:", pdf.name, "→", uri)
+            return runPdfConverter(env.GEMINI_API_KEY, uri, pdf.name)
+              .then((text) => {
+                console.log(
+                  "[ingestion-pipeline] step 1b: converted pdfFile:",
+                  pdf.name,
+                  "text length:",
+                  text.length,
+                )
+                return `### ${pdf.name}\n${text}`
+              })
+              .catch((err) => {
+                console.warn("[ingestion-pipeline] PDF converter failed:", pdf.name, err)
+                return `### ${pdf.name}\n(PDF変換に失敗しました)`
+              })
+          }),
         )
-        fileUris.push(...pdfUris)
+        docTexts.push(`## 添付PDF\n${pdfTexts.join("\n\n")}`)
       } else if (inputs.pdfKeys && inputs.pdfKeys.length > 0) {
-        const pdfUris = await Promise.all(
+        console.log("[ingestion-pipeline] step 1b: using pdfKeys path")
+        const pdfTexts = await Promise.all(
           inputs.pdfKeys.map(async (key) => {
+            console.log("[ingestion-pipeline] step 1b: fetching pdfKey from R2:", key)
             const obj = await env.BUCKET.get(key)
             if (!obj) throw new Error(`Uploaded PDF not found in R2: ${key}`)
             const buffer = await obj.arrayBuffer()
             const name = key.split("/").at(-1) ?? key
+            console.log("[ingestion-pipeline] step 1b: uploading pdfKey to Gemini:", name)
             const uri = await uploadFileToGemini(
               buffer,
               "application/pdf",
               name,
               env.GEMINI_API_KEY,
             )
-            return { uri, mimeType: "application/pdf" }
+            console.log("[ingestion-pipeline] step 1b: uploaded pdfKey:", name, "→", uri)
+            return runPdfConverter(env.GEMINI_API_KEY, uri, name)
+              .then((text) => {
+                console.log(
+                  "[ingestion-pipeline] step 1b: converted pdfKey:",
+                  name,
+                  "text length:",
+                  text.length,
+                )
+                return `### ${name}\n${text}`
+              })
+              .catch((err) => {
+                console.warn("[ingestion-pipeline] PDF converter failed:", name, err)
+                return `### ${name}\n(PDF変換に失敗しました)`
+              })
           }),
         )
-        fileUris.push(...pdfUris)
+        docTexts.push(`## 添付PDF\n${pdfTexts.join("\n\n")}`)
+      } else {
+        console.log("[ingestion-pipeline] step 1b: no PDFs to process")
       }
 
       // ------------------------------------------------------------------
@@ -508,6 +555,7 @@ export async function runIngestionPipeline(
       // For each URL: try Browser Rendering PDF first, fall back to Jina on any failure.
       // env.BROWSER may be a non-functional stub in local dev, so we always fall back.
       const jinaParts: string[] = []
+      const pdfUploads: { geminiUri: string; url: string; title: string }[] = []
       for (const url of resumeContext.selectedUrls) {
         let uploadedPdf = false
 
@@ -522,7 +570,7 @@ export async function runIngestionPipeline(
               hostname,
               env.GEMINI_API_KEY,
             )
-            fileUris.push({ uri: geminiUri, mimeType: "application/pdf" })
+            pdfUploads.push({ geminiUri, url, title: pdfResult.title || url })
             sources.push({ url, title: pdfResult.title || url })
             uploadedPdf = true
             console.log("[ingestion-pipeline] URL PDF uploaded:", url, "→", geminiUri)
@@ -556,6 +604,21 @@ export async function runIngestionPipeline(
             sources.push({ url, title })
           }
         }
+      }
+
+      if (pdfUploads.length > 0) {
+        console.log("[ingestion-pipeline] step 2.6b: converting", pdfUploads.length, "PDFs")
+        const summaries = await Promise.all(
+          pdfUploads.map(({ geminiUri, url, title }) =>
+            runPdfConverter(env.GEMINI_API_KEY, geminiUri, url)
+              .then((summary) => `### ${title}\n${summary}`)
+              .catch((err) => {
+                console.warn("[ingestion-pipeline] PDF converter failed:", url, err)
+                return `### ${title} (${url})\n(PDF要約に失敗しました)`
+              }),
+          ),
+        )
+        jinaParts.push(...summaries)
       }
 
       if (jinaParts.length > 0) {
