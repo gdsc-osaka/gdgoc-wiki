@@ -4,6 +4,7 @@ import "md-editor-rt/lib/preview.css"
 import {
   Archive,
   ExternalLink,
+  FileText,
   History,
   List,
   MoreHorizontal,
@@ -19,12 +20,13 @@ import { Link, redirect, useFetcher, useLoaderData, useLocation } from "react-ro
 import CommentSection from "~/components/CommentSection"
 import ConfirmDialog from "~/components/ConfirmDialog"
 import TagChip from "~/components/TagChip"
+import Tooltip from "~/components/Tooltip"
 import type { TocItem } from "~/components/WikiRightSidebar"
 import WikiRightSidebar from "~/components/WikiRightSidebar"
 import * as schema from "~/db/schema"
 import { useMediaQuery } from "~/hooks/useMediaQuery"
 import { useThemeMode } from "~/hooks/useThemeMode"
-import { requireRole } from "~/lib/auth-utils.server"
+import { hasRole, requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
 import { deletePageEmbeddings } from "~/lib/embedding-pipeline.server"
 import { canUserChangeVisibility, canUserSeePage } from "~/lib/page-visibility.server"
@@ -217,6 +219,7 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
     lang,
     userRole: sessionUser.role,
     isAuthor: sessionUser.id === page.authorId,
+    canArchive: sessionUser.id === page.authorId || hasRole(sessionUser.role as string, "lead"),
     currentUserId: sessionUser.id,
     visibility: page.visibility,
     canChangeVisibility: canUserChangeVisibility(sessionUser, page),
@@ -323,7 +326,8 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
       .get()
     if (!page) throw new Response("Not Found", { status: 404 })
     const isAuthor = sessionUser.id === page.authorId
-    if (!isAuthor && sessionUser.role !== "admin") throw new Response("Forbidden", { status: 403 })
+    if (!isAuthor && !hasRole(sessionUser.role as string, "lead"))
+      throw new Response("Forbidden", { status: 403 })
     await db
       .update(schema.pages)
       .set({ status: "archived", updatedAt: new Date() })
@@ -364,6 +368,7 @@ export default function WikiPage() {
     lang,
     userRole,
     isAuthor,
+    canArchive,
     isStarred,
     sources,
     attachments,
@@ -413,7 +418,6 @@ export default function WikiPage() {
 
   const favFetcher = useFetcher<{ ok: boolean; starred: boolean }>()
   const archiveFetcher = useFetcher()
-  const canArchive = isAuthor || userRole === "admin"
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false)
   const [currentStarred, setCurrentStarred] = useState(isStarred)
   const [copied, setCopied] = useState(false)
@@ -568,12 +572,17 @@ export default function WikiPage() {
             <Share2 size={14} />
             {copied ? t("wiki.share_copied") : t("wiki.share")}
           </button>
-          {canArchive && (
-            <button type="button" onClick={() => setArchiveDialogOpen(true)} className={btnBase}>
+          <Tooltip label={t("wiki.archive_no_permission")} disabled={!canArchive}>
+            <button
+              type="button"
+              onClick={canArchive ? () => setArchiveDialogOpen(true) : undefined}
+              disabled={!canArchive}
+              className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:bg-amber-50 hover:text-amber-700 disabled:opacity-50"
+            >
               <Archive size={14} />
               {t("wiki.archive")}
             </button>
-          )}
+          </Tooltip>
         </div>
 
         {/* Mobile "more" dropdown (<md) */}
@@ -632,19 +641,24 @@ export default function WikiPage() {
                 <Share2 size={14} />
                 {copied ? t("wiki.share_copied") : t("wiki.share")}
               </button>
-              {canArchive && (
+              <Tooltip label={t("wiki.archive_no_permission")} disabled={!canArchive}>
                 <button
                   type="button"
-                  onClick={() => {
-                    setArchiveDialogOpen(true)
-                    setMoreOpen(false)
-                  }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"
+                  onClick={
+                    canArchive
+                      ? () => {
+                          setArchiveDialogOpen(true)
+                          setMoreOpen(false)
+                        }
+                      : undefined
+                  }
+                  disabled={!canArchive}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-amber-50 hover:text-amber-700 disabled:opacity-50"
                 >
                   <Archive size={14} />
                   {t("wiki.archive")}
                 </button>
-              )}
+              </Tooltip>
             </div>
           )}
         </div>
@@ -873,6 +887,7 @@ export default function WikiPage() {
                     {sources.map(({ url, title: sourceTitle }) => {
                       const isDoc = url.includes("docs.google.com/document")
                       const isSlide = url.includes("docs.google.com/presentation")
+                      const isPdf = url.startsWith("/api/images/")
                       return (
                         <li key={url}>
                           <a
@@ -917,7 +932,8 @@ export default function WikiPage() {
                                 <polygon points="10,9 10,15 16,12" fill="#FBBC04" />
                               </svg>
                             )}
-                            {!isDoc && !isSlide && (
+                            {isPdf && <FileText className="h-3 w-3 flex-shrink-0" />}
+                            {!isDoc && !isSlide && !isPdf && (
                               <ExternalLink className="h-3 w-3 flex-shrink-0" />
                             )}
                             <span className="truncate">{sourceTitle}</span>

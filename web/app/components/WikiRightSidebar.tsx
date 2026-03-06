@@ -1,4 +1,4 @@
-import { ExternalLink } from "lucide-react"
+import { ExternalLink, FileText } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { timeAgo } from "~/lib/time"
@@ -151,6 +151,7 @@ export default function WikiRightSidebar({
               {sources.map(({ url, title }) => {
                 const isDoc = url.includes("docs.google.com/document")
                 const isSlide = url.includes("docs.google.com/presentation")
+                const isPdf = url.startsWith("/api/images/")
                 return (
                   <li key={url}>
                     <a
@@ -195,7 +196,10 @@ export default function WikiRightSidebar({
                           <polygon points="10,9 10,15 16,12" fill="#FBBC04" />
                         </svg>
                       )}
-                      {!isDoc && !isSlide && <ExternalLink className="h-3 w-3 flex-shrink-0" />}
+                      {isPdf && <FileText className="h-3 w-3 flex-shrink-0" />}
+                      {!isDoc && !isSlide && !isPdf && (
+                        <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                      )}
                       <span className="truncate">{title}</span>
                     </a>
                   </li>

@@ -55,6 +55,7 @@
     "contents": "Contents",
     "sources": "Sources",
     "attached_images": "Attached Images",
+    "attached_files": "Attached Files",
     "history": "History",
     "history_empty": "No edit history yet",
     "history_current": "Current",
@@ -67,6 +68,7 @@
     "history_no_content": "No content available.",
     "archive": "Archive",
     "archive_confirm": "Archive \"{{title}}\"? You can restore it later.",
+    "archive_no_permission": "Only the author or a lead can archive this page",
     "comment": {
       "heading": "Comments",
       "placeholder": "Add a comment…",
@@ -92,7 +94,9 @@
     "own_pages_note": "Showing your archived pages only.",
     "all_pages_note": "Showing all archived pages.",
     "restore": "Restore",
+    "restore_no_permission": "Only the author or a lead can restore this page",
     "delete": "Delete",
+    "delete_no_permission": "Only admins can permanently delete pages",
     "delete_confirm": "Permanently delete \"{{title}}\"? This cannot be undone."
   },
   "home": {
