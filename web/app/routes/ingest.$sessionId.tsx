@@ -301,7 +301,7 @@ function ClarificationScreen({
                 type="button"
                 onClick={() => {
                   setSelected((prev) => ({ ...prev, [q.id]: [] }))
-                  setFreeText((prev) => ({ ...prev, [q.id]: "" }))
+                  setFreeText((prev) => ({ ...prev, [q.id]: t("ingest.nothing_in_particular") }))
                 }}
                 className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-400 hover:border-gray-400 hover:text-gray-600"
               >
