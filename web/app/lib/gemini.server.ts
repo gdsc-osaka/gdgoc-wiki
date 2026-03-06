@@ -131,14 +131,6 @@ const ClarificationQuestionSchema = z.object({
 })
 
 export const ClarificationResultSchema = z.object({
-  pdfVerification: z
-    .object({
-      pageCount: z.number(),
-      firstHeadingFound: z.string(),
-      detectedSpeakers: z.array(z.string()),
-    })
-    .optional(),
-  analysis: z.string(),
   needsClarification: z.boolean(),
   questions: z.array(ClarificationQuestionSchema).max(4),
   summary: z.string(),
@@ -309,16 +301,6 @@ const SECTION_PATCH_RESPONSE_SCHEMA = {
 const PHASE0_RESPONSE_SCHEMA = {
   type: "object",
   properties: {
-    pdfVerification: {
-      type: "object",
-      properties: {
-        pageCount: { type: "number" },
-        firstHeadingFound: { type: "string" },
-        detectedSpeakers: { type: "array", items: { type: "string" } },
-      },
-      required: ["pageCount", "firstHeadingFound", "detectedSpeakers"],
-    },
-    analysis: { type: "string" },
     needsClarification: { type: "boolean" },
     questions: {
       type: "array",
@@ -335,7 +317,7 @@ const PHASE0_RESPONSE_SCHEMA = {
     },
     summary: { type: "string" },
   },
-  required: ["analysis", "needsClarification", "questions", "summary"],
+  required: ["needsClarification", "questions", "summary"],
 }
 
 const TRANSLATION_RESPONSE_SCHEMA = {
@@ -352,40 +334,21 @@ const TRANSLATION_RESPONSE_SCHEMA = {
 // System prompts
 // ---------------------------------------------------------------------------
 
-const PHASE0_SYSTEM_PROMPT = `# Role
-You are the AI Clarifier for GDGoC Japan Wiki. Your job is to determine whether enough
-information exists to create a high-quality Wiki page.
+const PHASE0_SYSTEM_PROMPT = `あなたはGDGoC Japan WikiのAI取り込みクラリファイアーです。
+ユーザーの入力を読んで、高品質なWikiページを作成するために必要な重要な情報が不足しているかどうかを判断します。
 
-# STERN RULE — Fill "pdfVerification" and "analysis" First
-If a PDF is attached, you MUST fill "pdfVerification" before any other field:
-- "pageCount": the exact number of pages or slides you can read
-- "firstHeadingFound": verbatim text of the very first heading, title, or slide title in the PDF
-- "detectedSpeakers": list of any speaker or presenter names found anywhere in the PDF
+## 判断基準
+- 具体的な日付・場所・担当者・手順・結果などが記載されている場合 → needsClarification=false
+- 曖昧な記述のみで、Wikiページとして有用な情報が不足している場合 → needsClarification=true
 
-Then fill "analysis" (in English) with:
-1. A confirmation line: "Confirmed PDF content with [X] pages/slides."
-2. A brief list of key facts: titles, speaker names, dates, GDG/event keywords.
-If you cannot extract any content from the PDF, set pageCount=0, firstHeadingFound="", detectedSpeakers=[]
-and write "PDF appears to be empty or unreadable." in "analysis".
+## 質問のルール
+- 質問は最大4つまで（本当に必要なものだけ）
+- 各質問には、なぜその情報が必要かのcontext（理由）を含める
+- suggestions（回答例）を2〜3個提示する（任意）
+- 入力が十分に具体的な場合はneedsClarification=falseで質問なしを返す
 
-# Decision Rules (apply in order)
-1. Actively parse ALL pages of any attached PDFs before making a decision.
-2. IF (PDF contains title / speaker / session content / dates) THEN needsClarification = false, questions = [].
-3. IF (text input alone contains concrete details: dates, people, procedures, outcomes) THEN needsClarification = false.
-4. IF (input is vague AND no usable PDF content found) THEN needsClarification = true, ask up to 4 questions.
-
-# Question Minimization
-- Your goal is to FIND information, not to ask questions.
-- If the PDF provides even a basic session outline, set "questions": [] and needsClarification = false.
-- Only ask a question when the specific fact is completely absent from all inputs.
-
-# Extraction Requirement
-If a PDF is attached, the "summary" field MUST start with the specific document title found
-inside the PDF. If no title exists, begin with a brief description of what the PDF contains.
-
-# Output Language (Strict)
-All string values EXCEPT "analysis" (summary, question, context, suggestions) MUST be
-written in Japanese using professional です・ます tone.`
+## 出力言語
+すべてのフィールドは日本語で出力してください。`
 
 const PHASE1_SYSTEM_PROMPT = `あなたはGDGoC Japan WikiのAIプランナーです。
 ユーザーが入力した情報をもとに、Wikiに対する操作計画（OperationPlan）を作成します。
@@ -604,16 +567,11 @@ export async function runPhase0Clarifier(
   const ai = new GoogleGenAI({ apiKey })
 
   const parts: Array<{ text: string } | { fileData: { mimeType: string; fileUri: string } }> = [
-    {
-      text: "SYSTEM: Analyze the following inputs to determine if a Wiki page can be created. PRIORITIZE PDF CONTENT over all other signals.",
-    },
-    {
-      text: `## ユーザー入力\n\n${userText}\n\n## 現在の日時（参考情報）\n${currentDatetime}`,
-    },
+    { text: `## ユーザー入力\n\n${userText}\n\n## 現在の日時（参考情報）\n${currentDatetime}` },
   ]
   pushFilePartsWithHint(parts, fileUris)
   parts.push({
-    text: "CRITICAL: If any attached PDF contains session titles, speakers, or event content, you MUST set needsClarification=false and questions=[]. Do NOT ignore the PDF data. Extract the document title from the PDF to begin your summary.",
+    text: "\n\n---\n上記の入力を分析し、高品質なWikiページを作成するために必要な情報が十分かどうか判断してください。",
   })
 
   const response = await ai.models.generateContent({
@@ -873,20 +831,16 @@ function pushFilePartsWithHint(
 
   if (pdfs.length > 0) {
     parts.push({ text: PDF_ATTACHMENT_HINT })
-    pdfs.forEach((f, i) => {
-      parts.push({ text: `[START OF FILE ${i + 1}: ${f.mimeType}]` })
+    for (const f of pdfs) {
       parts.push({ fileData: { mimeType: f.mimeType, fileUri: f.uri } })
-      parts.push({ text: `[END OF FILE ${i + 1}]` })
-    })
+    }
   }
 
   if (images.length > 0) {
     parts.push({ text: IMAGE_ATTACHMENT_HINT })
-    images.forEach((f, i) => {
-      parts.push({ text: `[START OF IMAGE ${i + 1}: ${f.mimeType}]` })
+    for (const f of images) {
       parts.push({ fileData: { mimeType: f.mimeType, fileUri: f.uri } })
-      parts.push({ text: `[END OF IMAGE ${i + 1}]` })
-    })
+    }
   }
 }
 
