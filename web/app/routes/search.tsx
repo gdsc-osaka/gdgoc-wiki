@@ -331,6 +331,8 @@ export default function SearchPage() {
               return (
                 <li key={page.id}>
                   <div
+                    role="link"
+                    tabIndex={0}
                     className="block cursor-pointer rounded-lg border border-gray-200 bg-white p-4 transition-all hover:border-blue-500/40 hover:shadow-sm"
                     onClick={() => navigate(`/wiki/${page.slug}`)}
                     onKeyDown={(e) => {
@@ -453,20 +455,11 @@ function AiSearchResults({
 
               return (
                 <li key={source.pageId}>
-                  <div
-                    className="block cursor-pointer rounded-lg border border-gray-200 bg-white p-4 transition-all hover:border-blue-500/40 hover:shadow-sm"
-                    onClick={() => navigate(`/wiki/${source.slug}`)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") navigate(`/wiki/${source.slug}`)
-                    }}
+                  <Link
+                    to={`/wiki/${source.slug}`}
+                    className="block rounded-lg border border-gray-200 bg-white p-4 transition-all hover:border-blue-500/40 hover:shadow-sm"
                   >
-                    <Link
-                      to={`/wiki/${source.slug}`}
-                      className="font-medium text-gray-900 hover:text-blue-600"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {title}
-                    </Link>
+                    <span className="font-medium text-gray-900 hover:text-blue-600">{title}</span>
 
                     {summary && (
                       <p className="mt-1 line-clamp-2 text-sm text-gray-500">{summary}</p>
@@ -475,7 +468,7 @@ function AiSearchResults({
                     <div className="mt-2 text-xs text-gray-400">
                       {Math.round(source.relevanceScore * 100)}% match
                     </div>
-                  </div>
+                  </Link>
                 </li>
               )
             })}
