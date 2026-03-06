@@ -1,4 +1,4 @@
-import { and, eq, ne } from "drizzle-orm"
+import { and, eq, isNull, ne, or } from "drizzle-orm"
 import type { ActionFunctionArgs } from "react-router"
 import * as schema from "~/db/schema"
 import { requireRole } from "~/lib/auth-utils.server"
@@ -10,7 +10,9 @@ export async function action({ request, context }: ActionFunctionArgs) {
   await requireRole(request, env, "admin")
   const db = getDb(env)
 
-  // Find published pages that need (re-)indexing
+  // Find published pages that need (re-)indexing.
+  // Use or(isNull, ne) because NULL != 'indexed' evaluates to NULL in SQL,
+  // so a plain ne() would silently skip pages with no status row.
   const pendingPages = await db
     .select({ id: schema.pages.id })
     .from(schema.pages)
@@ -18,39 +20,13 @@ export async function action({ request, context }: ActionFunctionArgs) {
     .where(
       and(
         eq(schema.pages.status, "published"),
-        // Either no embedding status row, or status is not "indexed"
-        ne(schema.pageEmbeddingStatus.status, "indexed"),
+        or(isNull(schema.pageEmbeddingStatus.status), ne(schema.pageEmbeddingStatus.status, "indexed")),
       ),
     )
     .limit(50)
     .all()
 
-  // Also find pages with no embedding_status row at all
-  const missingPages = await db
-    .select({ id: schema.pages.id })
-    .from(schema.pages)
-    .leftJoin(schema.pageEmbeddingStatus, eq(schema.pages.id, schema.pageEmbeddingStatus.pageId))
-    .where(
-      and(
-        eq(schema.pages.status, "published"),
-        // pageEmbeddingStatus.pageId is null means no row exists
-      ),
-    )
-    .all()
-
-  const pageIdsToIndex = new Set<string>()
-  for (const p of pendingPages) pageIdsToIndex.add(p.id)
-  // From missingPages, add those without a status row
-  for (const p of missingPages) {
-    const hasStatus = await db
-      .select({ pageId: schema.pageEmbeddingStatus.pageId })
-      .from(schema.pageEmbeddingStatus)
-      .where(eq(schema.pageEmbeddingStatus.pageId, p.id))
-      .get()
-    if (!hasStatus) pageIdsToIndex.add(p.id)
-  }
-
-  const pageIds = [...pageIdsToIndex].slice(0, 50)
+  const pageIds = pendingPages.map((p) => p.id)
 
   let indexed = 0
   let errors = 0
