@@ -99,7 +99,16 @@
     "recently_updated": "最近の更新",
     "browse_by_tag": "タグで探す",
     "no_pages_yet": "公開済みのページはまだありません。",
-    "no_tags_yet": "タグはまだありません。"
+    "no_tags_yet": "タグはまだありません。",
+    "cta_heading": "AIで新しいページを作成する",
+    "cta_subheading": "メモやGoogleドキュメントのリンク、PDFを貼るだけ。GeminiがバイリンガルのWikiページを数秒で下書きします。",
+    "cta_button": "AIで作成する",
+    "activity_heading": "最近の動き",
+    "activity_pages_heading": "最近のページ",
+    "activity_comments_heading": "最近のコメント",
+    "activity_commented_on": "がコメントしました：",
+    "no_activity_pages": "最近のページ活動はありません。",
+    "no_activity_comments": "最近のコメントはありません。"
   },
   "recent": {
     "title": "最近",

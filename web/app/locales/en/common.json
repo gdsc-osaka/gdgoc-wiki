@@ -99,7 +99,16 @@
     "recently_updated": "Recently Updated",
     "browse_by_tag": "Browse by Tag",
     "no_pages_yet": "No published pages yet.",
-    "no_tags_yet": "No tags yet."
+    "no_tags_yet": "No tags yet.",
+    "cta_heading": "Create a new page with AI",
+    "cta_subheading": "Paste notes, a Google Doc link, or a PDF — Gemini will draft a bilingual wiki page in seconds.",
+    "cta_button": "Create with AI",
+    "activity_heading": "Discover what's happening",
+    "activity_pages_heading": "Recent pages",
+    "activity_comments_heading": "Recent comments",
+    "activity_commented_on": "commented on",
+    "no_activity_pages": "No recent page activity.",
+    "no_activity_comments": "No recent comments."
   },
   "recent": {
     "title": "Recent",
