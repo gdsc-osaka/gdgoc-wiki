@@ -94,6 +94,20 @@ export default function InputPanel({ driveConnected, serverError }: InputPanelPr
     if (errs.length > 0) {
       e.preventDefault()
       setErrors(errs)
+      return
+    }
+    // Sync React state files to the file inputs so the native form submission includes them.
+    // This is necessary because drag-and-drop adds files to state only (input.files is not writable
+    // directly), and the form would otherwise submit with an empty file input.
+    if (fileInputRef.current) {
+      const dt = new DataTransfer()
+      for (const f of images) dt.items.add(f)
+      fileInputRef.current.files = dt.files
+    }
+    if (pdfInputRef.current) {
+      const dt = new DataTransfer()
+      for (const f of pdfs) dt.items.add(f)
+      pdfInputRef.current.files = dt.files
     }
   }
 
@@ -152,6 +166,15 @@ export default function InputPanel({ driveConnected, serverError }: InputPanelPr
         <p className="mb-1.5 text-sm font-medium text-gray-700">
           {t("ingest.form.images_label", { max: MAX_IMAGES })}
         </p>
+        <input
+          ref={fileInputRef}
+          type="file"
+          name="images"
+          multiple
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => e.target.files && handleAddImages(e.target.files)}
+        />
         <button
           type="button"
           onDrop={handleDrop}
@@ -168,15 +191,6 @@ export default function InputPanel({ driveConnected, serverError }: InputPanelPr
           }`}
         >
           <p className="text-sm text-gray-500">{t("ingest.form.drop_hint")}</p>
-          <input
-            ref={fileInputRef}
-            type="file"
-            name="images"
-            multiple
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => e.target.files && handleAddImages(e.target.files)}
-          />
         </button>
 
         {/* Image previews */}
@@ -233,6 +247,17 @@ export default function InputPanel({ driveConnected, serverError }: InputPanelPr
             ))}
           </div>
         )}
+        <input
+          ref={pdfInputRef}
+          type="file"
+          name="pdfs"
+          multiple
+          accept="application/pdf"
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files) handleAddPdfs(e.target.files)
+          }}
+        />
         <button
           type="button"
           onDrop={handlePdfDrop}
@@ -249,17 +274,6 @@ export default function InputPanel({ driveConnected, serverError }: InputPanelPr
           }`}
         >
           {t("ingest.form.pdfs_drop_hint")}
-          <input
-            ref={pdfInputRef}
-            type="file"
-            name="pdfs"
-            multiple
-            accept="application/pdf"
-            className="hidden"
-            onChange={(e) => {
-              if (e.target.files) handleAddPdfs(e.target.files)
-            }}
-          />
         </button>
       </div>
 

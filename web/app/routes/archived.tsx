@@ -5,8 +5,9 @@ import { useTranslation } from "react-i18next"
 import { useFetcher, useLoaderData } from "react-router"
 import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react-router"
 import ConfirmDialog from "~/components/ConfirmDialog"
+import Tooltip from "~/components/Tooltip"
 import * as schema from "~/db/schema"
-import { requireRole } from "~/lib/auth-utils.server"
+import { hasRole, requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
 import { deletePageEmbeddings } from "~/lib/embedding-pipeline.server"
 
@@ -22,6 +23,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
   const db = getDb(env)
 
   const isAdmin = user.role === "admin"
+  const isLead = hasRole(user.role as string, "lead")
 
   const pages = await db
     .select({
@@ -30,17 +32,18 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
       titleJa: schema.pages.titleJa,
       titleEn: schema.pages.titleEn,
       updatedAt: schema.pages.updatedAt,
+      authorId: schema.pages.authorId,
     })
     .from(schema.pages)
     .where(
-      isAdmin
+      isLead
         ? eq(schema.pages.status, "archived")
         : and(eq(schema.pages.status, "archived"), eq(schema.pages.authorId, user.id)),
     )
     .orderBy(desc(schema.pages.updatedAt))
     .all()
 
-  return { pages, isAdmin }
+  return { pages, isAdmin, isLead, currentUserId: user.id }
 }
 
 // ---------------------------------------------------------------------------
@@ -65,10 +68,10 @@ export async function action({ request, context }: ActionFunctionArgs) {
     .get()
 
   if (!page) throw new Response("Not Found", { status: 404 })
-  if (page.authorId !== user.id && user.role !== "admin")
-    throw new Response("Forbidden", { status: 403 })
 
   if (intent === "restorePage") {
+    if (page.authorId !== user.id && !hasRole(user.role as string, "lead"))
+      throw new Response("Forbidden", { status: 403 })
     await db
       .update(schema.pages)
       .set({ status: "draft", updatedAt: new Date() })
@@ -77,6 +80,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
   }
 
   if (intent === "deletePage") {
+    if (user.role !== "admin") throw new Response("Forbidden", { status: 403 })
     try {
       await deletePageEmbeddings(env, db, pageId)
     } catch {
@@ -111,12 +115,21 @@ function timeAgo(date: Date, t: (key: string, opts?: Record<string, unknown>) =>
 
 type PageRow = {
   id: string
+  authorId: string
   titleJa: string
   titleEn: string
   updatedAt: Date | string | null
 }
 
-function ArchivedRow({ page }: { page: PageRow }) {
+function ArchivedRow({
+  page,
+  canRestore,
+  canDelete,
+}: {
+  page: PageRow
+  canRestore: boolean
+  canDelete: boolean
+}) {
   const { t } = useTranslation()
   const fetcher = useFetcher()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -135,26 +148,30 @@ function ArchivedRow({ page }: { page: PageRow }) {
       <div className="flex shrink-0 items-center gap-1">
         <fetcher.Form method="post">
           <input type="hidden" name="pageId" value={page.id} />
-          <button
-            type="submit"
-            name="intent"
-            value="restorePage"
-            disabled={isActing}
-            className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50"
-          >
-            <RotateCcw size={13} />
-            {t("archived.restore")}
-          </button>
+          <Tooltip label={t("archived.restore_no_permission")} disabled={!canRestore}>
+            <button
+              type="submit"
+              name="intent"
+              value="restorePage"
+              disabled={isActing || !canRestore}
+              className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-gray-500 hover:bg-green-50 hover:text-green-700 disabled:opacity-50"
+            >
+              <RotateCcw size={13} />
+              {t("archived.restore")}
+            </button>
+          </Tooltip>
         </fetcher.Form>
-        <button
-          type="button"
-          disabled={isActing}
-          onClick={() => setDeleteDialogOpen(true)}
-          className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
-        >
-          <Trash2 size={13} />
-          {t("archived.delete")}
-        </button>
+        <Tooltip label={t("archived.delete_no_permission")} disabled={!canDelete}>
+          <button
+            type="button"
+            disabled={isActing || !canDelete}
+            onClick={canDelete ? () => setDeleteDialogOpen(true) : undefined}
+            className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+          >
+            <Trash2 size={13} />
+            {t("archived.delete")}
+          </button>
+        </Tooltip>
       </div>
       <ConfirmDialog
         open={deleteDialogOpen}
@@ -174,22 +191,27 @@ function ArchivedRow({ page }: { page: PageRow }) {
 }
 
 export default function ArchivedPage() {
-  const { pages, isAdmin } = useLoaderData<typeof loader>()
+  const { pages, isAdmin, isLead, currentUserId } = useLoaderData<typeof loader>()
   const { t } = useTranslation()
 
   return (
     <div className="px-4 py-6 md:px-8 md:py-8">
       <h1 className="mb-2 text-2xl font-bold text-gray-900">{t("archived.title")}</h1>
 
-      {!isAdmin && <p className="mb-6 text-sm text-gray-500">{t("archived.own_pages_note")}</p>}
-      {isAdmin && <p className="mb-6 text-sm text-gray-500">{t("archived.all_pages_note")}</p>}
+      {!isLead && <p className="mb-6 text-sm text-gray-500">{t("archived.own_pages_note")}</p>}
+      {isLead && <p className="mb-6 text-sm text-gray-500">{t("archived.all_pages_note")}</p>}
 
       {pages.length === 0 ? (
         <p className="text-sm text-gray-400">{t("archived.empty")}</p>
       ) : (
         <ul className="divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
           {pages.map((page) => (
-            <ArchivedRow key={page.id} page={page} />
+            <ArchivedRow
+              key={page.id}
+              page={page}
+              canRestore={page.authorId === currentUserId || isLead}
+              canDelete={isAdmin}
+            />
           ))}
         </ul>
       )}

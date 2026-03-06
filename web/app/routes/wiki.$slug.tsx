@@ -4,6 +4,7 @@ import "md-editor-rt/lib/preview.css"
 import {
   Archive,
   ExternalLink,
+  FileText,
   History,
   List,
   MoreHorizontal,
@@ -19,12 +20,13 @@ import { Link, redirect, useFetcher, useLoaderData, useLocation } from "react-ro
 import CommentSection from "~/components/CommentSection"
 import ConfirmDialog from "~/components/ConfirmDialog"
 import TagChip from "~/components/TagChip"
+import Tooltip from "~/components/Tooltip"
 import type { TocItem } from "~/components/WikiRightSidebar"
 import WikiRightSidebar from "~/components/WikiRightSidebar"
 import * as schema from "~/db/schema"
 import { useMediaQuery } from "~/hooks/useMediaQuery"
 import { useThemeMode } from "~/hooks/useThemeMode"
-import { requireRole } from "~/lib/auth-utils.server"
+import { hasRole, requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
 import { deletePageEmbeddings } from "~/lib/embedding-pipeline.server"
 import { canUserChangeVisibility, canUserSeePage } from "~/lib/page-visibility.server"
@@ -217,6 +219,7 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
     lang,
     userRole: sessionUser.role,
     isAuthor: sessionUser.id === page.authorId,
+    canArchive: sessionUser.id === page.authorId || hasRole(sessionUser.role as string, "lead"),
     currentUserId: sessionUser.id,
     visibility: page.visibility,
     canChangeVisibility: canUserChangeVisibility(sessionUser, page),
@@ -323,7 +326,8 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
       .get()
     if (!page) throw new Response("Not Found", { status: 404 })
     const isAuthor = sessionUser.id === page.authorId
-    if (!isAuthor && sessionUser.role !== "admin") throw new Response("Forbidden", { status: 403 })
+    if (!isAuthor && !hasRole(sessionUser.role as string, "lead"))
+      throw new Response("Forbidden", { status: 403 })
     await db
       .update(schema.pages)
       .set({ status: "archived", updatedAt: new Date() })
@@ -364,6 +368,7 @@ export default function WikiPage() {
     lang,
     userRole,
     isAuthor,
+    canArchive,
     isStarred,
     sources,
     attachments,
@@ -413,7 +418,6 @@ export default function WikiPage() {
 
   const favFetcher = useFetcher<{ ok: boolean; starred: boolean }>()
   const archiveFetcher = useFetcher()
-  const canArchive = isAuthor || userRole === "admin"
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false)
   const [currentStarred, setCurrentStarred] = useState(isStarred)
   const [copied, setCopied] = useState(false)
@@ -568,12 +572,17 @@ export default function WikiPage() {
             <Share2 size={14} />
             {copied ? t("wiki.share_copied") : t("wiki.share")}
           </button>
-          {canArchive && (
-            <button type="button" onClick={() => setArchiveDialogOpen(true)} className={btnBase}>
+          <Tooltip label={t("wiki.archive_no_permission")} disabled={!canArchive}>
+            <button
+              type="button"
+              onClick={canArchive ? () => setArchiveDialogOpen(true) : undefined}
+              disabled={!canArchive}
+              className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:bg-amber-50 hover:text-amber-700 disabled:opacity-50"
+            >
               <Archive size={14} />
               {t("wiki.archive")}
             </button>
-          )}
+          </Tooltip>
         </div>
 
         {/* Mobile "more" dropdown (<md) */}
@@ -632,19 +641,24 @@ export default function WikiPage() {
                 <Share2 size={14} />
                 {copied ? t("wiki.share_copied") : t("wiki.share")}
               </button>
-              {canArchive && (
+              <Tooltip label={t("wiki.archive_no_permission")} disabled={!canArchive}>
                 <button
                   type="button"
-                  onClick={() => {
-                    setArchiveDialogOpen(true)
-                    setMoreOpen(false)
-                  }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"
+                  onClick={
+                    canArchive
+                      ? () => {
+                          setArchiveDialogOpen(true)
+                          setMoreOpen(false)
+                        }
+                      : undefined
+                  }
+                  disabled={!canArchive}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-amber-50 hover:text-amber-700 disabled:opacity-50"
                 >
                   <Archive size={14} />
                   {t("wiki.archive")}
                 </button>
-              )}
+              </Tooltip>
             </div>
           )}
         </div>
@@ -863,95 +877,92 @@ export default function WikiPage() {
                 </span>
               )}
 
-              {/* Sources */}
-              {sources && sources.length > 0 && (
+              {/* Sources (URLs, PDFs, and image attachments) */}
+              {((sources && sources.length > 0) || (attachments && attachments.length > 0)) && (
                 <div>
                   <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
                     {t("wiki.sources")}
                   </p>
-                  <ul className="space-y-1.5">
-                    {sources.map(({ url, title: sourceTitle }) => {
-                      const isDoc = url.includes("docs.google.com/document")
-                      const isSlide = url.includes("docs.google.com/presentation")
-                      return (
-                        <li key={url}>
-                          <a
-                            href={url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1.5 text-xs text-blue-600 hover:underline"
-                          >
-                            {isDoc && (
-                              <svg
-                                width="12"
-                                height="12"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                className="flex-shrink-0"
-                                aria-hidden="true"
-                              >
-                                <path
-                                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"
-                                  fill="#4285F4"
-                                />
-                                <path d="M14 2v6h6" fill="#A8C7FA" />
-                                <path
-                                  d="M8 13h8M8 17h5"
-                                  stroke="white"
-                                  strokeWidth="1.5"
-                                  strokeLinecap="round"
-                                />
-                              </svg>
-                            )}
-                            {isSlide && (
-                              <svg
-                                width="12"
-                                height="12"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                className="flex-shrink-0"
-                                aria-hidden="true"
-                              >
-                                <rect width="24" height="24" rx="2" fill="#FBBC04" />
-                                <rect x="4" y="6" width="16" height="12" rx="1" fill="white" />
-                                <polygon points="10,9 10,15 16,12" fill="#FBBC04" />
-                              </svg>
-                            )}
-                            {!isDoc && !isSlide && (
-                              <ExternalLink className="h-3 w-3 flex-shrink-0" />
-                            )}
-                            <span className="truncate">{sourceTitle}</span>
-                          </a>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                </div>
-              )}
-
-              {/* Attached images */}
-              {attachments && attachments.length > 0 && (
-                <div>
-                  <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                    {t("wiki.attached_images")}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {attachments.map(({ r2Key, fileName }) => (
-                      <a
-                        key={r2Key}
-                        href={`/api/images/${r2Key}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title={fileName}
-                      >
-                        <img
-                          src={`/api/images/${r2Key}`}
-                          alt={fileName}
-                          className="max-h-24 rounded border border-gray-200 object-cover"
-                        />
-                      </a>
-                    ))}
-                  </div>
+                  {sources && sources.length > 0 && (
+                    <ul className="space-y-1.5">
+                      {sources.map(({ url, title: sourceTitle }) => {
+                        const isDoc = url.includes("docs.google.com/document")
+                        const isSlide = url.includes("docs.google.com/presentation")
+                        const isPdf = url.startsWith("/api/images/")
+                        return (
+                          <li key={url}>
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1.5 text-xs text-blue-600 hover:underline"
+                            >
+                              {isDoc && (
+                                <svg
+                                  width="12"
+                                  height="12"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  className="flex-shrink-0"
+                                  aria-hidden="true"
+                                >
+                                  <path
+                                    d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"
+                                    fill="#4285F4"
+                                  />
+                                  <path d="M14 2v6h6" fill="#A8C7FA" />
+                                  <path
+                                    d="M8 13h8M8 17h5"
+                                    stroke="white"
+                                    strokeWidth="1.5"
+                                    strokeLinecap="round"
+                                  />
+                                </svg>
+                              )}
+                              {isSlide && (
+                                <svg
+                                  width="12"
+                                  height="12"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  className="flex-shrink-0"
+                                  aria-hidden="true"
+                                >
+                                  <rect width="24" height="24" rx="2" fill="#FBBC04" />
+                                  <rect x="4" y="6" width="16" height="12" rx="1" fill="white" />
+                                  <polygon points="10,9 10,15 16,12" fill="#FBBC04" />
+                                </svg>
+                              )}
+                              {isPdf && <FileText className="h-3 w-3 flex-shrink-0" />}
+                              {!isDoc && !isSlide && !isPdf && (
+                                <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                              )}
+                              <span className="truncate">{sourceTitle}</span>
+                            </a>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  )}
+                  {attachments && attachments.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {attachments.map(({ r2Key, fileName }) => (
+                        <a
+                          key={r2Key}
+                          href={`/api/images/${r2Key}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={fileName}
+                        >
+                          <img
+                            src={`/api/images/${r2Key}`}
+                            alt={fileName}
+                            className="h-12 w-12 rounded border border-gray-200 object-cover"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

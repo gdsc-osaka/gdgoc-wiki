@@ -229,11 +229,16 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
 
   // Build r2key → mimeType map from session inputs for accurate MIME types
   const r2KeyMimeMap: Record<string, string> = {}
+  let sessionImageKeys: string[] = []
+  let sessionPdfKeys: string[] = []
   try {
     const parsedInputs = JSON.parse(session.inputsJson ?? "{}") as {
       imageKeys?: string[]
+      pdfKeys?: string[]
     }
-    for (const key of parsedInputs.imageKeys ?? []) {
+    sessionImageKeys = parsedInputs.imageKeys ?? []
+    sessionPdfKeys = parsedInputs.pdfKeys ?? []
+    for (const key of sessionImageKeys) {
       const obj = await env.BUCKET.head(key)
       if (obj?.httpMetadata?.contentType) {
         r2KeyMimeMap[key] = obj.httpMetadata.contentType
@@ -243,10 +248,16 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
     // best-effort; fall back to image/jpeg below
   }
 
-  // Scan each op's tiptapJson for ingestion image references and create page_attachments
+  // Scan each op's tiptapJson for ingestion image references and create page_attachments.
+  // Track (pageId → Set<r2Key>) to avoid duplicate inserts when saving all uploaded files below.
+  const insertedAttachments = new Map<string, Set<string>>()
   for (const op of body.operations) {
     const pageId = op.type === "create" ? tempIdMap[op.tempId as string] : (op.pageId as string)
     if (!pageId || !op.tiptapJson) continue
+
+    if (!insertedAttachments.has(pageId)) insertedAttachments.set(pageId, new Set())
+    // biome-ignore lint/style/noNonNullAssertion: set above
+    const pageInserted = insertedAttachments.get(pageId)!
 
     const imgRegex = /"src":"\/api\/images\/(ingestion\/[^"]+)"/g
     const seenKeys = new Set<string>()
@@ -254,12 +265,40 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
       const r2Key = match[1]
       if (seenKeys.has(r2Key)) continue
       seenKeys.add(r2Key)
+      pageInserted.add(r2Key)
       const fileName = r2Key.split("/").at(-1) ?? r2Key
       const mimeType = r2KeyMimeMap[r2Key] ?? "image/jpeg"
       statements.push(
         env.DB.prepare(
           "INSERT OR IGNORE INTO page_attachments (id, page_id, r2_key, file_name, mime_type, created_at) VALUES (?, ?, ?, ?, ?, unixepoch())",
         ).bind(nanoid(), pageId, r2Key, fileName, mimeType),
+      )
+    }
+  }
+
+  // Save all uploaded images as attachments on every page in this commit
+  for (const pageId of pageIds) {
+    const pageInserted = insertedAttachments.get(pageId) ?? new Set<string>()
+    for (const r2Key of sessionImageKeys) {
+      if (pageInserted.has(r2Key)) continue
+      const fileName = r2Key.split("/").at(-1) ?? r2Key
+      const mimeType = r2KeyMimeMap[r2Key] ?? "image/jpeg"
+      statements.push(
+        env.DB.prepare(
+          "INSERT OR IGNORE INTO page_attachments (id, page_id, r2_key, file_name, mime_type, created_at) VALUES (?, ?, ?, ?, ?, unixepoch())",
+        ).bind(nanoid(), pageId, r2Key, fileName, mimeType),
+      )
+    }
+  }
+
+  // Save uploaded PDFs as page sources (shown in the Sources section on the wiki page)
+  for (const pageId of pageIds) {
+    for (const r2Key of sessionPdfKeys) {
+      const fileName = r2Key.split("/").at(-1) ?? r2Key
+      statements.push(
+        env.DB.prepare(
+          "INSERT OR IGNORE INTO page_sources (id, page_id, url, title, created_at) VALUES (?, ?, ?, ?, unixepoch())",
+        ).bind(nanoid(), pageId, `/api/images/${r2Key}`, fileName),
       )
     }
   }

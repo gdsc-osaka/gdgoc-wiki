@@ -55,6 +55,7 @@
     "contents": "目次",
     "sources": "ソース",
     "attached_images": "添付画像 / Attached Images",
+    "attached_files": "添付ファイル",
     "history": "編集履歴",
     "history_empty": "編集履歴はまだありません",
     "history_current": "現在",
@@ -67,6 +68,7 @@
     "history_no_content": "コンテンツがありません。",
     "archive": "アーカイブ",
     "archive_confirm": "「{{title}}」をアーカイブしますか？後から復元できます。",
+    "archive_no_permission": "著者またはリード以上のみアーカイブできます",
     "comment": {
       "heading": "コメント",
       "placeholder": "コメントを追加…",
@@ -92,7 +94,9 @@
     "own_pages_note": "自分がアーカイブしたページのみ表示しています。",
     "all_pages_note": "すべてのアーカイブ済みページを表示しています。",
     "restore": "復元",
+    "restore_no_permission": "著者またはリード以上のみ復元できます",
     "delete": "削除",
+    "delete_no_permission": "管理者のみ完全削除できます",
     "delete_confirm": "「{{title}}」を完全に削除しますか？この操作は元に戻せません。"
   },
   "home": {
@@ -481,6 +485,10 @@
     "title": "アクセス制限",
     "message": "このWikiへのアクセス権限がありません。チャプターリードまたは管理者に招待を依頼してください。",
     "sign_out": "サインアウト"
+  },
+  "viewer": {
+    "title": "アクセスが許可されていません",
+    "message": "招待については、チャプターオーガナイザーまたは管理者にお問い合わせください。"
   },
   "search": {
     "title": "検索結果",
