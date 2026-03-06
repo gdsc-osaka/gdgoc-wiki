@@ -2,6 +2,7 @@ import { GoogleGenAI } from "@google/genai"
 import { type SQL, and, eq, inArray } from "drizzle-orm"
 import type { drizzle } from "drizzle-orm/d1"
 import * as schema from "~/db/schema"
+import { chunkPageContent } from "./chunker.server"
 
 type Db = ReturnType<typeof drizzle>
 
@@ -53,7 +54,10 @@ export async function performRagSearch(
   // 3. Group by pageId, take top unique pages
   const pageChunks = new Map<
     string,
-    { score: number; chunks: Array<{ text: string; sectionHeading: string | null }> }
+    {
+      score: number
+      chunks: Array<{ chunkIndex: number; language: string; sectionHeading: string | null }>
+    }
   >()
 
   for (const match of vectorResults.matches) {
@@ -61,11 +65,11 @@ export async function performRagSearch(
     if (!meta) continue
     const pageId = meta.pageId as string
     const sectionHeading = (meta.sectionHeading as string) || null
-    // We store the chunk text in metadata — but Vectorize metadata is limited.
-    // We'll reconstruct from the ID format: pageId:lang:chunkIndex
+    const chunkIndex = typeof meta.chunkIndex === "number" ? meta.chunkIndex : -1
+    const language = (meta.language as string) || "en"
     const existing = pageChunks.get(pageId) ?? { score: 0, chunks: [] }
     existing.score = Math.max(existing.score, match.score)
-    existing.chunks.push({ text: "", sectionHeading })
+    existing.chunks.push({ chunkIndex, language, sectionHeading })
     pageChunks.set(pageId, existing)
   }
 
@@ -99,6 +103,26 @@ export async function performRagSearch(
 
   if (pages.length === 0) {
     return { answer: "", sources: [], ragAvailable: true }
+  }
+
+  // Build a lookup: pageId -> Map<"lang:chunkIndex", chunkText>
+  const chunkTextMap = new Map<string, Map<string, string>>()
+  for (const p of pages) {
+    const chunks = chunkPageContent({
+      pageId: p.id,
+      slug: p.slug,
+      titleJa: p.titleJa,
+      titleEn: p.titleEn,
+      summaryJa: p.summaryJa,
+      summaryEn: p.summaryEn,
+      contentJa: p.contentJa,
+      contentEn: p.contentEn,
+    })
+    const map = new Map<string, string>()
+    for (const chunk of chunks) {
+      map.set(`${chunk.language}:${chunk.chunkIndex}`, chunk.text)
+    }
+    chunkTextMap.set(p.id, map)
   }
 
   // Build context excerpts for Gemini (use summaries + first 500 chars of content)
@@ -149,16 +173,24 @@ Please answer based only on the wiki excerpts above.`
   }
 
   // 6. Build sources
-  const sources = pages.map((p) => ({
-    pageId: p.id,
-    slug: p.slug,
-    titleJa: p.titleJa,
-    titleEn: p.titleEn,
-    summaryJa: p.summaryJa,
-    summaryEn: p.summaryEn,
-    relevanceScore: pageChunks.get(p.id)?.score ?? 0,
-    matchedChunks: pageChunks.get(p.id)?.chunks ?? [],
-  }))
+  const sources = pages.map((p) => {
+    const chunkRefs = pageChunks.get(p.id)?.chunks ?? []
+    const pageChunkMap = chunkTextMap.get(p.id) ?? new Map<string, string>()
+    const matchedChunks = chunkRefs.map((ref) => ({
+      text: pageChunkMap.get(`${ref.language}:${ref.chunkIndex}`) ?? "",
+      sectionHeading: ref.sectionHeading,
+    }))
+    return {
+      pageId: p.id,
+      slug: p.slug,
+      titleJa: p.titleJa,
+      titleEn: p.titleEn,
+      summaryJa: p.summaryJa,
+      summaryEn: p.summaryEn,
+      relevanceScore: pageChunks.get(p.id)?.score ?? 0,
+      matchedChunks,
+    }
+  })
 
   // Sort by relevance
   sources.sort((a, b) => b.relevanceScore - a.relevanceScore)
