@@ -268,7 +268,7 @@
       "pdfs_label": "PDFファイル（最大{{max}}件・各20MB以下）",
       "pdfs_hint": "AI分析のソースとしてPDFドキュメントをアップロードします",
       "pdfs_drop_hint": "クリックまたはドラッグ&ドロップでPDFファイルを追加",
-      "submit": "AI で整理する →"
+      "submit": "AI で作成する →"
     },
     "errors": {
       "text_too_short": "入力が少なすぎます。最低{{min}}文字以上入力してください。",

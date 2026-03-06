@@ -268,7 +268,7 @@
       "pdfs_label": "PDF Files (max {{max}}, up to 20 MB each)",
       "pdfs_hint": "Upload PDF documents as source material for AI analysis",
       "pdfs_drop_hint": "Click or drag & drop to add PDF files",
-      "submit": "Organize with AI →"
+      "submit": "Create with AI →"
     },
     "errors": {
       "text_too_short": "Not enough text. Please enter at least {{min}} characters.",
