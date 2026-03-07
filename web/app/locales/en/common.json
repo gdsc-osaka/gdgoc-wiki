@@ -97,7 +97,8 @@
     "restore_no_permission": "Only the author or a lead can restore this page",
     "delete": "Delete",
     "delete_no_permission": "Only admins can permanently delete pages",
-    "delete_confirm": "Permanently delete \"{{title}}\"? This cannot be undone."
+    "delete_confirm": "Permanently delete \"{{title}}\"? This cannot be undone.",
+    "view_all": "View all archived"
   },
   "home": {
     "recently_updated": "Recently Updated",
@@ -119,7 +120,8 @@
     "recently_updated": "Recently Updated",
     "recently_viewed": "Recently Viewed",
     "no_updated": "No published pages yet.",
-    "no_viewed": "You haven't viewed any pages yet."
+    "no_viewed": "You haven't viewed any pages yet.",
+    "view_all": "View all recent"
   },
   "auth": {
     "sign_in": "Sign in",

@@ -10,6 +10,7 @@ import * as schema from "~/db/schema"
 import { hasRole, requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
 import { deletePageEmbeddings } from "~/lib/embedding-pipeline.server"
+import { timeAgo } from "~/lib/time"
 
 export const meta: MetaFunction = () => [{ title: "Archived — GDGoC Japan Wiki" }]
 
@@ -101,17 +102,6 @@ export async function action({ request, context }: ActionFunctionArgs) {
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
-
-function timeAgo(date: Date, t: (key: string, opts?: Record<string, unknown>) => string): string {
-  const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
-  if (seconds < 60) return t("time.just_now")
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return t("time.minutes_ago", { count: minutes })
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return t("time.hours_ago", { count: hours })
-  const days = Math.floor(hours / 24)
-  return t("time.days_ago", { count: days })
-}
 
 type PageRow = {
   id: string

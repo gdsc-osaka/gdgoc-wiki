@@ -1,12 +1,16 @@
 import { and, eq, isNull, sql } from "drizzle-orm"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Outlet, redirect, useLoaderData, useLocation, useParams } from "react-router"
 import type { LoaderFunctionArgs } from "react-router"
+import ArchivedContent from "~/components/ArchivedContent"
 import Footer from "~/components/Footer"
 import Navbar from "~/components/Navbar"
+import RecentContent from "~/components/RecentContent"
 import Sidebar from "~/components/Sidebar"
-import StarredDialog from "~/components/StarredDialog"
+import SidebarDialog from "~/components/SidebarDialog"
+import SidebarPopover from "~/components/SidebarPopover"
+import StarredContent from "~/components/StarredContent"
 import * as schema from "~/db/schema"
 import { useMediaQuery } from "~/hooks/useMediaQuery"
 import { getSessionUser } from "~/lib/auth-utils.server"
@@ -70,7 +74,12 @@ export default function AppLayout() {
 
   const [desktopOpen, setDesktopOpen] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [starredDialogOpen, setStarredDialogOpen] = useState(false)
+
+  // Popover/dialog state — only one can be open at a time
+  const [activePanel, setActivePanel] = useState<"recent" | "starred" | "archived" | null>(null)
+  const recentButtonRef = useRef<HTMLButtonElement>(null)
+  const starredButtonRef = useRef<HTMLButtonElement>(null)
+  const archivedButtonRef = useRef<HTMLButtonElement>(null)
 
   const lang: "ja" | "en" = i18n.language === "en" ? "en" : "ja"
 
@@ -84,11 +93,18 @@ export default function AppLayout() {
     }
   }, [])
 
-  // Close mobile drawer on route change
+  // Close mobile drawer and all panels on route change
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentional trigger on pathname change
   useEffect(() => {
     setMobileOpen(false)
+    setActivePanel(null)
   }, [location.pathname])
+
+  // Close panels when switching between mobile/desktop to avoid glitches
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional trigger on isMobile change
+  useEffect(() => {
+    setActivePanel(null)
+  }, [isMobile])
 
   // When unauthenticated, render only the outlet (child handles its own UI)
   if (!user) return <Outlet />
@@ -128,7 +144,12 @@ export default function AppLayout() {
           isOpen={sidebarOpen}
           isMobile={isMobile}
           onClose={() => setMobileOpen(false)}
-          onStarredClick={() => setStarredDialogOpen(true)}
+          onRecentClick={() => setActivePanel((p) => (p === "recent" ? null : "recent"))}
+          recentButtonRef={recentButtonRef}
+          onStarredClick={() => setActivePanel((p) => (p === "starred" ? null : "starred"))}
+          starredButtonRef={starredButtonRef}
+          onArchivedClick={() => setActivePanel((p) => (p === "archived" ? null : "archived"))}
+          archivedButtonRef={archivedButtonRef}
         />
 
         {/* Main content */}
@@ -139,11 +160,72 @@ export default function AppLayout() {
           <Footer />
         </div>
       </div>
-      <StarredDialog
-        open={starredDialogOpen}
-        onClose={() => setStarredDialogOpen(false)}
-        lang={lang}
-      />
+      {/* Recent panel */}
+      {isMobile ? (
+        <SidebarDialog open={activePanel === "recent"} onClose={() => setActivePanel(null)}>
+          <RecentContent
+            open={activePanel === "recent"}
+            onClose={() => setActivePanel(null)}
+            lang={lang}
+          />
+        </SidebarDialog>
+      ) : (
+        <SidebarPopover
+          open={activePanel === "recent"}
+          onClose={() => setActivePanel(null)}
+          anchorRef={recentButtonRef}
+        >
+          <RecentContent
+            open={activePanel === "recent"}
+            onClose={() => setActivePanel(null)}
+            lang={lang}
+          />
+        </SidebarPopover>
+      )}
+      {/* Starred panel */}
+      {isMobile ? (
+        <SidebarDialog open={activePanel === "starred"} onClose={() => setActivePanel(null)}>
+          <StarredContent
+            open={activePanel === "starred"}
+            onClose={() => setActivePanel(null)}
+            lang={lang}
+          />
+        </SidebarDialog>
+      ) : (
+        <SidebarPopover
+          open={activePanel === "starred"}
+          onClose={() => setActivePanel(null)}
+          anchorRef={starredButtonRef}
+        >
+          <StarredContent
+            open={activePanel === "starred"}
+            onClose={() => setActivePanel(null)}
+            lang={lang}
+          />
+        </SidebarPopover>
+      )}
+      {/* Archived panel */}
+      {isMobile ? (
+        <SidebarDialog open={activePanel === "archived"} onClose={() => setActivePanel(null)}>
+          <ArchivedContent
+            open={activePanel === "archived"}
+            onClose={() => setActivePanel(null)}
+            lang={lang}
+          />
+        </SidebarDialog>
+      ) : (
+        <SidebarPopover
+          open={activePanel === "archived"}
+          onClose={() => setActivePanel(null)}
+          anchorRef={archivedButtonRef}
+        >
+          <ArchivedContent
+            open={activePanel === "archived"}
+            onClose={() => setActivePanel(null)}
+            lang={lang}
+          />
+        </SidebarPopover>
+      )}
     </div>
   )
 }
