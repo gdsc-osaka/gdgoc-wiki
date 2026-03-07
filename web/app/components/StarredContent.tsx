@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, useFetcher } from "react-router"
+import { ListSkeleton } from "~/components/Skeleton"
 
 interface FavoritePage {
   id: string
@@ -28,6 +29,9 @@ export interface StarredContentProps {
   open: boolean
 }
 
+// Module-level cache — survives component unmounts (popover close/reopen)
+let cachedFavorites: FavoritesData | null = null
+
 export default function StarredContent({
   lang,
   currentPageId,
@@ -41,6 +45,8 @@ export default function StarredContent({
   const listFetcher = useFetcher<FavoritesData>()
   const toggleFetcher = useFetcher<ToggleData>()
   const [query, setQuery] = useState("")
+
+  if (listFetcher.data) cachedFavorites = listFetcher.data
 
   const loadFavorites = useCallback(() => {
     listFetcher.load("/api/favorites")
@@ -62,7 +68,10 @@ export default function StarredContent({
     }
   }, [toggleFetcher.data, onStarChange, loadFavorites])
 
-  const favorites = listFetcher.data?.favorites ?? []
+  const data = cachedFavorites
+  const isFirstLoad = listFetcher.state === "loading" && !data
+
+  const favorites = data?.favorites ?? []
   const otherFavorites = favorites.filter((f) => f.id !== currentPageId)
   const filtered = otherFavorites.filter((f) => {
     if (!query) return true
@@ -138,8 +147,8 @@ export default function StarredContent({
 
       {/* List */}
       <div className="max-h-64 overflow-y-auto px-5 py-3">
-        {listFetcher.state === "loading" ? (
-          <p className="py-4 text-center text-sm text-gray-400">…</p>
+        {isFirstLoad ? (
+          <ListSkeleton rows={4} />
         ) : filtered.length === 0 ? (
           <p className="py-4 text-center text-sm text-gray-400">
             {query ? `"${query}" — 0` : t("wiki.starred_empty")}

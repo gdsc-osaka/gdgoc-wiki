@@ -23,6 +23,8 @@ export default [
   route("/api/images/*", "routes/api.images.$.ts"),
   route("/api/wiki/:slug/upload-image", "routes/api.wiki.$slug.upload-image.ts"),
   route("/api/admin/backfill-embeddings", "routes/api.admin.backfill-embeddings.ts"),
+  route("/api/recent", "routes/api.recent.ts"),
+  route("/api/archived", "routes/api.archived.ts"),
 
   // Admin routes — separate layout with admin sidebar
   route("admin", "routes/admin.tsx", [

@@ -97,7 +97,8 @@
     "restore_no_permission": "著者またはリード以上のみ復元できます",
     "delete": "削除",
     "delete_no_permission": "管理者のみ完全削除できます",
-    "delete_confirm": "「{{title}}」を完全に削除しますか？この操作は元に戻せません。"
+    "delete_confirm": "「{{title}}」を完全に削除しますか？この操作は元に戻せません。",
+    "view_all": "すべてのアーカイブを表示"
   },
   "home": {
     "recently_updated": "最近の更新",
@@ -119,7 +120,8 @@
     "recently_updated": "最近の更新",
     "recently_viewed": "最近見たページ",
     "no_updated": "まだ公開ページはありません。",
-    "no_viewed": "まだページを閲覧していません。"
+    "no_viewed": "まだページを閲覧していません。",
+    "view_all": "すべての最近を表示"
   },
   "auth": {
     "sign_in": "サインイン",

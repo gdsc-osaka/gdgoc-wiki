@@ -1,28 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
-import StarredContent from "~/components/StarredContent"
 
-interface StarredPopoverProps {
+interface SidebarPopoverProps {
   open: boolean
   onClose: () => void
   anchorRef: React.RefObject<HTMLButtonElement | null>
-  lang: "ja" | "en"
-  currentPageId?: string
-  currentPageTitle?: string
-  isStarred?: boolean
-  onStarChange?: (starred: boolean) => void
+  children: React.ReactNode
 }
 
-export default function StarredPopover({
+export default function SidebarPopover({
   open,
   onClose,
   anchorRef,
-  lang,
-  currentPageId,
-  currentPageTitle,
-  isStarred = false,
-  onStarChange,
-}: StarredPopoverProps) {
+  children,
+}: SidebarPopoverProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
 
@@ -83,15 +74,7 @@ export default function StarredPopover({
       className="fixed z-50 w-80 rounded-xl bg-white shadow-xl"
       style={{ top: pos.top, left: pos.left }}
     >
-      <StarredContent
-        open={open}
-        onClose={onClose}
-        lang={lang}
-        currentPageId={currentPageId}
-        currentPageTitle={currentPageTitle}
-        isStarred={isStarred}
-        onStarChange={onStarChange}
-      />
+      {children}
     </div>,
     document.body,
   )

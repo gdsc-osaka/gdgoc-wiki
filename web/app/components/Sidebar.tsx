@@ -35,8 +35,12 @@ interface SidebarProps {
   isOpen?: boolean
   isMobile?: boolean
   onClose?: () => void
+  onRecentClick?: () => void
+  recentButtonRef?: React.RefObject<HTMLButtonElement | null>
   onStarredClick?: () => void
   starredButtonRef?: React.RefObject<HTMLButtonElement | null>
+  onArchivedClick?: () => void
+  archivedButtonRef?: React.RefObject<HTMLButtonElement | null>
 }
 
 export default function Sidebar({
@@ -46,8 +50,12 @@ export default function Sidebar({
   isOpen = true,
   isMobile = false,
   onClose,
+  onRecentClick,
+  recentButtonRef,
   onStarredClick,
   starredButtonRef,
+  onArchivedClick,
+  archivedButtonRef,
 }: SidebarProps) {
   const { t } = useTranslation()
   const location = useLocation()
@@ -70,13 +78,33 @@ export default function Sidebar({
               isCollapsed={isCollapsed}
               isActive={location.pathname === "/"}
             />
-            <NavItem
-              to="/recent"
-              icon={<Clock size={16} />}
-              label={t("nav.recent")}
-              isCollapsed={isCollapsed}
-              isActive={location.pathname === "/recent"}
-            />
+            {onRecentClick ? (
+              <button
+                ref={recentButtonRef}
+                type="button"
+                title={isCollapsed ? t("nav.recent") : undefined}
+                onClick={onRecentClick}
+                className="flex min-h-8 w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
+              >
+                <span className="flex-shrink-0">
+                  <Clock size={16} />
+                </span>
+                {!isCollapsed && (
+                  <>
+                    <span className="flex-1 truncate text-left">{t("nav.recent")}</span>
+                    <ChevronRight size={14} className="shrink-0 text-gray-400" />
+                  </>
+                )}
+              </button>
+            ) : (
+              <NavItem
+                to="/recent"
+                icon={<Clock size={16} />}
+                label={t("nav.recent")}
+                isCollapsed={isCollapsed}
+                isActive={location.pathname === "/recent"}
+              />
+            )}
             {onStarredClick ? (
               <button
                 ref={starredButtonRef}
@@ -104,15 +132,35 @@ export default function Sidebar({
                 isActive={location.pathname === "/starred"}
               />
             )}
-            {userRole && !["viewer", "pending"].includes(userRole) && (
-              <NavItem
-                to="/archived"
-                icon={<Archive size={16} />}
-                label={t("nav.archived")}
-                isCollapsed={isCollapsed}
-                isActive={location.pathname === "/archived"}
-              />
-            )}
+            {userRole &&
+              !["viewer", "pending"].includes(userRole) &&
+              (onArchivedClick ? (
+                <button
+                  ref={archivedButtonRef}
+                  type="button"
+                  title={isCollapsed ? t("nav.archived") : undefined}
+                  onClick={onArchivedClick}
+                  className="flex min-h-8 w-full items-center gap-2 rounded px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  <span className="flex-shrink-0">
+                    <Archive size={16} />
+                  </span>
+                  {!isCollapsed && (
+                    <>
+                      <span className="flex-1 truncate text-left">{t("nav.archived")}</span>
+                      <ChevronRight size={14} className="shrink-0 text-gray-400" />
+                    </>
+                  )}
+                </button>
+              ) : (
+                <NavItem
+                  to="/archived"
+                  icon={<Archive size={16} />}
+                  label={t("nav.archived")}
+                  isCollapsed={isCollapsed}
+                  isActive={location.pathname === "/archived"}
+                />
+              ))}
             {["lead", "admin"].includes(userRole ?? "") && (
               <NavItem
                 to="/chapter"

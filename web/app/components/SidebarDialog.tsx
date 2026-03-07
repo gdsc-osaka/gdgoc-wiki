@@ -1,25 +1,12 @@
 import { useRef } from "react"
-import StarredContent from "~/components/StarredContent"
 
-interface StarredDialogProps {
+interface SidebarDialogProps {
   open: boolean
   onClose: () => void
-  lang: "ja" | "en"
-  currentPageId?: string
-  currentPageTitle?: string
-  isStarred?: boolean
-  onStarChange?: (starred: boolean) => void
+  children: React.ReactNode
 }
 
-export default function StarredDialog({
-  open,
-  onClose,
-  lang,
-  currentPageId,
-  currentPageTitle,
-  isStarred = false,
-  onStarChange,
-}: StarredDialogProps) {
+export default function SidebarDialog({ open, onClose, children }: SidebarDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
 
   function handleBackdropClick(e: React.MouseEvent<HTMLDialogElement>) {
@@ -46,15 +33,7 @@ export default function StarredDialog({
         className="relative w-full max-w-md rounded-xl bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <StarredContent
-          open={open}
-          onClose={onClose}
-          lang={lang}
-          currentPageId={currentPageId}
-          currentPageTitle={currentPageTitle}
-          isStarred={isStarred}
-          onStarChange={onStarChange}
-        />
+        {children}
       </div>
     </dialog>
   )
