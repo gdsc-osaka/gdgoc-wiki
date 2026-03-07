@@ -93,10 +93,25 @@ export async function fetchUrlAsPdf(
     await page.goto(url, { waitUntil: "networkidle2", timeout: timeoutMs })
     const title = await page.title()
     const pdfBuffer = await page.pdf({ format: "A4", printBackground: true })
+    // Defensive copy: pdfBuffer may be a Node.js Buffer with a shared backing
+    // ArrayBuffer, so always copy to get an isolated, correctly-sized ArrayBuffer.
     const arrayBuffer = pdfBuffer.buffer.slice(
       pdfBuffer.byteOffset,
       pdfBuffer.byteOffset + pdfBuffer.byteLength,
     ) as ArrayBuffer
+    // Validate the PDF signature (%PDF-). page.pdf() can return non-PDF bytes
+    // (e.g. garbled binary from the CDP transport) that would cause Gemini to
+    // reject the upload with "400 No file found in request".
+    const header = new Uint8Array(arrayBuffer, 0, Math.min(4, arrayBuffer.byteLength))
+    if (header[0] !== 0x25 || header[1] !== 0x50 || header[2] !== 0x44 || header[3] !== 0x46) {
+      return {
+        error: `page.pdf() returned non-PDF data (${arrayBuffer.byteLength} bytes, first bytes: ${Array.from(
+          header,
+        )
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join(" ")})`,
+      }
+    }
     return { buffer: arrayBuffer, title }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
