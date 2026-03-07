@@ -1,0 +1,4 @@
+[tools]
+node = "20"
+pnpm = "10"
+terraform = "1.9"
