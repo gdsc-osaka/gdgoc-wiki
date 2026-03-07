@@ -19,6 +19,7 @@ See [`docs/v0.1/`](docs/v0.1/) for full product and technical specifications.
 
 ## Prerequisites
 
+- [mise](https://mise.jdx.dev/) — ランタイムバージョン管理。インストール後、プロジェクトルートで `mise install` を実行すると Node.js, pnpm, Terraform が自動でセットアップされます
 - Node.js >= 20 / pnpm >= 10
 - [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/) (`pnpm add -g wrangler`)
 - Cloudflare account with D1, R2, and Queues enabled
