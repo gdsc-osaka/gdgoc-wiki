@@ -456,17 +456,30 @@ export async function step26FetchSelectedUrls(
       console.log("[ingestion-pipeline] step 2.6: trying PDF for", url)
       const pdfResult = await fetchUrlAsPdf(env.BROWSER as BrowserWorker, url)
       if (pdfResult.error === undefined) {
-        const hostname = new URL(url).hostname
-        const geminiUri = await uploadFileToGemini(
-          pdfResult.buffer,
-          "application/pdf",
-          hostname,
-          env.GEMINI_API_KEY,
-        )
-        fileUris.push({ uri: geminiUri, mimeType: "application/pdf" })
-        sources.push({ url, title: pdfResult.title || url })
-        uploadedPdf = true
-        console.log("[ingestion-pipeline] URL PDF uploaded:", url, "→", geminiUri)
+        const pdfByteLength = pdfResult.buffer.byteLength
+        if (pdfByteLength === 0) {
+          console.warn("[ingestion-pipeline] URL PDF is empty, falling back to Jina:", url)
+        } else {
+          const hostname = new URL(url).hostname
+          try {
+            const geminiUri = await uploadFileToGemini(
+              pdfResult.buffer,
+              "application/pdf",
+              hostname,
+              env.GEMINI_API_KEY,
+            )
+            fileUris.push({ uri: geminiUri, mimeType: "application/pdf" })
+            sources.push({ url, title: pdfResult.title || url })
+            uploadedPdf = true
+            console.log("[ingestion-pipeline] URL PDF uploaded:", url, "→", geminiUri)
+          } catch (uploadErr) {
+            console.warn(
+              "[ingestion-pipeline] URL PDF Gemini upload failed, falling back to Jina:",
+              url,
+              uploadErr,
+            )
+          }
+        }
       } else {
         console.warn(
           "[ingestion-pipeline] URL PDF failed, falling back to Jina:",
