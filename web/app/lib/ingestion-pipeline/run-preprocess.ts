@@ -440,6 +440,7 @@ export async function step26FetchSelectedUrls(
   db: Db,
   sessionId: string,
   selectedUrls: string[],
+  fileUris: { uri: string; mimeType: string }[],
   docTexts: string[],
   sources: SourceUrl[],
 ): Promise<void> {
@@ -448,7 +449,6 @@ export async function step26FetchSelectedUrls(
   await updateIngestionPhase(db, sessionId, "fetching_urls")
 
   const jinaParts: string[] = []
-  const pdfUploads: { geminiUri: string; url: string; title: string }[] = []
   for (const url of selectedUrls) {
     let uploadedPdf = false
 
@@ -463,7 +463,7 @@ export async function step26FetchSelectedUrls(
           hostname,
           env.GEMINI_API_KEY,
         )
-        pdfUploads.push({ geminiUri, url, title: pdfResult.title || url })
+        fileUris.push({ uri: geminiUri, mimeType: "application/pdf" })
         sources.push({ url, title: pdfResult.title || url })
         uploadedPdf = true
         console.log("[ingestion-pipeline] URL PDF uploaded:", url, "→", geminiUri)
@@ -497,21 +497,6 @@ export async function step26FetchSelectedUrls(
         sources.push({ url, title })
       }
     }
-  }
-
-  if (pdfUploads.length > 0) {
-    console.log("[ingestion-pipeline] step 2.6b: converting", pdfUploads.length, "PDFs")
-    const summaries = await Promise.all(
-      pdfUploads.map(({ geminiUri, url, title }) =>
-        runPdfConverter(env.GEMINI_API_KEY, geminiUri, url)
-          .then((summary) => `### ${title}\n${summary}`)
-          .catch((err) => {
-            console.warn("[ingestion-pipeline] PDF converter failed:", url, err)
-            return `### ${title} (${url})\n(PDF要約に失敗しました)`
-          }),
-      ),
-    )
-    jinaParts.push(...summaries)
   }
 
   if (jinaParts.length > 0) {

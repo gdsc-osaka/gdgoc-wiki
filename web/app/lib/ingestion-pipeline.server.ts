@@ -91,6 +91,7 @@ export async function runIngestionPipeline(
         db,
         sessionId,
         resumeContext.selectedUrls,
+        fileUris,
         docTexts,
         sources,
       )
