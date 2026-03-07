@@ -454,7 +454,7 @@ export async function step26FetchSelectedUrls(
 
     if (env.BROWSER) {
       console.log("[ingestion-pipeline] step 2.6: trying PDF for", url)
-      const pdfResult = await fetchUrlAsPdf(env.BROWSER as unknown as BrowserWorker, url)
+      const pdfResult = await fetchUrlAsPdf(env.BROWSER as BrowserWorker, url)
       if (pdfResult.error === undefined) {
         const hostname = new URL(url).hostname
         const geminiUri = await uploadFileToGemini(

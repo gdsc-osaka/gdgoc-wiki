@@ -1,4 +1,4 @@
-import puppeteer, { type Browser, type BrowserWorker } from "@cloudflare/puppeteer"
+import { type Browser, type BrowserWorker, launch as puppeteerLaunch } from "@cloudflare/puppeteer"
 
 export interface ExtractedUrl {
   id: string
@@ -86,13 +86,9 @@ export async function fetchUrlAsPdf(
   url: string,
   timeoutMs = 30000,
 ): Promise<UrlPdfResult | UrlPdfError> {
-  // @cloudflare/puppeteer types don't expose the Workers-specific launch(BrowserWorker) API
-  const launchBrowser = (
-    puppeteer as unknown as { launch: (endpoint: BrowserWorker) => Promise<Browser> }
-  ).launch
   let b: Browser | undefined
   try {
-    b = await launchBrowser(browser)
+    b = await puppeteerLaunch(browser)
     const page = await b.newPage()
     await page.goto(url, { waitUntil: "networkidle2", timeout: timeoutMs })
     const title = await page.title()
