@@ -1,4 +1,4 @@
-import { Archive, Building2, Clock, Home, Settings, Star } from "lucide-react"
+import { Archive, Building2, ChevronRight, Clock, Home, Settings, Star } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Link, useLocation } from "react-router"
 import BaseSidebar from "~/components/BaseSidebar"
@@ -36,6 +36,7 @@ interface SidebarProps {
   isMobile?: boolean
   onClose?: () => void
   onStarredClick?: () => void
+  starredButtonRef?: React.RefObject<HTMLButtonElement | null>
 }
 
 export default function Sidebar({
@@ -46,6 +47,7 @@ export default function Sidebar({
   isMobile = false,
   onClose,
   onStarredClick,
+  starredButtonRef,
 }: SidebarProps) {
   const { t } = useTranslation()
   const location = useLocation()
@@ -77,6 +79,7 @@ export default function Sidebar({
             />
             {onStarredClick ? (
               <button
+                ref={starredButtonRef}
                 type="button"
                 title={isCollapsed ? t("nav.starred") : undefined}
                 onClick={onStarredClick}
@@ -85,7 +88,12 @@ export default function Sidebar({
                 <span className="flex-shrink-0">
                   <Star size={16} />
                 </span>
-                {!isCollapsed && <span className="truncate">{t("nav.starred")}</span>}
+                {!isCollapsed && (
+                  <>
+                    <span className="flex-1 truncate text-left">{t("nav.starred")}</span>
+                    <ChevronRight size={14} className="shrink-0 text-gray-400" />
+                  </>
+                )}
               </button>
             ) : (
               <NavItem

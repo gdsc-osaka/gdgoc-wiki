@@ -1,5 +1,5 @@
 import { and, eq, isNull, sql } from "drizzle-orm"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Outlet, redirect, useLoaderData, useLocation, useParams } from "react-router"
 import type { LoaderFunctionArgs } from "react-router"
@@ -7,6 +7,7 @@ import Footer from "~/components/Footer"
 import Navbar from "~/components/Navbar"
 import Sidebar from "~/components/Sidebar"
 import StarredDialog from "~/components/StarredDialog"
+import StarredPopover from "~/components/StarredPopover"
 import * as schema from "~/db/schema"
 import { useMediaQuery } from "~/hooks/useMediaQuery"
 import { getSessionUser } from "~/lib/auth-utils.server"
@@ -71,6 +72,7 @@ export default function AppLayout() {
   const [desktopOpen, setDesktopOpen] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [starredDialogOpen, setStarredDialogOpen] = useState(false)
+  const starredButtonRef = useRef<HTMLButtonElement>(null)
 
   const lang: "ja" | "en" = i18n.language === "en" ? "en" : "ja"
 
@@ -89,6 +91,12 @@ export default function AppLayout() {
   useEffect(() => {
     setMobileOpen(false)
   }, [location.pathname])
+
+  // Close starred UI when switching between mobile/desktop to avoid glitches
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional trigger on isMobile change
+  useEffect(() => {
+    setStarredDialogOpen(false)
+  }, [isMobile])
 
   // When unauthenticated, render only the outlet (child handles its own UI)
   if (!user) return <Outlet />
@@ -129,6 +137,7 @@ export default function AppLayout() {
           isMobile={isMobile}
           onClose={() => setMobileOpen(false)}
           onStarredClick={() => setStarredDialogOpen(true)}
+          starredButtonRef={starredButtonRef}
         />
 
         {/* Main content */}
@@ -139,11 +148,20 @@ export default function AppLayout() {
           <Footer />
         </div>
       </div>
-      <StarredDialog
-        open={starredDialogOpen}
-        onClose={() => setStarredDialogOpen(false)}
-        lang={lang}
-      />
+      {isMobile ? (
+        <StarredDialog
+          open={starredDialogOpen}
+          onClose={() => setStarredDialogOpen(false)}
+          lang={lang}
+        />
+      ) : (
+        <StarredPopover
+          open={starredDialogOpen}
+          onClose={() => setStarredDialogOpen(false)}
+          anchorRef={starredButtonRef}
+          lang={lang}
+        />
+      )}
     </div>
   )
 }
