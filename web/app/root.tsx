@@ -63,6 +63,12 @@ export default function App() {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <script src="/theme-init.js" />
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-K7FMPPSCPY" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-K7FMPPSCPY');`,
+          }}
+        />
         <Meta />
         <Links />
       </head>
