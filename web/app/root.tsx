@@ -1,4 +1,15 @@
-import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from "react-router"
+import { AlertTriangle, ServerCrash } from "lucide-react"
+import { useTranslation } from "react-i18next"
+import {
+  Links,
+  Meta,
+  Outlet,
+  Scripts,
+  ScrollRestoration,
+  isRouteErrorResponse,
+  useLoaderData,
+  useRouteError,
+} from "react-router"
 import type { LinksFunction, LoaderFunctionArgs, MetaFunction } from "react-router"
 import { type SupportedLng, supportedLngs } from "./i18n"
 import { i18nextServer } from "./i18n.server"
@@ -53,6 +64,47 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => [
   { property: "og:type", content: "website" },
   { name: "twitter:card", content: "summary_large_image" },
 ]
+
+export function ErrorBoundary() {
+  const error = useRouteError()
+  const status = isRouteErrorResponse(error) ? error.status : 500
+  const is404 = status === 404
+  const Icon = is404 ? AlertTriangle : ServerCrash
+  const { t, i18n } = useTranslation()
+
+  return (
+    <html lang={i18n.language} suppressHydrationWarning>
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <script src="/theme-init.js" />
+        <Meta />
+        <Links />
+      </head>
+      <body className="bg-gray-50 text-gray-900">
+        <div className="min-h-screen flex flex-col items-center justify-center gap-6 px-4">
+          <Icon className="w-16 h-16 text-blue-500" strokeWidth={1.5} />
+          <div className="text-center space-y-2">
+            <p className="text-8xl font-bold text-gray-200">{status}</p>
+            <h1 className="text-2xl font-semibold">
+              {is404 ? t("error.404_title") : t("error.500_title")}
+            </h1>
+            <p className="text-gray-500 max-w-sm">
+              {is404 ? t("error.404_desc") : t("error.500_desc")}
+            </p>
+          </div>
+          <a
+            href="/"
+            className="mt-2 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+          >
+            {t("error.back_home")}
+          </a>
+        </div>
+        <Scripts />
+      </body>
+    </html>
+  )
+}
 
 export default function App() {
   const { locale, theme } = useLoaderData<typeof loader>()

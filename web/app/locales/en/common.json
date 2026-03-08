@@ -562,6 +562,13 @@
     "cta_title": "Ready to get started?",
     "cta_subtitle": "Join GDGoC Japan's shared knowledge base and keep your chapter's know-how organized."
   },
+  "error": {
+    "404_title": "Page not found",
+    "404_desc": "The page you're looking for doesn't exist or has been moved.",
+    "500_title": "Something went wrong",
+    "500_desc": "An unexpected error occurred. Please try again.",
+    "back_home": "Back to Home"
+  },
   "footer": {
     "privacy": "Privacy",
     "terms": "Terms"
