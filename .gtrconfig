@@ -1,0 +1,10 @@
+# .gtrconfig - commit this file to share settings with your team
+
+[copy]
+    include = terraform/backend.hcl
+    include = terraform/terraform.tfvars
+    include = web/.env.local
+    include = web/.dev.vars
+
+[defaults]
+    ai = claude
