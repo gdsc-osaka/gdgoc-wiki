@@ -4,6 +4,7 @@ import type { ActionFunctionArgs } from "react-router"
 import * as schema from "~/db/schema"
 import { requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
+import { createNotification } from "~/lib/notify.server"
 
 export async function action({ request, context }: ActionFunctionArgs) {
   const { env } = context.cloudflare
@@ -81,16 +82,20 @@ export async function action({ request, context }: ActionFunctionArgs) {
 
     // Notify the parent author (skip if replying to own comment)
     if (parentComment.authorId !== sessionUser.id) {
-      await db.insert(schema.notifications).values({
-        id: nanoid(),
-        userId: parentComment.authorId,
-        type: "comment_reply",
-        titleJa: `${sessionUser.name} さんがコメントに返信しました`,
-        titleEn: `${sessionUser.name} replied to your comment`,
-        refId: id,
-        refUrl: `/wiki/${pageSlug}#comment-${parentCommentId}`,
-        createdAt: new Date(),
-      })
+      await createNotification(
+        env,
+        db,
+        {
+          id: nanoid(),
+          userId: parentComment.authorId,
+          type: "comment_reply",
+          titleJa: `${sessionUser.name} さんがコメントに返信しました`,
+          titleEn: `${sessionUser.name} replied to your comment`,
+          refId: id,
+          refUrl: `/wiki/${pageSlug}#comment-${parentCommentId}`,
+        },
+        context.cloudflare.ctx,
+      )
     }
 
     return Response.json({ ok: true, id })
@@ -166,6 +171,42 @@ export async function action({ request, context }: ActionFunctionArgs) {
         emoji,
         createdAt: new Date(),
       })
+
+      // Notify the comment author about the reaction (skip self-reactions)
+      const comment = await db
+        .select({
+          authorId: schema.pageComments.authorId,
+          pageId: schema.pageComments.pageId,
+        })
+        .from(schema.pageComments)
+        .where(eq(schema.pageComments.id, commentId))
+        .get()
+
+      if (comment && comment.authorId !== sessionUser.id) {
+        // Look up the page slug for the refUrl
+        const page = await db
+          .select({ slug: schema.pages.slug })
+          .from(schema.pages)
+          .where(eq(schema.pages.id, comment.pageId))
+          .get()
+
+        if (page) {
+          await createNotification(
+            env,
+            db,
+            {
+              id: nanoid(),
+              userId: comment.authorId,
+              type: "comment_reaction",
+              titleJa: `${sessionUser.name} さんがコメントに ${emoji} でリアクションしました`,
+              titleEn: `${sessionUser.name} reacted ${emoji} to your comment`,
+              refId: commentId,
+              refUrl: `/wiki/${page.slug}#comment-${commentId}`,
+            },
+            context.cloudflare.ctx,
+          )
+        }
+      }
     }
 
     // Return updated aggregate for this comment
