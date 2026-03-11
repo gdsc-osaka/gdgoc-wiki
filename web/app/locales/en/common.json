@@ -424,6 +424,15 @@
       "idLabel": "Discord User ID",
       "idHint": "Enable Developer Mode in Discord → right-click your username → Copy User ID"
     },
+    "push": {
+      "title": "Push Notifications",
+      "description": "Receive browser push notifications for replies and ingestion updates.",
+      "loading": "Loading…",
+      "unsupported": "Push notifications are not supported on this browser.",
+      "denied": "Notification permission was denied. Please enable it in browser settings.",
+      "enabled": "Enabled",
+      "disabled": "Disabled"
+    },
     "errors": {
       "invalid_name": "Name must be 1–100 characters.",
       "invalid_lang": "Invalid language selection.",

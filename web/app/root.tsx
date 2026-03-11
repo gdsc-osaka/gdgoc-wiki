@@ -13,6 +13,7 @@ import {
 import type { LinksFunction, LoaderFunctionArgs, MetaFunction } from "react-router"
 import { type SupportedLng, supportedLngs } from "./i18n"
 import { i18nextServer } from "./i18n.server"
+import { FirebaseConfigContext } from "./lib/firebase-config-context"
 
 import appStylesHref from "./app.css?url"
 
@@ -34,7 +35,8 @@ export const links: LinksFunction = () => [
   { rel: "stylesheet", href: appStylesHref },
 ]
 
-export async function loader({ request }: LoaderFunctionArgs) {
+export async function loader({ request, context }: LoaderFunctionArgs) {
+  const { env } = context.cloudflare
   // Prefer the persisted ui_lang cookie so SSR language matches the user's
   // saved preference, falling back to Accept-Language detection.
   const cookieHeader = request.headers.get("Cookie") ?? ""
@@ -55,7 +57,20 @@ export async function loader({ request }: LoaderFunctionArgs) {
     ?.split("=")[1]
   const theme = cookieTheme === "dark" ? "dark" : "light"
   const origin = new URL(request.url).origin
-  return { locale, theme, origin }
+
+  const firebaseConfig =
+    env.FIREBASE_PROJECT_ID && env.FIREBASE_PROJECT_ID !== "REPLACE_ME"
+      ? {
+          apiKey: env.FIREBASE_API_KEY,
+          authDomain: env.FIREBASE_AUTH_DOMAIN,
+          projectId: env.FIREBASE_PROJECT_ID,
+          messagingSenderId: env.FIREBASE_MESSAGING_SENDER_ID,
+          appId: env.FIREBASE_APP_ID,
+          vapidKey: env.FIREBASE_VAPID_KEY,
+        }
+      : null
+
+  return { locale, theme, origin, firebaseConfig }
 }
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
@@ -107,7 +122,7 @@ export function ErrorBoundary() {
 }
 
 export default function App() {
-  const { locale, theme } = useLoaderData<typeof loader>()
+  const { locale, theme, firebaseConfig } = useLoaderData<typeof loader>()
 
   return (
     <html lang={locale} className={theme === "dark" ? "dark" : undefined} suppressHydrationWarning>
@@ -121,7 +136,9 @@ export default function App() {
         <Links />
       </head>
       <body className="bg-gray-50 text-gray-900">
-        <Outlet />
+        <FirebaseConfigContext value={firebaseConfig}>
+          <Outlet />
+        </FirebaseConfigContext>
         <ScrollRestoration />
         <Scripts />
       </body>

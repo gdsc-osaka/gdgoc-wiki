@@ -316,6 +316,19 @@ export const pageEmbeddingStatus = sqliteTable("page_embedding_status", {
 })
 
 // ---------------------------------------------------------------------------
+// fcm_tokens (push notification device tokens)
+// ---------------------------------------------------------------------------
+export const fcmTokens = sqliteTable("fcm_tokens", {
+  token: text("token").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  deviceLabel: text("device_label"),
+  createdAt: integer("created_at").notNull().default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at").notNull().default(sql`(unixepoch())`),
+})
+
+// ---------------------------------------------------------------------------
 // page_views (per-user view tracking for "Recently Viewed")
 // ---------------------------------------------------------------------------
 export const pageViews = sqliteTable(

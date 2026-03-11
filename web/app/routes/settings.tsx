@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useFetcher, useLoaderData } from "react-router"
+import { PushNotificationToggle } from "~/components/PushNotificationToggle"
 import * as schema from "~/db/schema"
 import { supportedLngs } from "~/i18n"
 import { hasRole, requireRole } from "~/lib/auth-utils.server"
@@ -235,6 +236,14 @@ export default function SettingsPage() {
                 {t(`settings.errors.${errors.lang}`, t("settings.save_error"))}
               </p>
             )}
+          </SettingsSection>
+
+          {/* Push Notifications */}
+          <SettingsSection
+            title={t("settings.push.title")}
+            description={t("settings.push.description")}
+          >
+            <PushNotificationToggle />
           </SettingsSection>
 
           {/* Discord */}

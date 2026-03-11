@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/d1"
 import * as schema from "~/db/schema"
 import { sendIngestionCompleteEmail } from "../email.server"
+import { sendPushToUser } from "../fcm.server"
 import {
   type CreateOperation,
   type PageIndexEntry,
@@ -268,6 +269,20 @@ export async function persistDoneAndNotify(
         emailErr,
       )
     }
+
+    try {
+      await sendPushToUser(
+        env,
+        userId,
+        { title: "下書きの確認準備完了", url: reviewUrl },
+        { title: "Draft ready for review", url: reviewUrl },
+      )
+    } catch (pushErr) {
+      console.error(
+        `[ingestion-pipeline] push notification failed for session=${sessionId}:`,
+        pushErr,
+      )
+    }
   } catch (notifErr) {
     console.error(
       `[ingestion-pipeline] notification insert failed for session=${sessionId}:`,
@@ -324,6 +339,13 @@ export async function persistPipelineError(
       refId: sessionId,
       refUrl: `/ingest/${sessionId}`,
     })
+
+    await sendPushToUser(
+      env,
+      userId,
+      { title: "処理に失敗しました", url: `/ingest/${sessionId}` },
+      { title: "Processing failed", url: `/ingest/${sessionId}` },
+    ).catch(() => {})
   } catch {
     // never block error handling
   }
