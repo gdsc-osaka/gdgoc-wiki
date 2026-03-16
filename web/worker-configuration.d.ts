@@ -26,6 +26,7 @@ declare global {
     BROWSER: Fetcher
     AI: Ai
     VECTORIZE: VectorizeIndex
+    COLLAB_DO: DurableObjectNamespace
 
     // Secrets (set via `wrangler secret put` or Cloudflare dashboard)
     RESEND_API_KEY: string

@@ -85,6 +85,7 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
     },
     canPublish: canEditAny,
     canChangeVisibility: canUserChangeVisibility(user, page),
+    currentUser: { id: user.id, name: user.name, image: user.image ?? null },
   }
 }
 
@@ -186,9 +187,14 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
 // ---------------------------------------------------------------------------
 
 export default function EditPage() {
-  const { page, canPublish, canChangeVisibility } = useLoaderData<typeof loader>()
+  const { page, canPublish, canChangeVisibility, currentUser } = useLoaderData<typeof loader>()
 
   return (
-    <PageEditor page={page} canPublish={canPublish} canChangeVisibility={canChangeVisibility} />
+    <PageEditor
+      page={page}
+      canPublish={canPublish}
+      canChangeVisibility={canChangeVisibility}
+      currentUser={currentUser}
+    />
   )
 }

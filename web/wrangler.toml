@@ -83,6 +83,18 @@ binding = "VECTORIZE"
 index_name = "gdgoc-wiki-production-pages"
 
 # ---------------------------------------------------------------------------
+# Durable Objects — realtime collaborative editing
+# ---------------------------------------------------------------------------
+[durable_objects]
+bindings = [
+  { name = "COLLAB_DO", class_name = "CollabDurableObject" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["CollabDurableObject"]
+
+# ---------------------------------------------------------------------------
 # Secrets (set via `wrangler secret put`)
 # RESEND_API_KEY     — Resend transactional email API key
 # WIKI_DISCORD_SECRET — shared secret for Discord bot → wiki API auth

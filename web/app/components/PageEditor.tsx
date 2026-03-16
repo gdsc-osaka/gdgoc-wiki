@@ -4,6 +4,9 @@ import { ArrowLeft } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, useBlocker, useFetcher } from "react-router"
+import PresenceAvatars from "~/components/PresenceAvatars"
+import type { CollabUser } from "~/hooks/useCollabEditor"
+import { useCollabEditor } from "~/hooks/useCollabEditor"
 import { useThemeMode } from "~/hooks/useThemeMode"
 
 // ---------------------------------------------------------------------------
@@ -25,6 +28,7 @@ interface PageEditorProps {
   page: Page
   canPublish: boolean
   canChangeVisibility: boolean
+  currentUser: CollabUser
 }
 
 // ---------------------------------------------------------------------------
@@ -49,7 +53,12 @@ function formatRelativeTime(
 // Component
 // ---------------------------------------------------------------------------
 
-export default function PageEditor({ page, canPublish, canChangeVisibility }: PageEditorProps) {
+export default function PageEditor({
+  page,
+  canPublish,
+  canChangeVisibility,
+  currentUser,
+}: PageEditorProps) {
   const { t } = useTranslation()
   const fetcher = useFetcher<{ ok: boolean; savedAt: string }>()
   const visibilityFetcher = useFetcher()
@@ -57,13 +66,36 @@ export default function PageEditor({ page, canPublish, canChangeVisibility }: Pa
 
   const [titleJa, setTitleJa] = useState(page.titleJa)
   const [titleEn, setTitleEn] = useState(page.titleEn)
-  const [contentJa, setContentJa] = useState(page.contentJa)
-  const [contentEn, setContentEn] = useState(page.contentEn)
-  const [activeLang, setActiveLang] = useState<"ja" | "en">("ja")
+  const [activeLang, setActiveLangLocal] = useState<"ja" | "en">("ja")
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null)
   const [visibility, setVisibility] = useState(page.visibility)
   const isJaActive = activeLang === "ja"
   const isEnActive = activeLang === "en"
+
+  // Collaborative editing hook
+  const {
+    contentJa,
+    contentEn,
+    setContentJa,
+    setContentEn,
+    peers,
+    connected,
+    setActiveLang: setCollabActiveLang,
+  } = useCollabEditor({
+    slug: page.slug,
+    initialContentJa: page.contentJa,
+    initialContentEn: page.contentEn,
+    user: currentUser,
+  })
+
+  // Sync language tab with collab awareness
+  const setActiveLang = useCallback(
+    (lang: "ja" | "en") => {
+      setActiveLangLocal(lang)
+      setCollabActiveLang(lang)
+    },
+    [setCollabActiveLang],
+  )
 
   // Track last saved content to detect dirty state
   const lastSavedRef = useRef({
@@ -188,6 +220,15 @@ export default function PageEditor({ page, canPublish, canChangeVisibility }: Pa
 
         {/* Actions */}
         <div className="flex shrink-0 items-center justify-end gap-2 ml-auto">
+          {/* Presence avatars */}
+          <PresenceAvatars peers={peers} />
+
+          {/* Connection status dot */}
+          <span
+            className={`hidden h-2 w-2 shrink-0 rounded-full sm:inline-block ${connected ? "bg-green-500" : "bg-gray-300"}`}
+            title={connected ? t("editor.connected") : t("editor.disconnected")}
+          />
+
           {/* Autosave status */}
           {statusText && (
             <span
