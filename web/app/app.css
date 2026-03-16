@@ -336,6 +336,15 @@
 .md-editor-preview ul,
 .md-editor-preview ol {
   padding-left: 2em;
+  list-style-position: outside;
+}
+
+.md-editor-preview ul {
+  list-style-type: disc;
+}
+
+.md-editor-preview ol {
+  list-style-type: decimal;
 }
 
 /* ── GitHub-style markdown preview (dark) ── */

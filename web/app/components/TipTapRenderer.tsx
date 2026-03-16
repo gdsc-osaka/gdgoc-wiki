@@ -152,14 +152,14 @@ function renderNode(node: TipTapNode, counters: Map<string, number>, key: number
 
     case "bulletList":
       return (
-        <ul key={key} className="mb-4 list-disc space-y-1 pl-6">
+        <ul key={key} className="mb-4 list-outside list-disc space-y-1 pl-6">
           {(node.content ?? []).map((item, i) => renderNode(item, counters, i))}
         </ul>
       )
 
     case "orderedList":
       return (
-        <ol key={key} className="mb-4 list-decimal space-y-1 pl-6">
+        <ol key={key} className="mb-4 list-outside list-decimal space-y-1 pl-6">
           {(node.content ?? []).map((item, i) => renderNode(item, counters, i))}
         </ol>
       )
