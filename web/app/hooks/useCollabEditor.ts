@@ -140,6 +140,18 @@ export function useCollabEditor({
     }
     awareness.on("change", awarenessHandler)
 
+    // Send outgoing Y.Doc updates to server (registered once, not per-connect)
+    const sendUpdate = (update: Uint8Array, origin: unknown) => {
+      if (origin === "remote") return
+      const ws = wsRef.current
+      if (!ws || ws.readyState !== WebSocket.OPEN) return
+      const encoder = encoding.createEncoder()
+      encoding.writeVarUint(encoder, MSG_SYNC)
+      syncProtocol.writeUpdate(encoder, update)
+      ws.send(encoding.toUint8Array(encoder))
+    }
+    ydoc.on("update", sendUpdate)
+
     function connect() {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:"
       const ws = new WebSocket(`${protocol}//${window.location.host}/ws/collab/${slug}`)
@@ -150,6 +162,13 @@ export function useCollabEditor({
         if (!mountedRef.current) return
         setConnected(true)
         reconnectAttempt.current = 0
+
+        // Send sync step 1 to initiate the handshake — this is required
+        // so the server responds with sync step 2 containing its content.
+        const encoder = encoding.createEncoder()
+        encoding.writeVarUint(encoder, MSG_SYNC)
+        syncProtocol.writeSyncStep1(encoder, ydoc)
+        ws.send(encoding.toUint8Array(encoder))
 
         // Set awareness local state
         awareness.setLocalState({
@@ -196,16 +215,6 @@ export function useCollabEditor({
       ws.addEventListener("error", () => {
         ws.close()
       })
-
-      // Send outgoing Y.Doc updates to server
-      ydoc.on("update", (update: Uint8Array, origin: unknown) => {
-        if (origin === "remote") return
-        if (ws.readyState !== WebSocket.OPEN) return
-        const encoder = encoding.createEncoder()
-        encoding.writeVarUint(encoder, MSG_SYNC)
-        syncProtocol.writeUpdate(encoder, update)
-        ws.send(encoding.toUint8Array(encoder))
-      })
     }
 
     connect()
@@ -216,6 +225,7 @@ export function useCollabEditor({
       textJa.unobserve(observerJa)
       textEn.unobserve(observerEn)
       awareness.off("change", awarenessHandler)
+      ydoc.off("update", sendUpdate)
       awareness.destroy()
       ydoc.destroy()
       if (wsRef.current) {

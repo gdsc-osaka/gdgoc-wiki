@@ -4,6 +4,7 @@ import * as encoding from "lib0/encoding"
 import * as awarenessProtocol from "y-protocols/awareness"
 import * as syncProtocol from "y-protocols/sync"
 import * as Y from "yjs"
+import { tiptapToMarkdown } from "../app/lib/tiptap-convert"
 
 // Wire protocol message types
 const MSG_SYNC = 0
@@ -94,10 +95,10 @@ export class CollabDurableObject extends DurableObject<Env> {
     if (row) {
       this.ydoc.transact(() => {
         if (row.content_ja) {
-          this.ydoc.getText("contentJa").insert(0, row.content_ja)
+          this.ydoc.getText("contentJa").insert(0, tiptapToMarkdown(row.content_ja))
         }
         if (row.content_en) {
-          this.ydoc.getText("contentEn").insert(0, row.content_en)
+          this.ydoc.getText("contentEn").insert(0, tiptapToMarkdown(row.content_en))
         }
       })
     }
