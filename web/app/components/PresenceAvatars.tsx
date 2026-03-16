@@ -65,10 +65,14 @@ function Avatar({ peer }: { peer: CollabPeer }) {
   const langDot = LANG_COLORS[peer.activeLang] ?? "bg-gray-400"
 
   return (
-    <div
-      className="relative z-10"
+    <button
+      type="button"
+      className="relative z-10 appearance-none border-0 bg-transparent p-0"
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
+      onFocus={() => setShowTooltip(true)}
+      onBlur={() => setShowTooltip(false)}
+      aria-label={peer.user.name}
     >
       {peer.user.image ? (
         <img
@@ -93,6 +97,6 @@ function Avatar({ peer }: { peer: CollabPeer }) {
           {peer.user.name}
         </div>
       )}
-    </div>
+    </button>
   )
 }

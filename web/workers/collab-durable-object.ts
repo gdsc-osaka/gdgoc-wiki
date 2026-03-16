@@ -35,8 +35,9 @@ export class CollabDurableObject extends DurableObject<Env> {
   private ydoc: Y.Doc
   private awareness: awarenessProtocol.Awareness
   private connections: Map<WebSocket, UserInfo> = new Map()
+  private wsToClientId: Map<WebSocket, number> = new Map()
   private dirty = false
-  private persistTimer: ReturnType<typeof setTimeout> | null = null
+  private persistPending = false
   private initialized = false
 
   constructor(ctx: DurableObjectState, env: Env) {
@@ -57,10 +58,20 @@ export class CollabDurableObject extends DurableObject<Env> {
       this.broadcast(message, originWs)
     })
 
-    // Listen for awareness updates to broadcast
+    // Listen for awareness updates to broadcast (origin is the sender WebSocket)
     this.awareness.on(
       "update",
-      ({ added, updated, removed }: { added: number[]; updated: number[]; removed: number[] }) => {
+      (
+        { added, updated, removed }: { added: number[]; updated: number[]; removed: number[] },
+        origin: unknown,
+      ) => {
+        // Track WebSocket → clientId mapping from incoming awareness updates
+        if (origin instanceof WebSocket) {
+          for (const clientId of added.concat(updated)) {
+            this.wsToClientId.set(origin, clientId)
+          }
+        }
+
         const changedClients = added.concat(updated, removed)
         const encoder = encoding.createEncoder()
         encoding.writeVarUint(encoder, MSG_AWARENESS)
@@ -68,7 +79,9 @@ export class CollabDurableObject extends DurableObject<Env> {
           encoder,
           awarenessProtocol.encodeAwarenessUpdate(this.awareness, changedClients),
         )
-        this.broadcast(encoding.toUint8Array(encoder))
+        // Exclude the sender to avoid echoing back
+        const senderWs = origin instanceof WebSocket ? origin : undefined
+        this.broadcast(encoding.toUint8Array(encoder), senderWs)
       },
     )
   }
@@ -228,12 +241,9 @@ export class CollabDurableObject extends DurableObject<Env> {
       }
       case MSG_AWARENESS: {
         const update = decoding.readVarUint8Array(decoder)
+        // applyAwarenessUpdate triggers the "update" listener which handles broadcasting
+        // and tracks the WebSocket → clientId mapping
         awarenessProtocol.applyAwarenessUpdate(this.awareness, update, ws)
-        // Broadcast awareness to all other clients
-        const encoder = encoding.createEncoder()
-        encoding.writeVarUint(encoder, MSG_AWARENESS)
-        encoding.writeVarUint8Array(encoder, update)
-        this.broadcast(encoding.toUint8Array(encoder), ws)
         break
       }
     }
@@ -245,21 +255,18 @@ export class CollabDurableObject extends DurableObject<Env> {
   async webSocketClose(ws: WebSocket): Promise<void> {
     this.connections.delete(ws)
 
-    // Remove awareness state for this client
-    // Find the awareness client ID for this WebSocket
-    for (const [clientId, meta] of this.awareness.getStates()) {
-      // The awareness state origin is stored with the WebSocket
-      if (meta && clientId !== this.ydoc.clientID) {
-        // We remove all client IDs that don't have an active connection
-        // This is a simplified approach — in production, you'd map clientId to WebSocket
-      }
+    // Remove awareness state for this client's tracked clientId
+    const clientId = this.wsToClientId.get(ws)
+    if (clientId !== undefined) {
+      awarenessProtocol.removeAwarenessStates(this.awareness, [clientId], "close")
+      this.wsToClientId.delete(ws)
     }
 
     // If no more connections, persist immediately
     if (this.connections.size === 0) {
       await this.persist()
     } else {
-      this.schedulePersist()
+      await this.schedulePersist()
     }
   }
 
@@ -274,6 +281,7 @@ export class CollabDurableObject extends DurableObject<Env> {
    * Alarm handler for periodic persistence.
    */
   async alarm(): Promise<void> {
+    this.persistPending = false
     if (this.dirty) {
       await this.persist()
     }
@@ -299,14 +307,15 @@ export class CollabDurableObject extends DurableObject<Env> {
   }
 
   /**
-   * Schedule debounced persistence.
+   * Schedule debounced persistence via alarm (survives hibernation).
    */
-  private schedulePersist(): void {
-    if (this.persistTimer) return
-    this.persistTimer = setTimeout(async () => {
-      this.persistTimer = null
-      await this.persist()
-    }, PERSIST_DEBOUNCE_MS)
+  private async schedulePersist(): Promise<void> {
+    if (this.persistPending) return
+    this.persistPending = true
+    const currentAlarm = await this.ctx.storage.getAlarm()
+    if (!currentAlarm) {
+      await this.ctx.storage.setAlarm(Date.now() + PERSIST_DEBOUNCE_MS)
+    }
   }
 
   /**
@@ -315,7 +324,11 @@ export class CollabDurableObject extends DurableObject<Env> {
   private async persist(): Promise<void> {
     if (!this.dirty) return
     const state = Y.encodeStateAsUpdate(this.ydoc)
-    await this.ctx.storage.put(KV_KEY, state.buffer)
+    // Persist exact slice to avoid extra bytes from shared ArrayBuffer
+    await this.ctx.storage.put(
+      KV_KEY,
+      state.buffer.slice(state.byteOffset, state.byteOffset + state.byteLength),
+    )
     this.dirty = false
   }
 }

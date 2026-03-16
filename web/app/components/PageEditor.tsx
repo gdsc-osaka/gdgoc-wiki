@@ -225,6 +225,8 @@ export default function PageEditor({
 
           {/* Connection status dot */}
           <span
+            role="status"
+            aria-label={connected ? t("editor.connected") : t("editor.disconnected")}
             className={`hidden h-2 w-2 shrink-0 rounded-full sm:inline-block ${connected ? "bg-green-500" : "bg-gray-300"}`}
             title={connected ? t("editor.connected") : t("editor.disconnected")}
           />

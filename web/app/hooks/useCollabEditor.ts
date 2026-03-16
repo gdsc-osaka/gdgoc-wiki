@@ -163,13 +163,7 @@ export function useCollabEditor({
         setConnected(true)
         reconnectAttempt.current = 0
 
-        // Send sync step 1 to initiate the handshake — this is required
-        // so the server responds with sync step 2 containing its content.
-        const encoder = encoding.createEncoder()
-        encoding.writeVarUint(encoder, MSG_SYNC)
-        syncProtocol.writeSyncStep1(encoder, ydoc)
-        ws.send(encoding.toUint8Array(encoder))
-
+        // Server sends sync step 1 on connect; client responds via message handler.
         // Set awareness local state
         awareness.setLocalState({
           user: { id: user.id, name: user.name, image: user.image },
