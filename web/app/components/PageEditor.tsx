@@ -224,12 +224,16 @@ export default function PageEditor({
           <PresenceAvatars peers={peers} />
 
           {/* Connection status dot */}
-          <span
-            role="status"
-            aria-label={connected ? t("editor.connected") : t("editor.disconnected")}
-            className={`hidden h-2 w-2 shrink-0 rounded-full sm:inline-block ${connected ? "bg-green-500" : "bg-gray-300"}`}
-            title={connected ? t("editor.connected") : t("editor.disconnected")}
-          />
+          <span className="group relative hidden sm:inline-flex">
+            <span
+              role="status"
+              aria-label={connected ? t("editor.connected") : t("editor.disconnected")}
+              className={`inline-block h-2 w-2 shrink-0 rounded-full ${connected ? "bg-green-500" : "bg-gray-300"}`}
+            />
+            <span className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+              {connected ? t("editor.connected") : t("editor.disconnected")}
+            </span>
+          </span>
 
           {/* Autosave status */}
           {statusText && (
