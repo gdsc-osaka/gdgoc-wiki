@@ -104,6 +104,9 @@ export function useCollabEditor({
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const activeLangRef = useRef<"ja" | "en">("ja")
   const mountedRef = useRef(true)
+  const hasReceivedInitialSyncRef = useRef(false)
+  const pendingContentJaRef = useRef<string | null>(null)
+  const pendingContentEnRef = useRef<string | null>(null)
 
   // Update awareness when active language changes
   const setActiveLang = useCallback((lang: "ja" | "en") => {
@@ -256,6 +259,9 @@ export function useCollabEditor({
 
     function connect() {
       if (disposed) return
+      hasReceivedInitialSyncRef.current = false
+      pendingContentJaRef.current = null
+      pendingContentEnRef.current = null
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:"
       const ws = new WebSocket(`${protocol}//${window.location.host}/ws/collab/${slug}`)
       ws.binaryType = "arraybuffer"
@@ -270,7 +276,7 @@ export function useCollabEditor({
         setConnected(true)
         reconnectAttempt.current = 0
 
-        // Server sends sync step 1 on connect; client responds via message handler.
+        // Server sends initial sync state on connect.
         // Set awareness local state
         awareness.setLocalState({
           user: { id: user.id, name: user.name, image: user.image },
@@ -290,6 +296,19 @@ export function useCollabEditor({
             const encoder = encoding.createEncoder()
             encoding.writeVarUint(encoder, MSG_SYNC)
             syncProtocol.readSyncMessage(decoder, encoder, ydoc, "remote")
+            if (!hasReceivedInitialSyncRef.current) {
+              hasReceivedInitialSyncRef.current = true
+              const queuedJa = pendingContentJaRef.current
+              const queuedEn = pendingContentEnRef.current
+              pendingContentJaRef.current = null
+              pendingContentEnRef.current = null
+              if (queuedJa !== null) {
+                applyStringToYText(ydoc.getText("contentJa"), queuedJa)
+              }
+              if (queuedEn !== null) {
+                applyStringToYText(ydoc.getText("contentEn"), queuedEn)
+              }
+            }
             if (encoding.length(encoder) > 1) {
               ws.send(encoding.toUint8Array(encoder))
             }
@@ -350,6 +369,11 @@ export function useCollabEditor({
   // Editor → CRDT: apply string diff when content changes from local edits
   const setContentJa = useCallback((value: string) => {
     if (isRemoteUpdate.current) return
+    if (!hasReceivedInitialSyncRef.current) {
+      pendingContentJaRef.current = value
+      setContentJaState((prev) => (prev === value ? prev : value))
+      return
+    }
     const ydoc = ydocRef.current
     if (!ydoc) {
       setContentJaState(value)
@@ -360,6 +384,11 @@ export function useCollabEditor({
 
   const setContentEn = useCallback((value: string) => {
     if (isRemoteUpdate.current) return
+    if (!hasReceivedInitialSyncRef.current) {
+      pendingContentEnRef.current = value
+      setContentEnState((prev) => (prev === value ? prev : value))
+      return
+    }
     const ydoc = ydocRef.current
     if (!ydoc) {
       setContentEnState(value)
