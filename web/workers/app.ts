@@ -45,7 +45,10 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     // Route WebSocket collab connections to Durable Object
     const url = new URL(request.url)
-    if (url.pathname.startsWith("/ws/collab/") && request.headers.get("Upgrade") === "websocket") {
+    if (
+      url.pathname.startsWith("/ws/collab/") &&
+      request.headers.get("Upgrade")?.toLowerCase() === "websocket"
+    ) {
       const slug = url.pathname.split("/")[3]
       if (!slug) return new Response("Missing slug", { status: 400 })
       const doId = env.COLLAB_DO.idFromName(slug)

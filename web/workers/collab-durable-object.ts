@@ -162,7 +162,7 @@ export class CollabDurableObject extends DurableObject<Env> {
    * Handle WebSocket upgrade request.
    */
   async fetch(request: Request): Promise<Response> {
-    if (request.headers.get("Upgrade") !== "websocket") {
+    if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket") {
       return new Response("Expected WebSocket", { status: 426 })
     }
 
