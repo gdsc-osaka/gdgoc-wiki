@@ -92,6 +92,7 @@ export function useCollabEditor({
 
   useEffect(() => {
     mountedRef.current = true
+    let disposed = false
     const ydoc = new Y.Doc()
     const awareness = new awarenessProtocol.Awareness(ydoc)
     ydocRef.current = ydoc
@@ -170,12 +171,17 @@ export function useCollabEditor({
     awareness.on("update", sendAwarenessUpdate)
 
     function connect() {
+      if (disposed) return
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:"
       const ws = new WebSocket(`${protocol}//${window.location.host}/ws/collab/${slug}`)
       ws.binaryType = "arraybuffer"
       wsRef.current = ws
 
       ws.addEventListener("open", () => {
+        if (disposed) {
+          ws.close(1000, "stale-connection")
+          return
+        }
         if (!mountedRef.current) return
         setConnected(true)
         reconnectAttempt.current = 0
@@ -189,6 +195,7 @@ export function useCollabEditor({
       })
 
       ws.addEventListener("message", (event) => {
+        if (disposed) return
         if (typeof event.data === "string") return
         const data = new Uint8Array(event.data as ArrayBuffer)
         const decoder = decoding.createDecoder(data)
@@ -213,9 +220,12 @@ export function useCollabEditor({
       })
 
       ws.addEventListener("close", () => {
+        if (disposed) return
         if (!mountedRef.current) return
         setConnected(false)
-        wsRef.current = null
+        if (wsRef.current === ws) {
+          wsRef.current = null
+        }
 
         // Reconnect with exponential backoff
         const delay = Math.min(1000 * 2 ** reconnectAttempt.current, 30_000)
@@ -223,14 +233,13 @@ export function useCollabEditor({
         reconnectTimer.current = setTimeout(connect, delay)
       })
 
-      ws.addEventListener("error", () => {
-        ws.close()
-      })
+      ws.addEventListener("error", () => {})
     }
 
     connect()
 
     return () => {
+      disposed = true
       mountedRef.current = false
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current)
       textJa.unobserve(observerJa)
@@ -240,9 +249,10 @@ export function useCollabEditor({
       ydoc.off("update", sendUpdate)
       awareness.destroy()
       ydoc.destroy()
-      if (wsRef.current) {
-        wsRef.current.close()
-        wsRef.current = null
+      const ws = wsRef.current
+      wsRef.current = null
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close(1000, "component-unmount")
       }
       ydocRef.current = null
       awarenessRef.current = null
