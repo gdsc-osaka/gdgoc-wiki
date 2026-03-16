@@ -93,7 +93,7 @@ bindings = [
 
 [[migrations]]
 tag = "v1"
-new_classes = ["CollabDurableObject"]
+new_sqlite_classes = ["CollabDurableObject"]
 
 # ---------------------------------------------------------------------------
 # Secrets (set via `wrangler secret put`)
