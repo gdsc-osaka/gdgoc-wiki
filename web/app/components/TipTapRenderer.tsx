@@ -75,7 +75,9 @@ function renderMarkedText(text: string, marks: TipTapNode["marks"]): ReactNode {
         break
       case "code":
         content = (
-          <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-sm">{content}</code>
+          <code className="rounded-md bg-[rgba(175,184,193,0.2)] px-[0.4em] py-[0.2em] font-mono text-[85%]">
+            {content}
+          </code>
         )
         break
       case "strike":
@@ -132,9 +134,9 @@ function renderNode(node: TipTapNode, counters: Map<string, number>, key: number
       const id = makeHeadingId(text, counters)
       const inner = renderInline(node.content ?? [])
       const clsMap: Record<number, string> = {
-        1: "text-3xl font-bold text-gray-900 mb-6 mt-8",
-        2: "text-2xl font-semibold text-gray-900 mb-4 mt-8 border-b border-gray-200 pb-2",
-        3: "text-xl font-semibold text-gray-900 mb-3 mt-6",
+        1: "text-[2em] font-semibold text-gray-900 mb-4 mt-6 border-b border-gray-200 pb-[0.3em]",
+        2: "text-[1.5em] font-semibold text-gray-900 mb-4 mt-6 border-b border-gray-200 pb-[0.3em]",
+        3: "text-[1.25em] font-semibold text-gray-900 mb-3 mt-6",
         4: "text-lg font-semibold text-gray-900 mb-2 mt-4",
         5: "text-base font-semibold text-gray-900 mb-2 mt-4",
         6: "text-sm font-semibold text-gray-900 mb-2 mt-4",
@@ -178,17 +180,15 @@ function renderNode(node: TipTapNode, counters: Map<string, number>, key: number
       const lang = (node.attrs?.language as string) ?? ""
       const code = (node.content ?? []).map((n) => n.text ?? "").join("")
       return (
-        <pre key={key} className="mb-4 overflow-x-auto rounded-lg bg-gray-900 p-4">
-          <code className={`font-mono text-sm text-gray-100${lang ? ` language-${lang}` : ""}`}>
-            {code}
-          </code>
+        <pre key={key} className="mb-4 overflow-x-auto rounded-md bg-gray-100 p-4 leading-[1.45]">
+          <code className={`font-mono text-[85%]${lang ? ` language-${lang}` : ""}`}>{code}</code>
         </pre>
       )
     }
 
     case "blockquote":
       return (
-        <blockquote key={key} className="mb-4 border-l-4 border-gray-300 pl-4 italic text-gray-600">
+        <blockquote key={key} className="mb-4 border-l-[0.25em] border-gray-300 pl-4 text-gray-500">
           {(node.content ?? []).map((child, i) => renderNode(child, counters, i))}
         </blockquote>
       )
@@ -213,14 +213,16 @@ function renderNode(node: TipTapNode, counters: Map<string, number>, key: number
 
     case "tableRow":
       return (
-        <tr key={key}>{(node.content ?? []).map((cell, i) => renderNode(cell, counters, i))}</tr>
+        <tr key={key} className="even:bg-gray-50">
+          {(node.content ?? []).map((cell, i) => renderNode(cell, counters, i))}
+        </tr>
       )
 
     case "tableHeader":
       return (
         <th
           key={key}
-          className="border border-gray-300 bg-gray-50 px-3 py-2 text-left font-semibold"
+          className="border border-gray-200 bg-gray-50 px-[13px] py-[6px] text-left font-semibold"
         >
           {(node.content ?? []).map((child, i) => renderNode(child, counters, i))}
         </th>
@@ -228,7 +230,7 @@ function renderNode(node: TipTapNode, counters: Map<string, number>, key: number
 
     case "tableCell":
       return (
-        <td key={key} className="border border-gray-300 px-3 py-2">
+        <td key={key} className="border border-gray-200 px-[13px] py-[6px]">
           {(node.content ?? []).map((child, i) => renderNode(child, counters, i))}
         </td>
       )
