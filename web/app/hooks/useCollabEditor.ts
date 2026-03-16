@@ -40,6 +40,11 @@ interface UseCollabEditorReturn {
   setActiveLang: (lang: "ja" | "en") => void
 }
 
+interface CursorAwarenessState {
+  ja?: unknown
+  en?: unknown
+}
+
 /**
  * Apply a new string value to a Y.Text by computing a character-level diff
  * and applying insert/delete operations.
@@ -62,6 +67,22 @@ function applyStringToYText(ytext: Y.Text, newValue: string): void {
       }
     }
   })
+}
+
+function encodeRelativeCursor(ytext: Y.Text, pos: number): unknown {
+  const clamped = Math.max(0, Math.min(pos, ytext.length))
+  return Y.relativePositionToJSON(Y.createRelativePositionFromTypeIndex(ytext, clamped))
+}
+
+function decodeRelativeCursor(cursor: unknown, ydoc: Y.Doc): number | null {
+  if (!cursor || typeof cursor !== "object") return null
+  try {
+    const relPos = Y.createRelativePositionFromJSON(cursor)
+    const absPos = Y.createAbsolutePositionFromRelativePosition(relPos, ydoc)
+    return absPos ? absPos.index : null
+  } catch {
+    return null
+  }
 }
 
 export function useCollabEditor({
@@ -110,6 +131,8 @@ export function useCollabEditor({
       isRemoteUpdate.current = true
       setContentJaState((prev) => (prev === value ? prev : value))
       isRemoteUpdate.current = false
+      // Relative cursor positions must be re-resolved whenever document text changes.
+      awarenessHandler()
     }
     const observerEn = () => {
       if (!mountedRef.current) return
@@ -117,6 +140,8 @@ export function useCollabEditor({
       isRemoteUpdate.current = true
       setContentEnState((prev) => (prev === value ? prev : value))
       isRemoteUpdate.current = false
+      // Relative cursor positions must be re-resolved whenever document text changes.
+      awarenessHandler()
     }
     textJa.observe(observerJa)
     textEn.observe(observerEn)
@@ -126,42 +151,75 @@ export function useCollabEditor({
       if (!mountedRef.current) return
       const states = awareness.getStates()
       const newPeers: CollabPeer[] = []
+      const remoteCursorsJa: {
+        clientId: number
+        userName: string
+        color: string
+        cursorPos: number
+        activeLang: "ja" | "en"
+      }[] = []
+      const remoteCursorsEn: {
+        clientId: number
+        userName: string
+        color: string
+        cursorPos: number
+        activeLang: "ja" | "en"
+      }[] = []
       for (const [clientId, state] of states) {
         if (clientId === ydoc.clientID) continue
         if (state.user) {
-          newPeers.push({
+          const activeLang = (state.activeLang as "ja" | "en") ?? "ja"
+          const cursor = (state.cursor as CursorAwarenessState | undefined) ?? {}
+          const jaPos = decodeRelativeCursor(cursor.ja, ydoc)
+          const enPos = decodeRelativeCursor(cursor.en, ydoc)
+          const userId = (state.user as CollabUser).id
+          const color = hashColorHex(userId)
+          const peer = {
             clientId,
             user: state.user as CollabUser,
-            activeLang: (state.activeLang as "ja" | "en") ?? "ja",
-          })
+            activeLang,
+          }
+          newPeers.push(peer)
+          if (jaPos !== null) {
+            remoteCursorsJa.push({
+              clientId,
+              userName: peer.user.name,
+              color,
+              cursorPos: jaPos,
+              activeLang,
+            })
+          }
+          if (enPos !== null) {
+            remoteCursorsEn.push({
+              clientId,
+              userName: peer.user.name,
+              color,
+              cursorPos: enPos,
+              activeLang,
+            })
+          }
         }
       }
       setPeers(newPeers)
-
-      // Build remote cursor data for each editor
-      const remoteCursors = newPeers
-        .filter((p) => p.user.id)
-        .map((p) => {
-          const state = states.get(p.clientId)
-          return {
-            clientId: p.clientId,
-            userName: p.user.name,
-            color: hashColorHex(p.user.id),
-            cursorPos: (state?.cursor?.pos as number) ?? 0,
-            activeLang: p.activeLang,
-          }
-        })
-      setCursors("editor-ja", remoteCursors)
-      setCursors("editor-en", remoteCursors)
+      setCursors("editor-ja", remoteCursorsJa)
+      setCursors("editor-en", remoteCursorsEn)
     }
     awareness.on("change", awarenessHandler)
 
     // Subscribe to local cursor changes from CM6 editors → broadcast via awareness
     const unsubJa = subscribeLocalCursor("editor-ja", (pos) => {
-      awareness.setLocalStateField("cursor", { pos })
+      const current = (awareness.getLocalState()?.cursor as CursorAwarenessState | undefined) ?? {}
+      awareness.setLocalStateField("cursor", {
+        ...current,
+        ja: encodeRelativeCursor(textJa, pos),
+      })
     })
     const unsubEn = subscribeLocalCursor("editor-en", (pos) => {
-      awareness.setLocalStateField("cursor", { pos })
+      const current = (awareness.getLocalState()?.cursor as CursorAwarenessState | undefined) ?? {}
+      awareness.setLocalStateField("cursor", {
+        ...current,
+        en: encodeRelativeCursor(textEn, pos),
+      })
     })
 
     // Send outgoing Y.Doc updates to server (registered once, not per-connect)
