@@ -1,25 +1,22 @@
-import { useEffect, useState } from "react"
+import { useSyncExternalStore } from "react"
+
+function getSnapshot(): "light" | "dark" {
+  return document.documentElement.classList.contains("dark") ? "dark" : "light"
+}
+
+function getServerSnapshot(): "light" | "dark" {
+  return "light"
+}
+
+function subscribe(callback: () => void): () => void {
+  const observer = new MutationObserver(callback)
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["class"],
+  })
+  return () => observer.disconnect()
+}
 
 export function useThemeMode(): "light" | "dark" {
-  const [theme, setTheme] = useState<"light" | "dark">(() =>
-    typeof document !== "undefined" && document.documentElement.classList.contains("dark")
-      ? "dark"
-      : "light",
-  )
-
-  useEffect(() => {
-    const root = document.documentElement
-    const syncTheme = () => {
-      setTheme(root.classList.contains("dark") ? "dark" : "light")
-    }
-
-    syncTheme()
-
-    const observer = new MutationObserver(syncTheme)
-    observer.observe(root, { attributes: true, attributeFilter: ["class"] })
-
-    return () => observer.disconnect()
-  }, [])
-
-  return theme
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 }
