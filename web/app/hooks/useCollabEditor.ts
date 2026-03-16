@@ -103,20 +103,17 @@ export function useCollabEditor({
     // Observe Y.Text changes and update React state
     const observerJa = () => {
       if (!mountedRef.current) return
+      const value = textJa.toString()
       isRemoteUpdate.current = true
-      setContentJaState(textJa.toString())
-      // Use microtask to reset flag after React processes the update
-      queueMicrotask(() => {
-        isRemoteUpdate.current = false
-      })
+      setContentJaState((prev) => (prev === value ? prev : value))
+      isRemoteUpdate.current = false
     }
     const observerEn = () => {
       if (!mountedRef.current) return
+      const value = textEn.toString()
       isRemoteUpdate.current = true
-      setContentEnState(textEn.toString())
-      queueMicrotask(() => {
-        isRemoteUpdate.current = false
-      })
+      setContentEnState((prev) => (prev === value ? prev : value))
+      isRemoteUpdate.current = false
     }
     textJa.observe(observerJa)
     textEn.observe(observerEn)
@@ -151,6 +148,26 @@ export function useCollabEditor({
       ws.send(encoding.toUint8Array(encoder))
     }
     ydoc.on("update", sendUpdate)
+
+    // Send local awareness updates to server so remote peers receive them
+    const sendAwarenessUpdate = (
+      { added, updated }: { added: number[]; updated: number[]; removed: number[] },
+      origin: unknown,
+    ) => {
+      if (origin === "remote") return
+      const ws = wsRef.current
+      if (!ws || ws.readyState !== WebSocket.OPEN) return
+      const changedClients = added.concat(updated)
+      if (changedClients.length === 0) return
+      const encoder = encoding.createEncoder()
+      encoding.writeVarUint(encoder, MSG_AWARENESS)
+      encoding.writeVarUint8Array(
+        encoder,
+        awarenessProtocol.encodeAwarenessUpdate(awareness, changedClients),
+      )
+      ws.send(encoding.toUint8Array(encoder))
+    }
+    awareness.on("update", sendAwarenessUpdate)
 
     function connect() {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:"
@@ -219,6 +236,7 @@ export function useCollabEditor({
       textJa.unobserve(observerJa)
       textEn.unobserve(observerEn)
       awareness.off("change", awarenessHandler)
+      awareness.off("update", sendAwarenessUpdate)
       ydoc.off("update", sendUpdate)
       awareness.destroy()
       ydoc.destroy()
