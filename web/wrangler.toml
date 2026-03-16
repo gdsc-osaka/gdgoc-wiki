@@ -7,11 +7,6 @@ compatibility_flags = ["nodejs_compat"]
 enabled = true
 invocation_logs = true
 
-# Resolve Vite's virtual module to the React Router server build output so
-# wrangler can bundle workers/app.ts without needing Vite's dev server.
-[alias]
-"virtual:react-router/server-build" = "./build/server/index.js"
-
 # Static assets are served alongside the Worker
 [assets]
 directory = "./build/client"
@@ -87,6 +82,18 @@ binding = "AI"
 [[vectorize]]
 binding = "VECTORIZE"
 index_name = "gdgoc-wiki-production-pages"
+
+# ---------------------------------------------------------------------------
+# Durable Objects — realtime collaborative editing
+# ---------------------------------------------------------------------------
+[durable_objects]
+bindings = [
+  { name = "COLLAB_DO", class_name = "CollabDurableObject" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["CollabDurableObject"]
 
 # ---------------------------------------------------------------------------
 # Secrets (set via `wrangler secret put`)

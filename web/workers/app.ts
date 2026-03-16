@@ -9,6 +9,7 @@ import {
   processIngestionMessage,
   processTranslationMessage,
 } from "../app/lib/queue-processors.server"
+import { CollabDurableObject } from "./collab-durable-object"
 
 // The server build is a virtual module provided by @react-router/dev/vite at build time.
 const requestHandler = createRequestHandler(
@@ -42,6 +43,15 @@ function warmupAuth(env: Env): Promise<void> {
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    // Route WebSocket collab connections to Durable Object
+    const url = new URL(request.url)
+    if (url.pathname.startsWith("/ws/collab/") && request.headers.get("Upgrade") === "websocket") {
+      const slug = url.pathname.split("/")[3]
+      if (!slug) return new Response("Missing slug", { status: 400 })
+      const doId = env.COLLAB_DO.idFromName(slug)
+      return env.COLLAB_DO.get(doId).fetch(request)
+    }
+
     await warmupAuth(env)
     return requestHandler(request, {
       cloudflare: { env, ctx },
@@ -94,3 +104,6 @@ export default {
     }
   },
 } satisfies ExportedHandler<Env>
+
+// Re-export Durable Object class so wrangler registers it
+export { CollabDurableObject }
