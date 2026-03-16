@@ -4,6 +4,7 @@ import * as encoding from "lib0/encoding"
 import * as awarenessProtocol from "y-protocols/awareness"
 import * as syncProtocol from "y-protocols/sync"
 import * as Y from "yjs"
+import { createAuth } from "../app/lib/auth.server"
 import { tiptapToMarkdown } from "../app/lib/tiptap-convert"
 
 // Wire protocol message types
@@ -123,39 +124,19 @@ export class CollabDurableObject extends DurableObject<Env> {
    * Validate session cookie and return user info.
    */
   private async authenticate(request: Request): Promise<UserInfo | null> {
-    const cookie = request.headers.get("cookie")
-    if (!cookie) return null
+    const auth = createAuth(this.env)
+    const session = await auth.api.getSession({ headers: request.headers })
+    if (!session) return null
 
-    // Extract better-auth session token from cookie
-    const match = cookie.match(/better-auth\.session_token=([^;]+)/)
-    if (!match) return null
-    const token = decodeURIComponent(match[1])
-
-    // Look up session + user in D1
-    const row = await this.env.DB.prepare(
-      `SELECT u.id, u.name, u.image, u.role, s.expiresAt
-       FROM session s JOIN user u ON s.userId = u.id
-       WHERE s.token = ?`,
-    )
-      .bind(token)
-      .first<{
-        id: string
-        name: string
-        image: string | null
-        role: string
-        expiresAt: number
-      }>()
-
-    if (!row) return null
-
-    // Check expiry (expiresAt is stored as unix timestamp in seconds)
-    if (row.expiresAt * 1000 < Date.now()) return null
-
-    // Must be at least a member
+    // Must be at least a member.
     const roleLevel: Record<string, number> = { admin: 4, lead: 3, member: 2, viewer: 1 }
-    if ((roleLevel[row.role] ?? 0) < 2) return null
+    if ((roleLevel[session.user.role] ?? 0) < 2) return null
 
-    return { userId: row.id, userName: row.name, userImage: row.image }
+    return {
+      userId: session.user.id,
+      userName: session.user.name,
+      userImage: session.user.image ?? null,
+    }
   }
 
   /**
