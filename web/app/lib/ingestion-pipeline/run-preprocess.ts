@@ -18,6 +18,7 @@ import { updateIngestionPhase } from "./helpers"
 import type { AiDraftJson, IngestionInputs, SourceUrl } from "./types"
 
 const USE_PDF_CONVERTER = false
+const USE_URL_PDF_RENDERER = false
 
 type Db = ReturnType<typeof drizzle>
 
@@ -452,7 +453,7 @@ export async function step26FetchSelectedUrls(
   for (const url of selectedUrls) {
     let uploadedPdf = false
 
-    if (env.BROWSER) {
+    if (USE_URL_PDF_RENDERER && env.BROWSER) {
       console.log("[ingestion-pipeline] step 2.6: trying PDF for", url)
       const pdfResult = await fetchUrlAsPdf(env.BROWSER as BrowserWorker, url)
       if (pdfResult.error === undefined) {

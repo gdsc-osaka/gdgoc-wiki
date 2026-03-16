@@ -319,6 +319,7 @@ export default function PageEditor({
       {/* ------------------------------------------------------------------ */}
       <div className={`min-h-0 flex-1 ${isJaActive ? "" : "hidden"}`}>
         <MdEditor
+          editorId="editor-ja"
           modelValue={contentJa}
           onChange={setContentJa}
           language="en-US"
@@ -329,6 +330,7 @@ export default function PageEditor({
       </div>
       <div className={`min-h-0 flex-1 ${isEnActive ? "" : "hidden"}`}>
         <MdEditor
+          editorId="editor-en"
           modelValue={contentEn}
           onChange={setContentEn}
           language="en-US"

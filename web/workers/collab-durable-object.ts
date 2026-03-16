@@ -179,13 +179,13 @@ export class CollabDurableObject extends DurableObject<Env> {
   }
 
   /**
-   * Send sync step 1 + full awareness state to a newly connected client.
+   * Send initial document state + full awareness state to a newly connected client.
    */
   private async sendInitialSync(ws: WebSocket): Promise<void> {
-    // Send sync step 1
+    // Send sync step 2 (full server state) so the client receives current content immediately.
     const encoder = encoding.createEncoder()
     encoding.writeVarUint(encoder, MSG_SYNC)
-    syncProtocol.writeSyncStep1(encoder, this.ydoc)
+    syncProtocol.writeSyncStep2(encoder, this.ydoc)
     ws.send(encoding.toUint8Array(encoder))
 
     // Send current awareness state

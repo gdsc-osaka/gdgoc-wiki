@@ -1,6 +1,23 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Remote collaborative cursors in CodeMirror */
+.remote-cursor {
+  position: relative;
+  pointer-events: none;
+}
+.remote-cursor-label {
+  position: absolute;
+  bottom: 100%;
+  left: -1px;
+  padding: 1px 4px;
+  border-radius: 3px 3px 3px 0;
+  font-size: 11px;
+  color: white;
+  white-space: nowrap;
+  z-index: 10;
+}
+
 /* md-editor-rt: keep code block headers below the navbar (z-50) when sticky-scrolling */
 .md-editor-preview .md-editor-code .md-editor-code-head {
   top: 3.5rem; /* navbar height (h-14) */
@@ -215,4 +232,149 @@
   --md-theme-border-color-reverse: #cccccc;
   --md-theme-color: #cccccc;
   --md-theme-color-reverse: #1e1e1e;
+}
+
+/* ── Fallback: apply dark vars even when md-editor-dark class is missing ── */
+.dark .md-editor {
+  --md-bk-color: #1e1e1e;
+  --md-bk-color-outstand: #2a2a2a;
+  --md-bk-hover-color: #2a2a2a;
+  --md-border-color: #444444;
+  --md-border-hover-color: #636363;
+  --md-border-active-color: #888888;
+  --md-color: #cccccc;
+  --md-hover-color: #f0f0f0;
+}
+
+.dark .md-editor .md-editor-preview {
+  --md-theme-bg-color: #1e1e1e;
+  --md-theme-bg-color-inset: #2a2a2a;
+  --md-theme-border-color: #444444;
+  --md-theme-border-color-inset: #636363;
+  --md-theme-border-color-reverse: #cccccc;
+  --md-theme-color: #cccccc;
+  --md-theme-color-reverse: #1e1e1e;
+}
+
+/* ── GitHub-style markdown preview (light) ── */
+.md-editor-preview {
+  --md-theme-link-color: #0969da;
+  --md-theme-link-hover-color: #0550ae;
+}
+
+.md-editor-preview h1,
+.md-editor-preview h2 {
+  border-bottom: 1px solid #d1d9e0;
+  padding-bottom: 0.3em;
+}
+
+.md-editor-preview h1 {
+  font-size: 2em;
+  font-weight: 600;
+}
+
+.md-editor-preview h2 {
+  font-size: 1.5em;
+  font-weight: 600;
+}
+
+.md-editor-preview h3 {
+  font-size: 1.25em;
+  font-weight: 600;
+}
+
+.md-editor-preview :not(pre) > code {
+  background: rgba(175, 184, 193, 0.2);
+  padding: 0.2em 0.4em;
+  border-radius: 6px;
+  font-size: 85%;
+}
+
+.md-editor-preview pre {
+  background: #f6f8fa;
+  border-radius: 6px;
+  padding: 16px;
+  font-size: 85%;
+  line-height: 1.45;
+  overflow-x: auto;
+}
+
+.md-editor-preview pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+}
+
+.md-editor-preview blockquote {
+  border-left: 0.25em solid #d1d9e0;
+  color: #656d76;
+  padding: 0 1em;
+  margin-left: 0;
+}
+
+.md-editor-preview table th,
+.md-editor-preview table td {
+  border: 1px solid #d1d9e0;
+  padding: 6px 13px;
+}
+
+.md-editor-preview table tr:nth-child(2n) {
+  background: #f6f8fa;
+}
+
+.md-editor-preview img {
+  max-width: 100%;
+}
+
+.md-editor-preview hr {
+  height: 0.25em;
+  background: #d1d9e0;
+  border: 0;
+}
+
+.md-editor-preview ul,
+.md-editor-preview ol {
+  padding-left: 2em;
+  list-style-position: outside;
+}
+
+.md-editor-preview ul {
+  list-style-type: disc;
+}
+
+.md-editor-preview ol {
+  list-style-type: decimal;
+}
+
+/* ── GitHub-style markdown preview (dark) ── */
+.dark .md-editor-preview h1,
+.dark .md-editor-preview h2 {
+  border-bottom-color: #3d444d;
+}
+
+.dark .md-editor-preview :not(pre) > code {
+  background: rgba(110, 118, 129, 0.4);
+}
+
+.dark .md-editor-preview pre {
+  background: #161b22;
+}
+
+.dark .md-editor-preview blockquote {
+  border-left-color: #3d444d;
+  color: #9198a1;
+}
+
+.dark .md-editor-preview table th,
+.dark .md-editor-preview table td {
+  border-color: #3d444d;
+}
+
+.dark .md-editor-preview table tr:nth-child(2n) {
+  background: #161b22;
+}
+
+.dark .md-editor-preview hr {
+  background: #3d444d;
 }
