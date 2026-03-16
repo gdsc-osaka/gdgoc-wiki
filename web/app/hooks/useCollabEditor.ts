@@ -5,6 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import * as awarenessProtocol from "y-protocols/awareness"
 import * as syncProtocol from "y-protocols/sync"
 import * as Y from "yjs"
+import { hashColorHex } from "~/lib/color-utils"
+import { setCursors, subscribeLocalCursor } from "~/lib/remote-cursors-store"
 
 const MSG_SYNC = 0
 const MSG_AWARENESS = 1
@@ -119,7 +121,7 @@ export function useCollabEditor({
     textJa.observe(observerJa)
     textEn.observe(observerEn)
 
-    // Observe awareness changes
+    // Observe awareness changes — update peers list AND remote cursor store
     const awarenessHandler = () => {
       if (!mountedRef.current) return
       const states = awareness.getStates()
@@ -135,8 +137,32 @@ export function useCollabEditor({
         }
       }
       setPeers(newPeers)
+
+      // Build remote cursor data for each editor
+      const remoteCursors = newPeers
+        .filter((p) => p.user.id)
+        .map((p) => {
+          const state = states.get(p.clientId)
+          return {
+            clientId: p.clientId,
+            userName: p.user.name,
+            color: hashColorHex(p.user.id),
+            cursorPos: (state?.cursor?.pos as number) ?? 0,
+            activeLang: p.activeLang,
+          }
+        })
+      setCursors("editor-ja", remoteCursors)
+      setCursors("editor-en", remoteCursors)
     }
     awareness.on("change", awarenessHandler)
+
+    // Subscribe to local cursor changes from CM6 editors → broadcast via awareness
+    const unsubJa = subscribeLocalCursor("editor-ja", (pos) => {
+      awareness.setLocalStateField("cursor", { pos })
+    })
+    const unsubEn = subscribeLocalCursor("editor-en", (pos) => {
+      awareness.setLocalStateField("cursor", { pos })
+    })
 
     // Send outgoing Y.Doc updates to server (registered once, not per-connect)
     const sendUpdate = (update: Uint8Array, origin: unknown) => {
@@ -242,6 +268,10 @@ export function useCollabEditor({
       disposed = true
       mountedRef.current = false
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current)
+      unsubJa()
+      unsubEn()
+      setCursors("editor-ja", [])
+      setCursors("editor-en", [])
       textJa.unobserve(observerJa)
       textEn.unobserve(observerEn)
       awareness.off("change", awarenessHandler)

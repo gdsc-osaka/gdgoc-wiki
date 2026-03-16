@@ -1,5 +1,6 @@
 import { useState } from "react"
 import type { CollabPeer } from "~/hooks/useCollabEditor"
+import { hashColorTw } from "~/lib/color-utils"
 
 const MAX_VISIBLE = 5
 
@@ -15,25 +16,6 @@ function getInitials(name: string): string {
     .join("")
     .slice(0, 2)
     .toUpperCase()
-}
-
-// Simple hash for consistent avatar background colors
-function hashColor(str: string): string {
-  const colors = [
-    "bg-rose-400",
-    "bg-amber-400",
-    "bg-emerald-400",
-    "bg-cyan-400",
-    "bg-violet-400",
-    "bg-pink-400",
-    "bg-teal-400",
-    "bg-indigo-400",
-  ]
-  let hash = 0
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash * 31 + str.charCodeAt(i)) | 0
-  }
-  return colors[Math.abs(hash) % colors.length]
 }
 
 interface PresenceAvatarsProps {
@@ -82,7 +64,7 @@ function Avatar({ peer }: { peer: CollabPeer }) {
         />
       ) : (
         <span
-          className={`flex h-7 w-7 items-center justify-center rounded-full border-2 border-white text-xs font-medium text-white ${hashColor(peer.user.id)}`}
+          className={`flex h-7 w-7 items-center justify-center rounded-full border-2 border-white text-xs font-medium text-white ${hashColorTw(peer.user.id)}`}
         >
           {getInitials(peer.user.name)}
         </span>
