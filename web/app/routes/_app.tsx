@@ -42,6 +42,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
       titleJa: schema.pages.titleJa,
       titleEn: schema.pages.titleEn,
       parentId: schema.pages.parentId,
+      pageType: schema.pages.pageType,
       sortOrder: schema.pages.sortOrder,
     })
     .from(schema.pages)

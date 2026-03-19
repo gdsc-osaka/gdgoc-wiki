@@ -1,0 +1,294 @@
+import { useEffect, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
+import DepsDropdown from "./DepsDropdown"
+import DropdownMenu, { type DropdownOption } from "./DropdownMenu"
+
+interface Team {
+  id: string
+  name: string
+  color: string | null
+}
+
+interface Member {
+  id: string
+  name: string
+  image: string | null
+}
+
+interface Task {
+  id: string
+  number: number
+  title: string
+  description: string
+  status: string
+  type: string
+  dueDate: string | null
+  assigneeId: string | null
+  teamId: string | null
+  dependencies: string[]
+}
+
+interface TaskRowProps {
+  task: Task
+  teams: Team[]
+  members: Member[]
+  allTasks: Task[]
+  onUpdate: (taskId: string, field: string, value: unknown) => void
+  onClick: (taskId: string) => void
+  isLast?: boolean
+  onDelete?: (taskId: string) => void
+}
+
+const STATUSES = ["todo", "in_progress", "done", "cancelled", "duplicated"]
+const TYPES = ["task", "discussion"]
+
+const STATUS_CHIP: Record<string, string> = {
+  todo: "bg-green-100 text-green-700",
+  in_progress: "bg-yellow-100 text-yellow-700",
+  done: "bg-blue-100 text-blue-700",
+  cancelled: "bg-gray-100 text-gray-700",
+  duplicated: "bg-gray-100 text-gray-700",
+}
+
+const TYPE_CHIP: Record<string, string> = {
+  task: "bg-red-100 text-red-700",
+  discussion: "bg-blue-100 text-blue-700",
+}
+
+export default function TaskRow({
+  task,
+  teams,
+  members,
+  allTasks,
+  onUpdate,
+  onClick,
+  isLast,
+  onDelete,
+}: TaskRowProps) {
+  const { t } = useTranslation()
+
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [titleDraft, setTitleDraft] = useState(task.title)
+  const [editingDesc, setEditingDesc] = useState(false)
+  const [descDraft, setDescDraft] = useState(task.description)
+  const titleInputRef = useRef<HTMLInputElement>(null)
+  const descInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (editingTitle) titleInputRef.current?.focus()
+  }, [editingTitle])
+
+  useEffect(() => {
+    if (editingDesc) descInputRef.current?.focus()
+  }, [editingDesc])
+
+  // Sync drafts from props when not actively editing (keeps display in sync after remote updates)
+  useEffect(() => {
+    if (!editingTitle) setTitleDraft(task.title)
+  }, [task.title, editingTitle])
+
+  useEffect(() => {
+    if (!editingDesc) setDescDraft(task.description)
+  }, [task.description, editingDesc])
+
+  const statusOptions: DropdownOption[] = STATUSES.map((s) => ({
+    value: s,
+    label: t(`tasks.status_${s}`),
+    chipClass: STATUS_CHIP[s],
+  }))
+
+  const typeOptions: DropdownOption[] = TYPES.map((tp) => ({
+    value: tp,
+    label: t(`tasks.type_${tp}`),
+    chipClass: TYPE_CHIP[tp],
+  }))
+
+  const assigneeOptions: DropdownOption[] = [
+    { value: "", label: "—" },
+    ...members.map((m) => ({ value: m.id, label: m.name, image: m.image })),
+  ]
+
+  const teamOptions: DropdownOption[] = [
+    { value: "", label: "—" },
+    ...teams.map((tm) => ({ value: tm.id, label: tm.name, dot: tm.color ?? "#6b7280" })),
+  ]
+
+  return (
+    <tr
+      className="group cursor-pointer border-b border-gray-100 hover:bg-gray-50"
+      onClick={() => onClick(task.id)}
+      onKeyDown={(e) => e.key === "Enter" && onClick(task.id)}
+    >
+      {/* # */}
+      <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-400">#{task.number}</td>
+
+      {/* Status */}
+      <td className="overflow-hidden px-3 py-2">
+        <DropdownMenu
+          value={task.status}
+          options={statusOptions}
+          onChange={(v) => onUpdate(task.id, "status", v)}
+          variant="chip"
+        />
+      </td>
+
+      {/* Due Date */}
+      <td className="overflow-hidden px-3 py-2">
+        <input
+          type="date"
+          className="rounded border-0 bg-transparent text-sm focus:ring-1 focus:ring-blue-500"
+          value={task.dueDate ?? ""}
+          onMouseDown={(e) => e.stopPropagation()}
+          onChange={(e) => onUpdate(task.id, "dueDate", e.target.value || null)}
+        />
+      </td>
+
+      {/* Assignee */}
+      <td className="overflow-hidden px-3 py-2">
+        <DropdownMenu
+          value={task.assigneeId ?? ""}
+          options={assigneeOptions}
+          onChange={(v) => onUpdate(task.id, "assigneeId", v || null)}
+          searchable
+          header={t("tasks.select_assignees")}
+          searchPlaceholder={t("tasks.filter_assignee")}
+        />
+      </td>
+
+      {/* Team */}
+      <td className="overflow-hidden px-3 py-2">
+        {teams.length > 0 ? (
+          <DropdownMenu
+            value={task.teamId ?? ""}
+            options={teamOptions}
+            onChange={(v) => onUpdate(task.id, "teamId", v || null)}
+          />
+        ) : (
+          <span className="text-sm text-gray-400">—</span>
+        )}
+      </td>
+
+      {/* Dependencies */}
+      <td
+        className="overflow-hidden px-3 py-2"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+      >
+        <DepsDropdown
+          taskId={task.id}
+          value={task.dependencies}
+          options={allTasks.filter((t) => t.id !== task.id)}
+          onChange={(ids) => onUpdate(task.id, "dependencies", ids)}
+        />
+      </td>
+
+      {/* Type */}
+      <td className="overflow-hidden px-3 py-2">
+        <DropdownMenu
+          value={task.type}
+          options={typeOptions}
+          onChange={(v) => onUpdate(task.id, "type", v)}
+          variant="chip"
+        />
+      </td>
+
+      {/* Title */}
+      <td
+        className="break-words px-3 py-2 text-sm font-medium text-gray-900"
+        onClick={(e) => {
+          e.stopPropagation()
+          setEditingTitle(true)
+          setTitleDraft(task.title)
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.stopPropagation()
+            setEditingTitle(true)
+            setTitleDraft(task.title)
+          }
+        }}
+      >
+        {editingTitle ? (
+          <input
+            ref={titleInputRef}
+            type="text"
+            className="w-full rounded border border-blue-400 px-1 py-0.5 text-sm font-medium text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            value={titleDraft}
+            onChange={(e) => setTitleDraft(e.target.value)}
+            onBlur={() => {
+              const trimmed = titleDraft.trim()
+              if (!trimmed && isLast && onDelete) {
+                onDelete(task.id)
+              } else {
+                onUpdate(task.id, "title", trimmed || task.title)
+              }
+              setEditingTitle(false)
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                const trimmed = titleDraft.trim()
+                if (!trimmed && isLast && onDelete) {
+                  onDelete(task.id)
+                } else {
+                  onUpdate(task.id, "title", trimmed || task.title)
+                }
+                setEditingTitle(false)
+              } else if (e.key === "Escape") {
+                setTitleDraft(task.title)
+                setEditingTitle(false)
+              }
+            }}
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <span title={t("tasks.click_to_edit")}>{titleDraft}</span>
+        )}
+      </td>
+
+      {/* Description */}
+      <td
+        className="break-words px-3 py-2 text-sm text-gray-500"
+        onClick={(e) => {
+          e.stopPropagation()
+          setEditingDesc(true)
+          setDescDraft(task.description)
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.stopPropagation()
+            setEditingDesc(true)
+            setDescDraft(task.description)
+          }
+        }}
+      >
+        {editingDesc ? (
+          <input
+            ref={descInputRef}
+            type="text"
+            className="w-full rounded border border-blue-400 px-1 py-0.5 text-sm text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            value={descDraft}
+            onChange={(e) => setDescDraft(e.target.value)}
+            onBlur={() => {
+              onUpdate(task.id, "description", descDraft)
+              setEditingDesc(false)
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                onUpdate(task.id, "description", descDraft)
+                setEditingDesc(false)
+              } else if (e.key === "Escape") {
+                setDescDraft(task.description)
+                setEditingDesc(false)
+              }
+            }}
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <span title={t("tasks.click_to_edit")}>{descDraft || "—"}</span>
+        )}
+      </td>
+    </tr>
+  )
+}

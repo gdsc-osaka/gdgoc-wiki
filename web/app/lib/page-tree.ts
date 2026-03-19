@@ -4,6 +4,7 @@ export interface PageNode {
   titleJa: string
   titleEn: string
   parentId: string | null
+  pageType?: string | null
   children: PageNode[]
 }
 
@@ -13,16 +14,18 @@ export interface FlatNode {
   titleJa: string
   titleEn: string
   parentId: string | null
+  pageType?: string | null
   depth: number
   children: PageNode[]
 }
 
-type FlatRow = {
+export type FlatRow = {
   id: string
   slug: string
   titleJa: string
   titleEn: string
   parentId: string | null
+  pageType?: string | null
   sortOrder: number
 }
 
@@ -39,6 +42,7 @@ export function buildTree(rows: FlatRow[]): PageNode[] {
       titleJa: row.titleJa,
       titleEn: row.titleEn,
       parentId: row.parentId,
+      pageType: row.pageType ?? null,
       children: [],
     })
   }
@@ -74,6 +78,7 @@ export function flattenTree(
       titleJa: node.titleJa,
       titleEn: node.titleEn,
       parentId,
+      pageType: node.pageType,
       depth,
       children: node.children,
     })
