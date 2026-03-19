@@ -26,6 +26,22 @@ const PRESET_COLORS = [
   "#ec4899",
 ]
 
+function ColorPicker({ value, onChange }: { value: string; onChange: (c: string) => void }) {
+  return (
+    <div className="flex gap-1">
+      {PRESET_COLORS.map((c) => (
+        <button
+          key={c}
+          type="button"
+          onClick={() => onChange(c)}
+          className={`h-5 w-5 rounded-full border-2 ${value === c ? "border-gray-800" : "border-transparent"}`}
+          style={{ backgroundColor: c }}
+        />
+      ))}
+    </div>
+  )
+}
+
 export default function TeamManager({ teams, taskListId, onRefresh }: TeamManagerProps) {
   const { t } = useTranslation()
   const [newName, setNewName] = useState("")
@@ -78,17 +94,7 @@ export default function TeamManager({ teams, taskListId, onRefresh }: TeamManage
               onChange={(e) => setEditName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleUpdate(team.id)}
             />
-            <div className="flex gap-1">
-              {PRESET_COLORS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setEditColor(c)}
-                  className={`h-5 w-5 rounded-full border-2 ${editColor === c ? "border-gray-800" : "border-transparent"}`}
-                  style={{ backgroundColor: c }}
-                />
-              ))}
-            </div>
+            <ColorPicker value={editColor} onChange={setEditColor} />
             <div className="flex justify-end gap-2">
               <button
                 type="button"
@@ -149,17 +155,7 @@ export default function TeamManager({ teams, taskListId, onRefresh }: TeamManage
           placeholder={t("tasks.team_name_placeholder")}
           onKeyDown={(e) => e.key === "Enter" && handleCreate()}
         />
-        <div className="flex gap-1">
-          {PRESET_COLORS.map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => setNewColor(c)}
-              className={`h-5 w-5 rounded-full border-2 ${newColor === c ? "border-gray-800" : "border-transparent"}`}
-              style={{ backgroundColor: c }}
-            />
-          ))}
-        </div>
+        <ColorPicker value={newColor} onChange={setNewColor} />
         <div className="flex justify-end">
           <button
             type="button"

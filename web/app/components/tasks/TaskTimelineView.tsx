@@ -1,6 +1,7 @@
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import TaskStatusBadge from "./TaskStatusBadge"
+import { formatDate, getDateRange, isWeekend } from "./task-utils"
 
 interface Task {
   id: string
@@ -22,37 +23,6 @@ interface TaskTimelineViewProps {
   tasks: Task[]
   members: Member[]
   onTaskClick: (taskId: string) => void
-}
-
-function getDateRange(tasks: Task[]): string[] {
-  const tasksWithDates = tasks.filter((t) => t.dueDate)
-  if (tasksWithDates.length === 0) return []
-
-  const dates = tasksWithDates.map((t) => t.dueDate as string).sort()
-  const start = new Date(dates[0])
-  const end = new Date(dates[dates.length - 1])
-
-  // Extend range by 3 days on each side
-  start.setDate(start.getDate() - 3)
-  end.setDate(end.getDate() + 3)
-
-  const result: string[] = []
-  const current = new Date(start)
-  while (current <= end) {
-    result.push(current.toISOString().split("T")[0])
-    current.setDate(current.getDate() + 1)
-  }
-  return result
-}
-
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr)
-  return `${d.getMonth() + 1}/${d.getDate()}`
-}
-
-function isWeekend(dateStr: string): boolean {
-  const d = new Date(dateStr)
-  return d.getDay() === 0 || d.getDay() === 6
 }
 
 export default function TaskTimelineView({ tasks, members, onTaskClick }: TaskTimelineViewProps) {

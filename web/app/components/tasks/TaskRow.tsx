@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import DepsDropdown from "./DepsDropdown"
 import DropdownMenu, { type DropdownOption } from "./DropdownMenu"
+import { STATUSES, STATUS_CHIP, TYPES, TYPE_CHIP } from "./task-options"
 
 interface Team {
   id: string
@@ -37,22 +38,6 @@ interface TaskRowProps {
   onClick: (taskId: string) => void
   isLast?: boolean
   onDelete?: (taskId: string) => void
-}
-
-const STATUSES = ["todo", "in_progress", "done", "cancelled", "duplicated"]
-const TYPES = ["task", "discussion"]
-
-const STATUS_CHIP: Record<string, string> = {
-  todo: "bg-green-100 text-green-700",
-  in_progress: "bg-yellow-100 text-yellow-700",
-  done: "bg-blue-100 text-blue-700",
-  cancelled: "bg-gray-100 text-gray-700",
-  duplicated: "bg-gray-100 text-gray-700",
-}
-
-const TYPE_CHIP: Record<string, string> = {
-  task: "bg-red-100 text-red-700",
-  discussion: "bg-blue-100 text-blue-700",
 }
 
 export default function TaskRow({
