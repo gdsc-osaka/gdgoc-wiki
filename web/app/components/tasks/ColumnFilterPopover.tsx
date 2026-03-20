@@ -1,6 +1,6 @@
 import { ListFilter } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
+import { useAnchoredMenu } from "./useAnchoredMenu"
 
 interface Option {
   value: string
@@ -17,11 +17,6 @@ interface ColumnFilterPopoverProps {
   searchPlaceholder?: string
 }
 
-interface MenuPosition {
-  top: number
-  left: number
-}
-
 export default function ColumnFilterPopover({
   label,
   options,
@@ -30,73 +25,10 @@ export default function ColumnFilterPopover({
   searchable,
   searchPlaceholder,
 }: ColumnFilterPopoverProps) {
-  const [open, setOpen] = useState(false)
-  const [pos, setPos] = useState<MenuPosition | null>(null)
-  const [search, setSearch] = useState("")
-  const triggerRef = useRef<HTMLButtonElement>(null)
-  const menuRef = useRef<HTMLDivElement>(null)
-  const searchInputRef = useRef<HTMLInputElement>(null)
+  const { triggerRef, menuRef, searchInputRef, pos, open, search, setSearch, openMenu } =
+    useAnchoredMenu({ searchable })
 
   const isActive = selected.length > 0
-
-  function openMenu(e: React.MouseEvent) {
-    e.stopPropagation()
-    if (open) {
-      setOpen(false)
-      return
-    }
-    const rect = triggerRef.current?.getBoundingClientRect()
-    if (rect) {
-      setPos({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.left + window.scrollX,
-      })
-    }
-    setSearch("")
-    setOpen(true)
-    if (searchable) {
-      setTimeout(() => searchInputRef.current?.focus(), 0)
-    }
-  }
-
-  useEffect(() => {
-    if (!open) return
-    function handleOutside(e: MouseEvent) {
-      const target = e.target as Node
-      if (triggerRef.current?.contains(target) || menuRef.current?.contains(target)) return
-      setOpen(false)
-      setSearch("")
-    }
-    document.addEventListener("mousedown", handleOutside)
-    return () => document.removeEventListener("mousedown", handleOutside)
-  }, [open])
-
-  useEffect(() => {
-    if (!open) return
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        setOpen(false)
-        setSearch("")
-      }
-    }
-    document.addEventListener("keydown", handleKey)
-    return () => document.removeEventListener("keydown", handleKey)
-  }, [open])
-
-  useEffect(() => {
-    if (!open) return
-    function handleScroll() {
-      const rect = triggerRef.current?.getBoundingClientRect()
-      if (rect) {
-        setPos({
-          top: rect.bottom + window.scrollY + 4,
-          left: rect.left + window.scrollX,
-        })
-      }
-    }
-    window.addEventListener("scroll", handleScroll, true)
-    return () => window.removeEventListener("scroll", handleScroll, true)
-  }, [open])
 
   function toggleOption(value: string) {
     if (selected.includes(value)) {
@@ -117,7 +49,7 @@ export default function ColumnFilterPopover({
       ? createPortal(
           <div
             ref={menuRef}
-            style={{ position: "absolute", top: pos.top, left: pos.left, minWidth: 160 }}
+            style={{ position: "absolute", top: pos.top, left: pos.left, minWidth: pos.width }}
             className="z-[9999] overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg"
           >
             {searchable && (

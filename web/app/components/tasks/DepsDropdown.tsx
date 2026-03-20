@@ -1,6 +1,7 @@
 import { Check, ChevronDown } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
+import { useTranslation } from "react-i18next"
 
 interface DepsDropdownProps {
   taskId: string
@@ -20,6 +21,7 @@ export default function DepsDropdown({
   options,
   onChange,
 }: DepsDropdownProps) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState<MenuPosition | null>(null)
   const [search, setSearch] = useState("")
@@ -121,7 +123,7 @@ export default function DepsDropdown({
             className="z-[9999] overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg"
           >
             <div className="border-b border-gray-100 px-3 py-2 text-xs font-semibold text-gray-500">
-              Dependencies
+              {t("tasks.dependencies")}
             </div>
             <div className="border-b border-gray-100 px-2 py-1.5">
               <input
@@ -129,14 +131,14 @@ export default function DepsDropdown({
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Filter tasks…"
+                placeholder={t("tasks.filterPlaceholder")}
                 className="w-full rounded border border-gray-200 px-2 py-1 text-xs focus:border-blue-400 focus:outline-none"
                 onClick={(e) => e.stopPropagation()}
               />
             </div>
             <div className="max-h-48 overflow-y-auto py-1">
               {sorted.length === 0 ? (
-                <div className="px-3 py-2 text-xs text-gray-400">No tasks found</div>
+                <div className="px-3 py-2 text-xs text-gray-400">{t("tasks.noTasksFound")}</div>
               ) : (
                 sorted.map((opt) => {
                   const isChecked = value.includes(opt.id)

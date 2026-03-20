@@ -100,12 +100,12 @@ export async function loader({ request, params, context }: LoaderFunctionArgs) {
     depMap.set(d.taskId, list)
   }
 
-  // Get chapter members for assignee list
-  const members = user.chapterId
+  // Get chapter members for assignee list — use the task list's chapter, not the viewer's
+  const members = page.chapterId
     ? await db
         .select({ id: schema.user.id, name: schema.user.name, image: schema.user.image })
         .from(schema.user)
-        .where(eq(schema.user.chapterId, user.chapterId))
+        .where(eq(schema.user.chapterId, page.chapterId))
         .all()
     : await db
         .select({ id: schema.user.id, name: schema.user.name, image: schema.user.image })
@@ -165,26 +165,26 @@ export async function action({ request, params, context }: ActionFunctionArgs) {
   const intent = formData.get("intent") as string
 
   if (intent === "toggleFavorite") {
-    const pageId = formData.get("pageId")
-    if (typeof pageId !== "string" || !pageId) {
-      return new Response("Missing pageId", { status: 400 })
-    }
+    if (!canUserSeePage(user, page)) throw new Response("Forbidden", { status: 403 })
 
     const existing = await db
       .select()
       .from(schema.pageFavorites)
-      .where(and(eq(schema.pageFavorites.userId, user.id), eq(schema.pageFavorites.pageId, pageId)))
+      .where(and(eq(schema.pageFavorites.userId, user.id), eq(schema.pageFavorites.pageId, page.id)))
       .get()
 
     if (existing) {
       await db
         .delete(schema.pageFavorites)
         .where(
-          and(eq(schema.pageFavorites.userId, user.id), eq(schema.pageFavorites.pageId, pageId)),
+          and(
+            eq(schema.pageFavorites.userId, user.id),
+            eq(schema.pageFavorites.pageId, page.id),
+          ),
         )
       return { ok: true, starred: false }
     }
-    await db.insert(schema.pageFavorites).values({ userId: user.id, pageId })
+    await db.insert(schema.pageFavorites).values({ userId: user.id, pageId: page.id })
     return { ok: true, starred: true }
   }
 
@@ -280,11 +280,10 @@ export default function TaskListView() {
   const moreRef = useRef<HTMLDivElement>(null)
   const optimisticStarred = favFetcher.state !== "idle" ? !currentStarred : currentStarred
 
-  // Sync visibility with reloaded page data (when not editing)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: editMode intentionally omitted
+  // Sync visibility with reloaded page data (when not editing, or when Cancel is clicked)
   useEffect(() => {
     if (!editMode) setCurrentVisibility(page.visibility)
-  }, [page.visibility])
+  }, [page.visibility, editMode])
 
   // Exit edit mode when save succeeds; revalidate to refresh page data
   useEffect(() => {
@@ -358,14 +357,22 @@ export default function TaskListView() {
     })
   }
 
+  async function ensureOkResponse(response: Response): Promise<void> {
+    if (!response.ok) {
+      const text = await response.text().catch(() => response.statusText)
+      throw new Error(`Request failed (${response.status}): ${text}`)
+    }
+  }
+
   const handleUpdate = useCallback(
     async (taskId: string, fieldOrUpdates: string | Record<string, unknown>, value?: unknown) => {
       const body = typeof fieldOrUpdates === "string" ? { [fieldOrUpdates]: value } : fieldOrUpdates
-      await fetch(`/api/tasks/${taskListId}/${taskId}`, {
+      const response = await fetch(`/api/tasks/${taskListId}/${taskId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       })
+      await ensureOkResponse(response)
       revalidator.revalidate()
     },
     [taskListId, revalidator],
@@ -383,11 +390,12 @@ export default function TaskListView() {
       teamId: string | null
       dependencies: string[]
     }) => {
-      await fetch(`/api/tasks/${taskListId}`, {
+      const response = await fetch(`/api/tasks/${taskListId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       })
+      await ensureOkResponse(response)
       revalidator.revalidate()
     },
     [taskListId, revalidator],
@@ -395,7 +403,8 @@ export default function TaskListView() {
 
   const handleDelete = useCallback(
     async (taskId: string) => {
-      await fetch(`/api/tasks/${taskListId}/${taskId}`, { method: "DELETE" })
+      const response = await fetch(`/api/tasks/${taskListId}/${taskId}`, { method: "DELETE" })
+      await ensureOkResponse(response)
       revalidator.revalidate()
     },
     [taskListId, revalidator],

@@ -43,7 +43,8 @@ CREATE TABLE IF NOT EXISTS `task_dependencies` (
   `depends_on_task_id` text NOT NULL,
   PRIMARY KEY (`task_id`, `depends_on_task_id`),
   FOREIGN KEY (`task_id`) REFERENCES `tasks`(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`depends_on_task_id`) REFERENCES `tasks`(`id`) ON DELETE CASCADE
+  FOREIGN KEY (`depends_on_task_id`) REFERENCES `tasks`(`id`) ON DELETE CASCADE,
+  CHECK (`task_id` <> `depends_on_task_id`)
 );
 
 -- Indexes for tasks table

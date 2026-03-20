@@ -62,7 +62,9 @@ export default {
     })
   },
 
-  // Cron trigger: fires at 15:00 UTC (= midnight JST) daily to send Discord DM reminders.
+  // Cron trigger: fires at 15:00 UTC (= 00:00 JST, i.e. the start of the next calendar day in JST).
+  // sendDueTaskReminders queries tasks whose dueDate matches that JST date, so reminders go out
+  // at the very beginning of the day the task is due.
   async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     console.log("[scheduled] cron fired:", event.cron, "at", new Date().toISOString())
     ctx.waitUntil(sendDueTaskReminders(env))

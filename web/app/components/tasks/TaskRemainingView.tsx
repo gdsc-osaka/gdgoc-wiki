@@ -57,7 +57,8 @@ export default function TaskRemainingView({ tasks, members, onTaskClick }: TaskR
     return <div className="py-8 text-center text-sm text-gray-400">{t("tasks.all_done")}</div>
   }
 
-  const today = new Date().toISOString().split("T")[0]
+  const now = new Date()
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
 
   return (
     <div className="space-y-6">

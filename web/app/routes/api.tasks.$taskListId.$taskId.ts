@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm"
+import { and, eq, inArray } from "drizzle-orm"
 import type { ActionFunctionArgs } from "react-router"
 import * as schema from "~/db/schema"
 import { requireRole } from "~/lib/auth-utils.server"
@@ -81,10 +81,24 @@ export async function action({ request, params, context }: ActionFunctionArgs) {
     }
     if (teamId !== undefined) updates.teamId = teamId
 
-    await db.update(schema.tasks).set(updates).where(eq(schema.tasks.id, taskId))
-
-    // Update dependencies if provided
+    // Validate and check dependencies before any writes
     if (dependencies !== undefined) {
+      // Ensure all depIds belong to the same taskListId
+      if (dependencies.length > 0) {
+        const depTasks = await db
+          .select({ id: schema.tasks.id })
+          .from(schema.tasks)
+          .where(and(inArray(schema.tasks.id, dependencies), eq(schema.tasks.taskListId, taskListId)))
+          .all()
+
+        if (depTasks.length !== dependencies.length) {
+          return Response.json(
+            { error: "Invalid dependency: task not in same list" },
+            { status: 400 },
+          )
+        }
+      }
+
       // Cycle detection: BFS from each dependency to ensure taskId isn't reachable
       const allDeps = await db.select().from(schema.taskDependencies).all()
       const graph = new Map<string, string[]>()
@@ -103,7 +117,7 @@ export async function action({ request, params, context }: ActionFunctionArgs) {
 
       // Check for cycles using BFS from taskId
       const visited = new Set<string>()
-      const queue = [...(dependencies || [])]
+      const queue = [...dependencies]
       let hasCycle = false
       while (queue.length > 0) {
         const current = queue.shift()
@@ -121,18 +135,27 @@ export async function action({ request, params, context }: ActionFunctionArgs) {
       if (hasCycle) {
         return Response.json({ error: "Circular dependency detected" }, { status: 400 })
       }
+    }
 
-      // Replace dependencies
-      await db.delete(schema.taskDependencies).where(eq(schema.taskDependencies.taskId, taskId))
-
+    // Atomic write: update task and rewrite dependencies together
+    const updateQuery = db.update(schema.tasks).set(updates).where(eq(schema.tasks.id, taskId))
+    if (dependencies !== undefined) {
+      const deleteQuery = db
+        .delete(schema.taskDependencies)
+        .where(eq(schema.taskDependencies.taskId, taskId))
       if (dependencies.length > 0) {
-        await db.insert(schema.taskDependencies).values(
+        const insertQuery = db.insert(schema.taskDependencies).values(
           dependencies.map((depId) => ({
             taskId,
             dependsOnTaskId: depId,
           })),
         )
+        await db.batch([updateQuery, deleteQuery, insertQuery])
+      } else {
+        await db.batch([updateQuery, deleteQuery])
       }
+    } else {
+      await updateQuery
     }
 
     return Response.json({ ok: true })

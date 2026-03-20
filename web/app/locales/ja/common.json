@@ -473,7 +473,9 @@
     "email_placeholder": "member@example.com",
     "invite_sent": "{{email}} に招待メールを送信しました。",
     "form_submit_invite": "招待を送信",
-    "no_chapter": "チャプターに割り当てられていません。"
+    "no_chapter": "チャプターに割り当てられていません。",
+    "section_discord": "Discord 通知設定",
+    "discord_error_required": "サーバーIDとチャンネルIDは必須です。"
   },
   "manage": {
     "label": "管理",
@@ -605,7 +607,11 @@
     "archive_confirm": "このタスクリストをアーカイブしますか？後から復元できます。",
     "archive_no_permission": "著者またはリードのみアーカイブできます",
     "calendar_clear": "クリア",
-    "calendar_days_short": ["日", "月", "火", "水", "木", "金", "土"]
+    "calendar_label": "日付選択",
+    "calendar_days_short": ["日", "月", "火", "水", "木", "金", "土"],
+    "dependencies": "依存タスク",
+    "filterPlaceholder": "タスクを絞り込む…",
+    "noTasksFound": "タスクが見つかりません"
   },
   "lp": {
     "hero_title": "GDGoC Japan Wiki",

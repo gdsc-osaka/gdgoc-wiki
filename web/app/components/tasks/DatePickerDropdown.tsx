@@ -39,6 +39,7 @@ export default function DatePickerDropdown({ value, onChange }: DatePickerDropdo
 
   const triggerRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const savedFocusRef = useRef<Element | null>(null)
 
   // Sync view to new value when it changes externally
   useEffect(() => {
@@ -55,12 +56,25 @@ export default function DatePickerDropdown({ value, onChange }: DatePickerDropdo
       setOpen(false)
       return
     }
+    savedFocusRef.current = document.activeElement
     const rect = triggerRef.current?.getBoundingClientRect()
     if (rect) {
       setPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + window.scrollX })
     }
     setOpen(true)
   }
+
+  // Focus management: move focus into dialog when opened, restore when closed
+  useEffect(() => {
+    if (open) {
+      menuRef.current?.focus()
+    } else {
+      if (savedFocusRef.current instanceof HTMLElement) {
+        savedFocusRef.current.focus()
+      }
+      savedFocusRef.current = null
+    }
+  }, [open])
 
   // Close on outside click
   useEffect(() => {
@@ -130,6 +144,9 @@ export default function DatePickerDropdown({ value, onChange }: DatePickerDropdo
       ? createPortal(
           <div
             ref={menuRef}
+            role="dialog"
+            aria-label={t("tasks.calendar_label")}
+            tabIndex={-1}
             style={{ position: "absolute", top: pos.top, left: pos.left }}
             className="z-[9999] w-[252px] rounded-md border border-gray-200 bg-white p-3 shadow-lg"
             onClick={(e) => e.stopPropagation()}
@@ -217,6 +234,8 @@ export default function DatePickerDropdown({ value, onChange }: DatePickerDropdo
       <button
         ref={triggerRef}
         type="button"
+        aria-haspopup="dialog"
+        aria-expanded={open}
         className="rounded px-1.5 py-0.5 text-sm hover:bg-gray-100"
         onClick={openPicker}
         onKeyDown={(e) => e.stopPropagation()}

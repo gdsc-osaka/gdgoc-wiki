@@ -34,6 +34,8 @@ function ColorPicker({ value, onChange }: { value: string; onChange: (c: string)
           key={c}
           type="button"
           onClick={() => onChange(c)}
+          aria-label={`Select color ${c}`}
+          aria-pressed={value === c}
           className={`h-5 w-5 rounded-full border-2 ${value === c ? "border-gray-800" : "border-transparent"}`}
           style={{ backgroundColor: c }}
         />
@@ -49,40 +51,57 @@ export default function TeamManager({ teams, taskListId, onRefresh }: TeamManage
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState("")
   const [editColor, setEditColor] = useState("")
+  const [error, setError] = useState<string | null>(null)
 
   async function handleCreate() {
     if (!newName.trim()) return
-    await fetch(`/api/tasks/${taskListId}/teams`, {
+    setError(null)
+    const response = await fetch(`/api/tasks/${taskListId}/teams`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ intent: "create", name: newName.trim(), color: newColor }),
     })
-    setNewName("")
-    setNewColor("#6b7280")
-    onRefresh()
+    if (response.ok) {
+      setNewName("")
+      setNewColor("#6b7280")
+      onRefresh()
+    } else {
+      setError(`Failed to create team (${response.status})`)
+    }
   }
 
   async function handleUpdate(id: string) {
-    await fetch(`/api/tasks/${taskListId}/teams`, {
+    setError(null)
+    const response = await fetch(`/api/tasks/${taskListId}/teams`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ intent: "update", id, name: editName.trim(), color: editColor }),
     })
-    setEditingId(null)
-    onRefresh()
+    if (response.ok) {
+      setEditingId(null)
+      onRefresh()
+    } else {
+      setError(`Failed to update team (${response.status})`)
+    }
   }
 
   async function handleDelete(id: string) {
-    await fetch(`/api/tasks/${taskListId}/teams`, {
+    setError(null)
+    const response = await fetch(`/api/tasks/${taskListId}/teams`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ intent: "delete", id }),
     })
-    onRefresh()
+    if (response.ok) {
+      onRefresh()
+    } else {
+      setError(`Failed to delete team (${response.status})`)
+    }
   }
 
   return (
     <div className="space-y-2">
+      {error && <p className="text-xs text-red-600">{error}</p>}
       {/* Existing teams */}
       {teams.map((team) => {
         return editingId === team.id ? (
@@ -124,6 +143,7 @@ export default function TeamManager({ teams, taskListId, onRefresh }: TeamManage
             <span className="flex-1 text-sm">{team.name}</span>
             <button
               type="button"
+              aria-label={`Edit team ${team.name}`}
               onClick={() => {
                 setEditingId(team.id)
                 setEditName(team.name)
@@ -135,6 +155,7 @@ export default function TeamManager({ teams, taskListId, onRefresh }: TeamManage
             </button>
             <button
               type="button"
+              aria-label={`Delete team ${team.name}`}
               onClick={() => handleDelete(team.id)}
               className="text-gray-400 hover:text-red-500"
             >

@@ -125,6 +125,20 @@ export async function action({ request, context }: ActionFunctionArgs) {
       return { error: "Guild ID and channel ID are required." }
     }
     const now = new Date()
+    // Reject if this guildId is already owned by a different chapter
+    const conflict = await db
+      .select()
+      .from(schema.discordGuildSettings)
+      .where(
+        and(
+          eq(schema.discordGuildSettings.guildId, guildId),
+          ne(schema.discordGuildSettings.chapterId, chapterId),
+        ),
+      )
+      .get()
+    if (conflict) {
+      return { error: "This Discord server is already linked to another chapter." }
+    }
     // Remove stale binding for this chapter under a different guild
     await db
       .delete(schema.discordGuildSettings)
@@ -137,10 +151,6 @@ export async function action({ request, context }: ActionFunctionArgs) {
     await db
       .insert(schema.discordGuildSettings)
       .values({ guildId, chapterId, reminderChannelId, enabled, createdAt: now, updatedAt: now })
-      .onConflictDoUpdate({
-        target: schema.discordGuildSettings.guildId,
-        set: { chapterId, reminderChannelId, enabled, updatedAt: now },
-      })
     return { ok: true }
   }
 

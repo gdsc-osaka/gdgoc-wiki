@@ -141,8 +141,12 @@ export default function AssigneeCell({
                 className="w-full rounded border border-gray-200 px-2 py-1 text-xs focus:border-blue-400 focus:outline-none"
                 onClick={(e) => e.stopPropagation()}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && trimmedSearch) {
-                    select({ assigneeId: null, assigneeName: trimmedSearch })
+                  if (e.key === "Enter") {
+                    if (showUseAs) {
+                      select({ assigneeId: null, assigneeName: trimmedSearch })
+                    } else if (filteredMembers.length > 0) {
+                      select({ assigneeId: filteredMembers[0].id, assigneeName: null })
+                    }
                   }
                 }}
               />

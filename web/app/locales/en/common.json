@@ -473,7 +473,9 @@
     "email_placeholder": "member@example.com",
     "invite_sent": "Invitation sent to {{email}}.",
     "form_submit_invite": "Send Invite",
-    "no_chapter": "You are not assigned to a chapter."
+    "no_chapter": "You are not assigned to a chapter.",
+    "section_discord": "Discord Notification",
+    "discord_error_required": "Guild ID and channel ID are required."
   },
   "manage": {
     "label": "Management",
@@ -605,7 +607,11 @@
     "archive_confirm": "Archive this task list? You can restore it later.",
     "archive_no_permission": "Only the author or a lead can archive this task list",
     "calendar_clear": "Clear",
-    "calendar_days_short": ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
+    "calendar_label": "Date picker",
+    "calendar_days_short": ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"],
+    "dependencies": "Dependencies",
+    "filterPlaceholder": "Filter tasks…",
+    "noTasksFound": "No tasks found"
   },
   "lp": {
     "hero_title": "GDGoC Japan Wiki",

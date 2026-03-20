@@ -1,5 +1,5 @@
 import { X } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import DropdownMenu, { type DropdownOption } from "./DropdownMenu"
 
@@ -55,6 +55,17 @@ export default function TaskCreateDialog({
   const [dueDate, setDueDate] = useState(initial?.dueDate ?? "")
   const [assigneeId, setAssigneeId] = useState(initial?.assigneeId ?? "")
   const [teamId, setTeamId] = useState(initial?.teamId ?? "")
+
+  useEffect(() => {
+    if (!open) return
+    setTitle(initial?.title ?? "")
+    setDescription(initial?.description ?? "")
+    setStatus(initial?.status ?? "todo")
+    setType(initial?.type ?? "task")
+    setDueDate(initial?.dueDate ?? "")
+    setAssigneeId(initial?.assigneeId ?? "")
+    setTeamId(initial?.teamId ?? "")
+  }, [open, initial])
 
   if (!open) return null
 

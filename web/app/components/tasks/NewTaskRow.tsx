@@ -126,8 +126,14 @@ export default function NewTaskRow({
     return { status, type, dueDate, assigneeId, assigneeName, teamId, dependencies }
   }
 
+  function handleRowBlur(e: React.FocusEvent<HTMLTableRowElement>) {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      commitWith(current())
+    }
+  }
+
   return (
-    <tr className="bg-gray-50/50">
+    <tr className="bg-gray-50/50" onBlur={handleRowBlur}>
       {/* # */}
       <td className="whitespace-nowrap px-3 py-2 text-sm italic text-gray-300">#{number}</td>
 
@@ -239,7 +245,6 @@ export default function NewTaskRow({
             el.style.height = "auto"
             el.style.height = `${el.scrollHeight}px`
           }}
-          onBlur={() => commitWith(current())}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault()
@@ -261,7 +266,6 @@ export default function NewTaskRow({
           placeholder={t("tasks.add_desc_placeholder")}
           value={descDraft}
           onChange={(e) => setDescDraft(e.target.value)}
-          onBlur={() => commitWith(current())}
           onKeyDown={(e) => {
             if (e.key === "Enter") commitWith(current())
           }}

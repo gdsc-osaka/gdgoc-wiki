@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm"
+import { and, eq, inArray, sql } from "drizzle-orm"
 import { nanoid } from "nanoid"
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router"
 import * as schema from "~/db/schema"
@@ -30,7 +30,15 @@ export async function loader({ request, params, context }: LoaderFunctionArgs) {
     .orderBy(schema.taskListTeams.sortOrder)
     .all()
 
-  const deps = await db.select().from(schema.taskDependencies).all()
+  const taskIds = tasks.map((t) => t.id)
+  const deps =
+    taskIds.length > 0
+      ? await db
+          .select()
+          .from(schema.taskDependencies)
+          .where(inArray(schema.taskDependencies.taskId, taskIds))
+          .all()
+      : []
 
   return Response.json({ tasks, teams, deps })
 }

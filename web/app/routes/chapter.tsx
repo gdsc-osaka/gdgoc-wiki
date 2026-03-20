@@ -173,7 +173,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
     const reminderChannelId = (form.get("reminderChannelId") as string).trim()
     const enabled = form.get("enabled") === "1" ? 1 : 0
     if (!guildId || !reminderChannelId) {
-      return { discordError: "Guild ID and channel ID are required." }
+      return { discordError: "chapter.discord_error_required" }
     }
     const now = new Date()
     await db
@@ -324,7 +324,7 @@ export default function ChapterPage() {
 
       {/* Section: Discord Settings */}
       <section className="mb-8">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">Discord Notification</h2>
+        <h2 className="mb-4 text-lg font-semibold text-gray-900">{t("chapter.section_discord")}</h2>
 
         {"discordOk" in (actionData ?? {}) && actionData?.discordOk && (
           <div className="mb-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">
@@ -333,7 +333,7 @@ export default function ChapterPage() {
         )}
         {"discordError" in (actionData ?? {}) && (
           <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
-            {(actionData as { discordError: string }).discordError}
+            {t((actionData as { discordError: string }).discordError)}
           </div>
         )}
 

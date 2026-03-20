@@ -35,14 +35,23 @@ async function openDmChannel(token: string, userId: string): Promise<string | nu
   return data.id
 }
 
-async function sendMessage(token: string, channelId: string, content: string): Promise<void> {
+async function sendMessage(
+  token: string,
+  channelId: string,
+  content: string,
+  mentionUserIds?: string[],
+): Promise<void> {
+  const allowed_mentions =
+    mentionUserIds && mentionUserIds.length > 0
+      ? { users: mentionUserIds }
+      : { parse: [] as string[] }
   const res = await fetch(`${DISCORD_API}/channels/${channelId}/messages`, {
     method: "POST",
     headers: {
       Authorization: `Bot ${token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ content }),
+    body: JSON.stringify({ content, allowed_mentions }),
   })
   if (!res.ok) {
     console.error(
@@ -112,7 +121,8 @@ async function sendChannelReminders(
       if (rows.length === 0) continue
 
       const content = buildChannelMessage(rows, baseUrl)
-      await sendMessage(env.DISCORD_BOT_TOKEN, guild.reminderChannelId, content)
+      const mentionIds = rows.flatMap((r) => (r.discordId ? [r.discordId] : []))
+      await sendMessage(env.DISCORD_BOT_TOKEN, guild.reminderChannelId, content, mentionIds)
       console.log(
         `[discord-reminders] sent ${rows.length} task(s) to guild ${guild.guildId} channel ${guild.reminderChannelId}`,
       )
@@ -205,7 +215,7 @@ export async function sendDueTaskReminders(env: Env): Promise<void> {
     }
   }
 
-  const baseUrl = "https://wiki.gdgoc-osaka.jp"
+  const baseUrl = (env.BASE_URL ?? "https://wiki.gdgoc-osaka.jp").replace(/\/+$/, "")
   console.log(`[discord-reminders] sending reminders to ${byUser.size} user(s)`)
 
   for (const [discordId, tasks] of byUser) {

@@ -19,6 +19,7 @@ zone_name = "gdgoc-osaka.jp"
 
 [vars]
 ENVIRONMENT = "production"
+BASE_URL = "https://wiki.gdgoc-osaka.jp"
 FIREBASE_API_KEY = "AIzaSyB7MPalhYWSgSWNMQ9rs3qqhk_TQg8IAHY"
 FIREBASE_AUTH_DOMAIN = "gdgoc-wiki.firebaseapp.com"
 FIREBASE_PROJECT_ID = "gdgoc-wiki"

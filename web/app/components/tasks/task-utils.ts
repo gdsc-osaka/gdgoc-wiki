@@ -7,25 +7,33 @@ export function getDateRange(tasks: TaskWithDueDate[]): string[] {
   if (tasksWithDates.length === 0) return []
 
   const dates = tasksWithDates.map((t) => t.dueDate as string).sort()
-  const start = new Date(dates[0])
-  const end = new Date(dates[dates.length - 1])
+
+  const parseUTC = (s: string) => {
+    const [y, m, d] = s.split("-").map(Number)
+    return new Date(Date.UTC(y, m - 1, d))
+  }
+  const toYMD = (dt: Date) =>
+    `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-${String(dt.getUTCDate()).padStart(2, "0")}`
+
+  const start = parseUTC(dates[0])
+  const end = parseUTC(dates[dates.length - 1])
 
   // Extend range by 3 days on each side
-  start.setDate(start.getDate() - 3)
-  end.setDate(end.getDate() + 3)
+  start.setUTCDate(start.getUTCDate() - 3)
+  end.setUTCDate(end.getUTCDate() + 3)
 
   const result: string[] = []
   const current = new Date(start)
   while (current <= end) {
-    result.push(current.toISOString().split("T")[0])
-    current.setDate(current.getDate() + 1)
+    result.push(toYMD(current))
+    current.setUTCDate(current.getUTCDate() + 1)
   }
   return result
 }
 
 export function formatDate(dateStr: string): string {
-  const d = new Date(dateStr)
-  return `${d.getMonth() + 1}/${d.getDate()}`
+  const [, m, d] = dateStr.split("-").map(Number)
+  return `${m}/${d}`
 }
 
 /** Format YYYY-MM-DD → YY/MM/DD for compact display */
@@ -35,6 +43,7 @@ export function formatDueDate(dateStr: string): string {
 }
 
 export function isWeekend(dateStr: string): boolean {
-  const d = new Date(dateStr)
-  return d.getDay() === 0 || d.getDay() === 6
+  const [y, m, d] = dateStr.split("-").map(Number)
+  const day = new Date(Date.UTC(y, m - 1, d)).getUTCDay()
+  return day === 0 || day === 6
 }

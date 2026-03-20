@@ -46,16 +46,13 @@ export default function TaskTimelineView({ tasks, members, onTaskClick }: TaskTi
 
   const tasksWithoutDates = tasks.filter((t) => !t.dueDate)
 
-  if (dates.length === 0) {
-    return (
-      <div className="py-8 text-center text-sm text-gray-400">{t("tasks.timeline_no_dates")}</div>
-    )
-  }
-
   const today = new Date().toISOString().split("T")[0]
 
   return (
     <div className="space-y-6">
+      {dates.length === 0 ? (
+        <div className="py-8 text-center text-sm text-gray-400">{t("tasks.timeline_no_dates")}</div>
+      ) : (
       <div className="overflow-x-auto border border-gray-200">
         <table className="min-w-full">
           <thead>
@@ -127,6 +124,7 @@ export default function TaskTimelineView({ tasks, members, onTaskClick }: TaskTi
           </tbody>
         </table>
       </div>
+      )}
 
       {/* Tasks without due dates */}
       {tasksWithoutDates.length > 0 && (

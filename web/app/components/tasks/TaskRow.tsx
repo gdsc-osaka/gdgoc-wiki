@@ -65,6 +65,7 @@ export default function TaskRow({
   const [descDraft, setDescDraft] = useState(task.description)
   const titleInputRef = useRef<HTMLInputElement>(null)
   const descInputRef = useRef<HTMLInputElement>(null)
+  const skipTitleBlurRef = useRef(false)
 
   useEffect(() => {
     if (editingTitle) titleInputRef.current?.focus()
@@ -101,13 +102,28 @@ export default function TaskRow({
   ]
 
   return (
-    <tr
-      className="group cursor-pointer border-b border-gray-100 hover:bg-gray-50"
-      onClick={() => onClick(task.id)}
-      onKeyDown={(e) => e.key === "Enter" && onClick(task.id)}
-    >
-      {/* # */}
-      <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-400">#{task.number}</td>
+    <tr className="group border-b border-gray-100 hover:bg-gray-50" onClick={() => onClick(task.id)}>
+      {/* # — focusable button so keyboard users can open the task detail */}
+      <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-400">
+        <button
+          type="button"
+          className="cursor-pointer focus:outline-none focus-visible:underline"
+          onClick={(e) => {
+            e.stopPropagation()
+            onClick(task.id)
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault()
+              e.stopPropagation()
+              onClick(task.id)
+            }
+          }}
+          aria-label={`Open task #${task.number}`}
+        >
+          #{task.number}
+        </button>
+      </td>
 
       {/* Status */}
       <td className="overflow-hidden px-3 py-2">
@@ -179,8 +195,10 @@ export default function TaskRow({
         />
       </td>
 
-      {/* Title */}
+      {/* Title — focusable cell so keyboard users can trigger inline edit */}
       <td
+        role="button"
+        tabIndex={0}
         className="break-words px-3 py-2 text-sm font-medium text-gray-900"
         onClick={(e) => {
           e.stopPropagation()
@@ -189,6 +207,7 @@ export default function TaskRow({
         }}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault()
             e.stopPropagation()
             setEditingTitle(true)
             setTitleDraft(task.title)
@@ -203,6 +222,10 @@ export default function TaskRow({
             value={titleDraft}
             onChange={(e) => setTitleDraft(e.target.value)}
             onBlur={() => {
+              if (skipTitleBlurRef.current) {
+                skipTitleBlurRef.current = false
+                return
+              }
               const trimmed = titleDraft.trim()
               if (!trimmed && isLast && onDelete) {
                 onDelete(task.id)
@@ -219,9 +242,11 @@ export default function TaskRow({
                 } else {
                   onUpdate(task.id, "title", trimmed || task.title)
                 }
+                skipTitleBlurRef.current = true
                 setEditingTitle(false)
               } else if (e.key === "Escape") {
                 setTitleDraft(task.title)
+                skipTitleBlurRef.current = true
                 setEditingTitle(false)
               }
             }}
@@ -233,8 +258,10 @@ export default function TaskRow({
         )}
       </td>
 
-      {/* Description */}
+      {/* Description — focusable cell so keyboard users can trigger inline edit */}
       <td
+        role="button"
+        tabIndex={0}
         className="break-words px-3 py-2 text-sm text-gray-500"
         onClick={(e) => {
           e.stopPropagation()
@@ -243,6 +270,7 @@ export default function TaskRow({
         }}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault()
             e.stopPropagation()
             setEditingDesc(true)
             setDescDraft(task.description)

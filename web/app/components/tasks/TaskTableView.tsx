@@ -251,7 +251,7 @@ export default function TaskTableView({
             ))}
             {canManage && (
               <NewTaskRow
-                number={nextTaskNumber}
+                number={maxNumber + 1}
                 teams={teams}
                 members={members}
                 allTasks={tasks}

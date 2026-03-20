@@ -1,6 +1,6 @@
 import { Check, ChevronDown } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
+import { useAnchoredMenu } from "./useAnchoredMenu"
 
 export interface DropdownOption {
   value: string
@@ -40,12 +40,6 @@ const triggerVariants: Record<string, string> = {
   chip: "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity",
 }
 
-interface MenuPosition {
-  top: number
-  left: number
-  width: number
-}
-
 export default function DropdownMenu({
   value,
   options,
@@ -57,77 +51,8 @@ export default function DropdownMenu({
   searchPlaceholder,
   labelClass,
 }: DropdownMenuProps) {
-  const [open, setOpen] = useState(false)
-  const [pos, setPos] = useState<MenuPosition | null>(null)
-  const [search, setSearch] = useState("")
-  const triggerRef = useRef<HTMLButtonElement>(null)
-  const menuRef = useRef<HTMLDivElement>(null)
-  const searchInputRef = useRef<HTMLInputElement>(null)
-
-  // Position the portal menu below the trigger
-  function openMenu(e: React.MouseEvent) {
-    e.stopPropagation()
-    if (open) {
-      setOpen(false)
-      return
-    }
-    const rect = triggerRef.current?.getBoundingClientRect()
-    if (rect) {
-      setPos({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.left + window.scrollX,
-        width: Math.max(rect.width, 160),
-      })
-    }
-    setSearch("")
-    setOpen(true)
-    if (searchable) {
-      setTimeout(() => searchInputRef.current?.focus(), 0)
-    }
-  }
-
-  // Close on outside click
-  useEffect(() => {
-    if (!open) return
-    function handleOutside(e: MouseEvent) {
-      const target = e.target as Node
-      if (triggerRef.current?.contains(target) || menuRef.current?.contains(target)) return
-      setOpen(false)
-      setSearch("")
-    }
-    document.addEventListener("mousedown", handleOutside)
-    return () => document.removeEventListener("mousedown", handleOutside)
-  }, [open])
-
-  // Close on Escape
-  useEffect(() => {
-    if (!open) return
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        setOpen(false)
-        setSearch("")
-      }
-    }
-    document.addEventListener("keydown", handleKey)
-    return () => document.removeEventListener("keydown", handleKey)
-  }, [open])
-
-  // Reposition if window scrolls while open
-  useEffect(() => {
-    if (!open) return
-    function handleScroll() {
-      const rect = triggerRef.current?.getBoundingClientRect()
-      if (rect) {
-        setPos({
-          top: rect.bottom + window.scrollY + 4,
-          left: rect.left + window.scrollX,
-          width: Math.max(rect.width, 160),
-        })
-      }
-    }
-    window.addEventListener("scroll", handleScroll, true)
-    return () => window.removeEventListener("scroll", handleScroll, true)
-  }, [open])
+  const { triggerRef, menuRef, searchInputRef, pos, open, search, setSearch, openMenu, close } =
+    useAnchoredMenu({ searchable })
 
   const selected = options.find((o) => o.value === value)
 
@@ -172,8 +97,7 @@ export default function DropdownMenu({
                     onClick={(e) => {
                       e.stopPropagation()
                       onChange(opt.value)
-                      setOpen(false)
-                      setSearch("")
+                      close()
                     }}
                     className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm ${
                       isSelected ? "font-medium text-gray-900" : "text-gray-700"

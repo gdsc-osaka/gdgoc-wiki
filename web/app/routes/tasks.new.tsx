@@ -3,7 +3,7 @@ import { ArrowLeft } from "lucide-react"
 import { nanoid } from "nanoid"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Form, Link, redirect, useLoaderData } from "react-router"
+import { Form, Link, data, redirect, useActionData, useLoaderData } from "react-router"
 import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react-router"
 import DropdownMenu, { type DropdownOption } from "~/components/tasks/DropdownMenu"
 import * as schema from "~/db/schema"
@@ -40,10 +40,15 @@ export async function action({ request, context }: ActionFunctionArgs) {
   const formData = await request.formData()
   const titleJa = (formData.get("titleJa") as string) ?? ""
   const titleEn = (formData.get("titleEn") as string) ?? ""
-  const visibility = (formData.get("visibility") as string) || "public"
+  const ALLOWED_VISIBILITY = ["public", "private_to_chapter", "private_to_lead"] as const
+  type Visibility = (typeof ALLOWED_VISIBILITY)[number]
+  const rawVisibility = formData.get("visibility") as string
+  const visibility: Visibility = (ALLOWED_VISIBILITY as readonly string[]).includes(rawVisibility)
+    ? (rawVisibility as Visibility)
+    : "public"
 
   if (!titleJa && !titleEn) {
-    return { error: "Title is required" }
+    return data({ error: "Title is required" }, { status: 400 })
   }
 
   // Generate unique slug
@@ -91,6 +96,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
 
 export default function NewTaskList() {
   const { canChangeVisibility } = useLoaderData<typeof loader>()
+  const actionData = useActionData<typeof action>()
   const { t } = useTranslation()
   const [activeLang, setActiveLang] = useState<"ja" | "en">("ja")
   const [visibility, setVisibility] = useState("public")
@@ -182,6 +188,12 @@ export default function NewTaskList() {
               variant="field"
             />
           </div>
+        )}
+
+        {actionData?.error && (
+          <p role="alert" className="text-sm text-red-600">
+            {actionData.error}
+          </p>
         )}
 
         <button
