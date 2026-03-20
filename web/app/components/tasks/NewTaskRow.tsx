@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import AssigneeCell from "./AssigneeCell"
+import DatePickerDropdown from "./DatePickerDropdown"
 import DepsDropdown from "./DepsDropdown"
 import DropdownMenu, { type DropdownOption } from "./DropdownMenu"
 import { STATUSES, STATUS_CHIP, TYPES, TYPE_CHIP } from "./task-options"
@@ -139,14 +140,11 @@ export default function NewTaskRow({
 
       {/* Due Date */}
       <td className="overflow-hidden px-3 py-2">
-        <input
-          type="date"
-          className="rounded border-0 bg-transparent text-sm text-gray-400 focus:ring-1 focus:ring-blue-500"
-          value={dueDate ?? ""}
-          onChange={(e) => {
-            const v = e.target.value || null
-            setDueDate(v)
-            commitWith({ ...current(), dueDate: v })
+        <DatePickerDropdown
+          value={dueDate}
+          onChange={(date) => {
+            setDueDate(date)
+            commitWith({ ...current(), dueDate: date })
           }}
         />
       </td>

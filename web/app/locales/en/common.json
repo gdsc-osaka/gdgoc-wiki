@@ -601,7 +601,9 @@
     "history": "History",
     "history_empty": "No tasks have been created yet.",
     "archive_confirm": "Archive this task list? You can restore it later.",
-    "archive_no_permission": "Only the author or a lead can archive this task list"
+    "archive_no_permission": "Only the author or a lead can archive this task list",
+    "calendar_clear": "Clear",
+    "calendar_days_short": ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
   },
   "lp": {
     "hero_title": "GDGoC Japan Wiki",

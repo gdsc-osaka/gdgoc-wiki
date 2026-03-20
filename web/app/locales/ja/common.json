@@ -601,7 +601,9 @@
     "history": "履歴",
     "history_empty": "タスクはまだ作成されていません。",
     "archive_confirm": "このタスクリストをアーカイブしますか？後から復元できます。",
-    "archive_no_permission": "著者またはリードのみアーカイブできます"
+    "archive_no_permission": "著者またはリードのみアーカイブできます",
+    "calendar_clear": "クリア",
+    "calendar_days_short": ["日", "月", "火", "水", "木", "金", "土"]
   },
   "lp": {
     "hero_title": "GDGoC Japan Wiki",
