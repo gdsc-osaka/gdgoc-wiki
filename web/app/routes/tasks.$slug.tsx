@@ -545,7 +545,7 @@ export default function TaskListView() {
           )}
 
           {/* Right: JA|EN pill + visibility + Edit/Save/Cancel */}
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             {/* JA|EN — wiki-style pill */}
             <div className="flex gap-1 rounded-md border border-gray-200 bg-white p-0.5">
               {(["ja", "en"] as const).map((l) => (
