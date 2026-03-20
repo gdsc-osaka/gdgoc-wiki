@@ -11,6 +11,7 @@ interface Task {
   type: string
   dueDate: string | null
   assigneeId: string | null
+  assigneeName: string | null
   teamId: string | null
 }
 
@@ -35,7 +36,7 @@ export default function TaskTimelineView({ tasks, members, onTaskClick }: TaskTi
     const groups = new Map<string | null, Task[]>()
     for (const task of tasks) {
       if (!task.dueDate) continue
-      const key = task.assigneeId
+      const key = task.assigneeId ?? task.assigneeName ?? null
       const list = groups.get(key) || []
       list.push(task)
       groups.set(key, list)
@@ -79,12 +80,13 @@ export default function TaskTimelineView({ tasks, members, onTaskClick }: TaskTi
             </tr>
           </thead>
           <tbody>
-            {Array.from(assigneeGroups.entries()).map(([assigneeId, assigneeTasks]) => {
-              const member = members.find((m) => m.id === assigneeId)
+            {Array.from(assigneeGroups.entries()).map(([groupKey, assigneeTasks]) => {
+              const member = groupKey ? members.find((m) => m.id === groupKey) : null
+              const label = groupKey ? (member?.name ?? groupKey) : t("tasks.filter_unassigned")
               return (
-                <tr key={assigneeId ?? "unassigned"} className="border-t border-gray-100">
+                <tr key={groupKey ?? "unassigned"} className="border-t border-gray-100">
                   <td className="sticky left-0 z-10 bg-white px-3 py-2 text-sm font-medium text-gray-700">
-                    {member?.name ?? t("tasks.filter_unassigned")}
+                    {label}
                   </td>
                   {dates.map((date) => {
                     const dateTasks = assigneeTasks.filter((t) => t.dueDate === date)

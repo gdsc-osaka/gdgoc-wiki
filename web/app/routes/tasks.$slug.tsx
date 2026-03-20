@@ -265,11 +265,12 @@ export default function TaskListView() {
   }
 
   const handleUpdate = useCallback(
-    async (taskId: string, field: string, value: unknown) => {
+    async (taskId: string, fieldOrUpdates: string | Record<string, unknown>, value?: unknown) => {
+      const body = typeof fieldOrUpdates === "string" ? { [fieldOrUpdates]: value } : fieldOrUpdates
       await fetch(`/api/tasks/${taskListId}/${taskId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [field]: value }),
+        body: JSON.stringify(body),
       })
       revalidator.revalidate()
     },
@@ -284,6 +285,7 @@ export default function TaskListView() {
       type: string
       dueDate: string | null
       assigneeId: string | null
+      assigneeName: string | null
       teamId: string | null
       dependencies: string[]
     }) => {

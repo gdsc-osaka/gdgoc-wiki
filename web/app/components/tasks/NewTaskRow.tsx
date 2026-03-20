@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
+import AssigneeCell from "./AssigneeCell"
 import DepsDropdown from "./DepsDropdown"
 import DropdownMenu, { type DropdownOption } from "./DropdownMenu"
 import { STATUSES, STATUS_CHIP, TYPES, TYPE_CHIP } from "./task-options"
@@ -34,6 +35,7 @@ interface NewTaskRowProps {
     type: string
     dueDate: string | null
     assigneeId: string | null
+    assigneeName: string | null
     teamId: string | null
     dependencies: string[]
   }) => void
@@ -44,6 +46,7 @@ interface CommitFields {
   type: string
   dueDate: string | null
   assigneeId: string | null
+  assigneeName: string | null
   teamId: string | null
   dependencies: string[]
 }
@@ -63,6 +66,7 @@ export default function NewTaskRow({
   const [type, setType] = useState("")
   const [dueDate, setDueDate] = useState<string | null>(null)
   const [assigneeId, setAssigneeId] = useState<string | null>(null)
+  const [assigneeName, setAssigneeName] = useState<string | null>(null)
   const [teamId, setTeamId] = useState<string | null>(null)
   const [dependencies, setDependencies] = useState<string[]>([])
 
@@ -77,11 +81,6 @@ export default function NewTaskRow({
     label: t(`tasks.type_${tp}`),
     chipClass: TYPE_CHIP[tp],
   }))
-
-  const assigneeOptions: DropdownOption[] = [
-    { value: "", label: "—" },
-    ...members.map((m) => ({ value: m.id, label: m.name, image: m.image })),
-  ]
 
   const teamOptions: DropdownOption[] = [
     { value: "", label: "—" },
@@ -99,6 +98,7 @@ export default function NewTaskRow({
       type: fields.type || "task",
       dueDate: fields.dueDate,
       assigneeId: fields.assigneeId,
+      assigneeName: fields.assigneeName,
       teamId: fields.teamId,
       dependencies: fields.dependencies,
     })
@@ -108,13 +108,14 @@ export default function NewTaskRow({
     setType("")
     setDueDate(null)
     setAssigneeId(null)
+    setAssigneeName(null)
     setTeamId(null)
     setDependencies([])
   }
 
   // Current state snapshot — passed when a non-title field triggers creation
   function current(): CommitFields {
-    return { status, type, dueDate, assigneeId, teamId, dependencies }
+    return { status, type, dueDate, assigneeId, assigneeName, teamId, dependencies }
   }
 
   return (
@@ -152,17 +153,19 @@ export default function NewTaskRow({
 
       {/* Assignee */}
       <td className="overflow-hidden px-3 py-2">
-        <DropdownMenu
-          value={assigneeId ?? ""}
-          options={assigneeOptions}
-          onChange={(v) => {
-            const val = v || null
-            setAssigneeId(val)
-            commitWith({ ...current(), assigneeId: val })
+        <AssigneeCell
+          assigneeId={assigneeId}
+          assigneeName={assigneeName}
+          members={members}
+          onChange={(update) => {
+            setAssigneeId(update.assigneeId)
+            setAssigneeName(update.assigneeName)
+            commitWith({
+              ...current(),
+              assigneeId: update.assigneeId,
+              assigneeName: update.assigneeName,
+            })
           }}
-          searchable
-          header={t("tasks.select_assignees")}
-          searchPlaceholder={t("tasks.filter_assignee")}
         />
       </td>
 

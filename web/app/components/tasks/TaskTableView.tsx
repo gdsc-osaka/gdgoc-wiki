@@ -31,6 +31,7 @@ interface Task {
   type: string
   dueDate: string | null
   assigneeId: string | null
+  assigneeName: string | null
   teamId: string | null
   dependencies: string[]
 }
@@ -39,7 +40,11 @@ interface TaskTableViewProps {
   tasks: Task[]
   teams: Team[]
   members: Member[]
-  onUpdate: (taskId: string, field: string, value: unknown) => void
+  onUpdate: (
+    taskId: string,
+    fieldOrUpdates: string | Record<string, unknown>,
+    value?: unknown,
+  ) => void
   onTaskClick: (taskId: string) => void
   onCreate: (data: {
     title: string
@@ -48,6 +53,7 @@ interface TaskTableViewProps {
     type: string
     dueDate: string | null
     assigneeId: string | null
+    assigneeName: string | null
     teamId: string | null
     dependencies: string[]
   }) => void
@@ -88,7 +94,7 @@ export default function TaskTableView({
     if (assigneeFilter.length > 0) {
       const wantUnassigned = assigneeFilter.includes("unassigned")
       const ids = assigneeFilter.filter((v) => v !== "unassigned")
-      const matchUnassigned = wantUnassigned && !task.assigneeId
+      const matchUnassigned = wantUnassigned && !task.assigneeId && !task.assigneeName
       const matchId = ids.length > 0 && task.assigneeId !== null && ids.includes(task.assigneeId)
       if (!matchUnassigned && !matchId) return false
     }

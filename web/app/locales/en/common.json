@@ -590,7 +590,8 @@
     "view_timeline": "Timeline",
     "view_remaining": "Remaining",
     "timeline_no_dates": "No tasks with due dates to display on the timeline.",
-    "no_due_date": "No due date"
+    "no_due_date": "No due date",
+    "use_as_assignee": "Use \"{{name}}\""
   },
   "lp": {
     "hero_title": "GDGoC Japan Wiki",

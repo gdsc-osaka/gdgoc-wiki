@@ -10,6 +10,7 @@ interface Task {
   type: string
   dueDate: string | null
   assigneeId: string | null
+  assigneeName: string | null
   teamId: string | null
 }
 
@@ -35,7 +36,7 @@ export default function TaskRemainingView({ tasks, members, onTaskClick }: TaskR
   const groups = useMemo(() => {
     const map = new Map<string | null, Task[]>()
     for (const task of remaining) {
-      const key = task.assigneeId
+      const key = task.assigneeId ?? task.assigneeName ?? null
       const list = map.get(key) || []
       list.push(task)
       map.set(key, list)
@@ -60,12 +61,13 @@ export default function TaskRemainingView({ tasks, members, onTaskClick }: TaskR
 
   return (
     <div className="space-y-6">
-      {Array.from(groups.entries()).map(([assigneeId, assigneeTasks]) => {
-        const member = members.find((m) => m.id === assigneeId)
+      {Array.from(groups.entries()).map(([groupKey, assigneeTasks]) => {
+        const member = groupKey ? members.find((m) => m.id === groupKey) : null
+        const label = groupKey ? (member?.name ?? groupKey) : t("tasks.filter_unassigned")
         return (
-          <div key={assigneeId ?? "unassigned"}>
+          <div key={groupKey ?? "unassigned"}>
             <h3 className="mb-2 text-sm font-semibold text-gray-700">
-              {member?.name ?? t("tasks.filter_unassigned")}
+              {label}
               <span className="ml-2 text-xs font-normal text-gray-400">
                 ({assigneeTasks.length})
               </span>

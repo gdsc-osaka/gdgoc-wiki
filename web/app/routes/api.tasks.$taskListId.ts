@@ -47,13 +47,24 @@ export async function action({ request, params, context }: ActionFunctionArgs) {
   if (!taskListId) return Response.json({ error: "Missing taskListId" }, { status: 400 })
 
   const body = await request.json()
-  const { title, description, status, type, dueDate, assigneeId, teamId, dependencies } = body as {
+  const {
+    title,
+    description,
+    status,
+    type,
+    dueDate,
+    assigneeId,
+    assigneeName,
+    teamId,
+    dependencies,
+  } = body as {
     title?: string
     description?: string
     status?: string
     type?: string
     dueDate?: string
     assigneeId?: string
+    assigneeName?: string
     teamId?: string
     dependencies?: string[]
   }
@@ -95,7 +106,8 @@ export async function action({ request, params, context }: ActionFunctionArgs) {
       status: status ?? "todo",
       type: type ?? "task",
       dueDate: dueDate ?? null,
-      assigneeId: assigneeId ?? null,
+      assigneeId: assigneeName ? null : (assigneeId ?? null),
+      assigneeName: assigneeName ?? null,
       teamId: teamId ?? null,
       createdBy: user.id,
       sortOrder: (maxSort?.max ?? -1) + 1,

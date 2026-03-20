@@ -368,6 +368,7 @@ export const tasks = sqliteTable("tasks", {
   // "task" | "discussion"
   dueDate: text("due_date"),
   assigneeId: text("assignee_id").references(() => user.id, { onDelete: "set null" }),
+  assigneeName: text("assignee_name"),
   teamId: text("team_id").references(() => taskListTeams.id, { onDelete: "set null" }),
   createdBy: text("created_by")
     .notNull()

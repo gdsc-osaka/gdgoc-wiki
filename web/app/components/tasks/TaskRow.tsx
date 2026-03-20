@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+import AssigneeCell from "./AssigneeCell"
 import DepsDropdown from "./DepsDropdown"
 import DropdownMenu, { type DropdownOption } from "./DropdownMenu"
 import { STATUSES, STATUS_CHIP, TYPES, TYPE_CHIP } from "./task-options"
@@ -25,6 +26,7 @@ interface Task {
   type: string
   dueDate: string | null
   assigneeId: string | null
+  assigneeName: string | null
   teamId: string | null
   dependencies: string[]
 }
@@ -34,7 +36,11 @@ interface TaskRowProps {
   teams: Team[]
   members: Member[]
   allTasks: Task[]
-  onUpdate: (taskId: string, field: string, value: unknown) => void
+  onUpdate: (
+    taskId: string,
+    fieldOrUpdates: string | Record<string, unknown>,
+    value?: unknown,
+  ) => void
   onClick: (taskId: string) => void
   isLast?: boolean
   onDelete?: (taskId: string) => void
@@ -88,11 +94,6 @@ export default function TaskRow({
     chipClass: TYPE_CHIP[tp],
   }))
 
-  const assigneeOptions: DropdownOption[] = [
-    { value: "", label: "—" },
-    ...members.map((m) => ({ value: m.id, label: m.name, image: m.image })),
-  ]
-
   const teamOptions: DropdownOption[] = [
     { value: "", label: "—" },
     ...teams.map((tm) => ({ value: tm.id, label: tm.name, dot: tm.color ?? "#6b7280" })),
@@ -130,13 +131,11 @@ export default function TaskRow({
 
       {/* Assignee */}
       <td className="overflow-hidden px-3 py-2">
-        <DropdownMenu
-          value={task.assigneeId ?? ""}
-          options={assigneeOptions}
-          onChange={(v) => onUpdate(task.id, "assigneeId", v || null)}
-          searchable
-          header={t("tasks.select_assignees")}
-          searchPlaceholder={t("tasks.filter_assignee")}
+        <AssigneeCell
+          assigneeId={task.assigneeId}
+          assigneeName={task.assigneeName}
+          members={members}
+          onChange={(update) => onUpdate(task.id, update)}
         />
       </td>
 

@@ -590,7 +590,8 @@
     "view_timeline": "タイムライン",
     "view_remaining": "残タスク",
     "timeline_no_dates": "タイムラインに表示する期限付きタスクがありません。",
-    "no_due_date": "期限なし"
+    "no_due_date": "期限なし",
+    "use_as_assignee": "「{{name}}」を担当者として使用"
   },
   "lp": {
     "hero_title": "GDGoC Japan Wiki",

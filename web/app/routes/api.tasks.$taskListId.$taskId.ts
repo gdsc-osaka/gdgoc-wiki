@@ -44,17 +44,27 @@ export async function action({ request, params, context }: ActionFunctionArgs) {
   // -------------------------------------------------------------------------
   if (request.method === "PATCH") {
     const body = await request.json()
-    const { title, description, status, type, dueDate, assigneeId, teamId, dependencies } =
-      body as {
-        title?: string
-        description?: string
-        status?: string
-        type?: string
-        dueDate?: string | null
-        assigneeId?: string | null
-        teamId?: string | null
-        dependencies?: string[]
-      }
+    const {
+      title,
+      description,
+      status,
+      type,
+      dueDate,
+      assigneeId,
+      assigneeName,
+      teamId,
+      dependencies,
+    } = body as {
+      title?: string
+      description?: string
+      status?: string
+      type?: string
+      dueDate?: string | null
+      assigneeId?: string | null
+      assigneeName?: string | null
+      teamId?: string | null
+      dependencies?: string[]
+    }
 
     const updates: Record<string, unknown> = { updatedAt: new Date() }
     if (title !== undefined) updates.title = title
@@ -62,7 +72,14 @@ export async function action({ request, params, context }: ActionFunctionArgs) {
     if (status !== undefined) updates.status = status
     if (type !== undefined) updates.type = type
     if (dueDate !== undefined) updates.dueDate = dueDate
-    if (assigneeId !== undefined) updates.assigneeId = assigneeId
+    if (assigneeId !== undefined) {
+      updates.assigneeId = assigneeId
+      updates.assigneeName = null
+    }
+    if (assigneeName !== undefined) {
+      updates.assigneeName = assigneeName
+      updates.assigneeId = null
+    }
     if (teamId !== undefined) updates.teamId = teamId
 
     await db.update(schema.tasks).set(updates).where(eq(schema.tasks.id, taskId))
