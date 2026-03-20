@@ -43,9 +43,12 @@ export async function action({ request, context }: ActionFunctionArgs) {
   const ALLOWED_VISIBILITY = ["public", "private_to_chapter", "private_to_lead"] as const
   type Visibility = (typeof ALLOWED_VISIBILITY)[number]
   const rawVisibility = formData.get("visibility") as string
-  const visibility: Visibility = (ALLOWED_VISIBILITY as readonly string[]).includes(rawVisibility)
-    ? (rawVisibility as Visibility)
-    : "public"
+  const canLead = hasRole(user.role as string, "lead")
+  const visibility: Visibility =
+    (ALLOWED_VISIBILITY as readonly string[]).includes(rawVisibility) &&
+    (rawVisibility !== "private_to_lead" || canLead)
+      ? (rawVisibility as Visibility)
+      : "public"
 
   if (!titleJa && !titleEn) {
     return data({ error: "Title is required" }, { status: 400 })
@@ -65,27 +68,27 @@ export async function action({ request, context }: ActionFunctionArgs) {
 
   const pageId = nanoid()
 
-  // Create page with pageType="task-list"
-  await db.insert(schema.pages).values({
-    id: pageId,
-    titleJa,
-    titleEn,
-    slug,
-    contentJa: "",
-    contentEn: "",
-    status: "published",
-    pageType: "task-list",
-    visibility,
-    chapterId: user.chapterId ?? null,
-    authorId: user.id,
-    lastEditedBy: user.id,
-  })
-
-  // Create task_lists metadata row
-  await db.insert(schema.taskLists).values({
-    pageId,
-    nextTaskNumber: 1,
-  })
+  // Create page and task_lists metadata atomically
+  await db.batch([
+    db.insert(schema.pages).values({
+      id: pageId,
+      titleJa,
+      titleEn,
+      slug,
+      contentJa: "",
+      contentEn: "",
+      status: "published",
+      pageType: "task-list",
+      visibility,
+      chapterId: user.chapterId ?? null,
+      authorId: user.id,
+      lastEditedBy: user.id,
+    }),
+    db.insert(schema.taskLists).values({
+      pageId,
+      nextTaskNumber: 1,
+    }),
+  ])
 
   return redirect(`/tasks/${slug}`)
 }

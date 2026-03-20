@@ -67,7 +67,11 @@ export default {
   // at the very beginning of the day the task is due.
   async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     console.log("[scheduled] cron fired:", event.cron, "at", new Date().toISOString())
-    ctx.waitUntil(sendDueTaskReminders(env))
+    ctx.waitUntil(
+      sendDueTaskReminders(env).catch((err) => {
+        console.error("[scheduled] sendDueTaskReminders failed:", err)
+      }),
+    )
   },
 
   // Queue consumer for background translation and ingestion jobs.

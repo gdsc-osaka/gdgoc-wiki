@@ -151,6 +151,10 @@ export async function action({ request, context }: ActionFunctionArgs) {
     await db
       .insert(schema.discordGuildSettings)
       .values({ guildId, chapterId, reminderChannelId, enabled, createdAt: now, updatedAt: now })
+      .onConflictDoUpdate({
+        target: schema.discordGuildSettings.guildId,
+        set: { chapterId, reminderChannelId, enabled, updatedAt: now },
+      })
     return { ok: true }
   }
 

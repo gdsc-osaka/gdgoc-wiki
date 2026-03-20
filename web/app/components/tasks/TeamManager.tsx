@@ -71,6 +71,7 @@ export default function TeamManager({ teams, taskListId, onRefresh }: TeamManage
   }
 
   async function handleUpdate(id: string) {
+    if (!editName.trim()) return
     setError(null)
     const response = await fetch(`/api/tasks/${taskListId}/teams`, {
       method: "POST",

@@ -175,6 +175,20 @@ export async function action({ request, context }: ActionFunctionArgs) {
     if (!guildId || !reminderChannelId) {
       return { discordError: "chapter.discord_error_required" }
     }
+    // Reject if this guildId is already owned by a different chapter
+    const conflict = await db
+      .select()
+      .from(schema.discordGuildSettings)
+      .where(
+        and(
+          eq(schema.discordGuildSettings.guildId, guildId),
+          ne(schema.discordGuildSettings.chapterId, chapterId),
+        ),
+      )
+      .get()
+    if (conflict) {
+      return { discordError: "chapter.discord_error_guild_conflict" }
+    }
     const now = new Date()
     await db
       .delete(schema.discordGuildSettings)

@@ -475,7 +475,8 @@
     "form_submit_invite": "Send Invite",
     "no_chapter": "You are not assigned to a chapter.",
     "section_discord": "Discord Notification",
-    "discord_error_required": "Guild ID and channel ID are required."
+    "discord_error_required": "Guild ID and channel ID are required.",
+    "discord_error_guild_conflict": "This Discord server is already linked to another chapter."
   },
   "manage": {
     "label": "Management",
@@ -608,6 +609,8 @@
     "archive_no_permission": "Only the author or a lead can archive this task list",
     "calendar_clear": "Clear",
     "calendar_label": "Date picker",
+    "calendar_prev_month": "Previous month",
+    "calendar_next_month": "Next month",
     "calendar_days_short": ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"],
     "dependencies": "Dependencies",
     "filterPlaceholder": "Filter tasks…",

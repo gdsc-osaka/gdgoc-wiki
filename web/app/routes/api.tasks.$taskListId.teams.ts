@@ -63,7 +63,7 @@ export async function action({ request, params, context }: ActionFunctionArgs) {
   }
 
   if (intent === "create") {
-    if (!name) return Response.json({ error: "Name is required" }, { status: 400 })
+    if (!name?.trim()) return Response.json({ error: "Name is required" }, { status: 400 })
 
     const maxSort = await db
       .select({ max: sql<number>`coalesce(max(sort_order), -1)` })
@@ -85,6 +85,9 @@ export async function action({ request, params, context }: ActionFunctionArgs) {
 
   if (intent === "update") {
     if (!id) return Response.json({ error: "Missing team id" }, { status: 400 })
+    if (name !== undefined && !name.trim()) {
+      return Response.json({ error: "Name cannot be empty" }, { status: 400 })
+    }
     const updates: Record<string, unknown> = {}
     if (name !== undefined) updates.name = name
     if (color !== undefined) updates.color = color

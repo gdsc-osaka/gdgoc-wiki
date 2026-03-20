@@ -475,7 +475,8 @@
     "form_submit_invite": "招待を送信",
     "no_chapter": "チャプターに割り当てられていません。",
     "section_discord": "Discord 通知設定",
-    "discord_error_required": "サーバーIDとチャンネルIDは必須です。"
+    "discord_error_required": "サーバーIDとチャンネルIDは必須です。",
+    "discord_error_guild_conflict": "このDiscordサーバーはすでに別のチャプターに連携されています。"
   },
   "manage": {
     "label": "管理",
@@ -608,6 +609,8 @@
     "archive_no_permission": "著者またはリードのみアーカイブできます",
     "calendar_clear": "クリア",
     "calendar_label": "日付選択",
+    "calendar_prev_month": "前の月",
+    "calendar_next_month": "次の月",
     "calendar_days_short": ["日", "月", "火", "水", "木", "金", "土"],
     "dependencies": "依存タスク",
     "filterPlaceholder": "タスクを絞り込む…",

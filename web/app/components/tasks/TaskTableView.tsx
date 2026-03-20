@@ -1,5 +1,5 @@
 import { ArrowUpRight, Settings, X } from "lucide-react"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import SidebarDialog from "~/components/SidebarDialog"
 import SidebarPopover from "~/components/SidebarPopover"
@@ -56,7 +56,7 @@ interface TaskTableViewProps {
     assigneeName: string | null
     teamId: string | null
     dependencies: string[]
-  }) => void
+  }) => Promise<void>
   onDelete: (taskId: string) => void
   nextTaskNumber: number
   canManage?: boolean
@@ -83,9 +83,10 @@ export default function TaskTableView({
   const [assigneeFilter, setAssigneeFilter] = useState<string[]>([])
   const [teamFilter, setTeamFilter] = useState<string[]>([])
   const [showTeamSettings, setShowTeamSettings] = useState(false)
-  const tipKey = useRef(
-    Math.random() < 0.5 ? "tasks.add_task_tip_multiline" : "tasks.add_task_tip_discord",
-  ).current
+  const [tipKey, setTipKey] = useState("tasks.add_task_tip_multiline")
+  useEffect(() => {
+    setTipKey(Math.random() < 0.5 ? "tasks.add_task_tip_multiline" : "tasks.add_task_tip_discord")
+  }, [])
   const teamSettingsBtnRef = useRef<HTMLButtonElement>(null)
   const isMobile = useMediaQuery("(max-width: 768px)")
 
@@ -251,7 +252,7 @@ export default function TaskTableView({
             ))}
             {canManage && (
               <NewTaskRow
-                number={maxNumber + 1}
+                number={nextTaskNumber}
                 teams={teams}
                 members={members}
                 allTasks={tasks}

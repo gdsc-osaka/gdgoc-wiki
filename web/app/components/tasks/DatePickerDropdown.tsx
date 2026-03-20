@@ -157,7 +157,7 @@ export default function DatePickerDropdown({ value, onChange }: DatePickerDropdo
                 type="button"
                 onClick={prevMonth}
                 className="rounded p-0.5 hover:bg-gray-100"
-                aria-label="Previous month"
+                aria-label={t("tasks.calendar_prev_month")}
               >
                 <ChevronLeft size={16} />
               </button>
@@ -166,7 +166,7 @@ export default function DatePickerDropdown({ value, onChange }: DatePickerDropdo
                 type="button"
                 onClick={nextMonth}
                 className="rounded p-0.5 hover:bg-gray-100"
-                aria-label="Next month"
+                aria-label={t("tasks.calendar_next_month")}
               >
                 <ChevronRight size={16} />
               </button>

@@ -39,7 +39,7 @@ interface NewTaskRowProps {
     assigneeName: string | null
     teamId: string | null
     dependencies: string[]
-  }) => void
+  }) => Promise<void>
 }
 
 interface CommitFields {
