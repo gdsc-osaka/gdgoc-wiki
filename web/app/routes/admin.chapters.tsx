@@ -1,4 +1,4 @@
-import { count, eq } from "drizzle-orm"
+import { and, count, eq, ne } from "drizzle-orm"
 import { useTranslation } from "react-i18next"
 import { Form, useActionData, useLoaderData } from "react-router"
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router"
@@ -42,7 +42,10 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
       .map((r) => [r.chapterId, r.count]),
   )
 
-  return { chapters, countMap }
+  const discordSettings = await db.select().from(schema.discordGuildSettings).all()
+  const discordSettingsMap = Object.fromEntries(discordSettings.map((s) => [s.chapterId, s]))
+
+  return { chapters, countMap, discordSettingsMap }
 }
 
 // ---------------------------------------------------------------------------
@@ -113,6 +116,34 @@ export async function action({ request, context }: ActionFunctionArgs) {
     return { ok: true }
   }
 
+  if (intent === "updateDiscordSettings") {
+    const chapterId = (form.get("chapterId") as string).trim()
+    const guildId = (form.get("guildId") as string).trim()
+    const reminderChannelId = (form.get("reminderChannelId") as string).trim()
+    const enabled = form.get("enabled") === "1" ? 1 : 0
+    if (!chapterId || !guildId || !reminderChannelId) {
+      return { error: "Guild ID and channel ID are required." }
+    }
+    const now = new Date()
+    // Remove stale binding for this chapter under a different guild
+    await db
+      .delete(schema.discordGuildSettings)
+      .where(
+        and(
+          eq(schema.discordGuildSettings.chapterId, chapterId),
+          ne(schema.discordGuildSettings.guildId, guildId),
+        ),
+      )
+    await db
+      .insert(schema.discordGuildSettings)
+      .values({ guildId, chapterId, reminderChannelId, enabled, createdAt: now, updatedAt: now })
+      .onConflictDoUpdate({
+        target: schema.discordGuildSettings.guildId,
+        set: { chapterId, reminderChannelId, enabled, updatedAt: now },
+      })
+    return { ok: true }
+  }
+
   return {}
 }
 
@@ -121,7 +152,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
 // ---------------------------------------------------------------------------
 
 export default function AdminChapters() {
-  const { chapters, countMap } = useLoaderData<typeof loader>()
+  const { chapters, countMap, discordSettingsMap } = useLoaderData<typeof loader>()
   const actionData = useActionData<typeof action>()
   const { t } = useTranslation()
 
@@ -168,33 +199,86 @@ export default function AdminChapters() {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {chapters.map((ch) => (
-              <tr key={ch.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3">
-                  <div className="font-medium text-gray-900">{ch.nameEn}</div>
-                  <div className="text-xs text-gray-400">{ch.nameJa}</div>
-                </td>
-                <td className="px-4 py-3 text-gray-600">{ch.abbreviation}</td>
-                <td className="px-4 py-3 text-gray-600">{ch.university}</td>
-                <td className="px-4 py-3 text-gray-600">{ch.region}</td>
-                <td className="px-4 py-3 text-gray-500">{countMap[ch.id] ?? 0}</td>
-                <td className="px-4 py-3">
-                  <Form method="post">
-                    <input type="hidden" name="intent" value="deleteChapter" />
-                    <input type="hidden" name="chapterId" value={ch.id} />
-                    <button
-                      type="submit"
-                      onClick={(e) => {
-                        if (!confirm(`Delete "${ch.nameEn}"? This cannot be undone.`)) {
-                          e.preventDefault()
-                        }
-                      }}
-                      className="text-xs text-red-500 hover:text-red-700"
-                    >
-                      {t("admin.pages.delete")}
-                    </button>
-                  </Form>
-                </td>
-              </tr>
+              <>
+                <tr key={ch.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-gray-900">{ch.nameEn}</div>
+                    <div className="text-xs text-gray-400">{ch.nameJa}</div>
+                  </td>
+                  <td className="px-4 py-3 text-gray-600">{ch.abbreviation}</td>
+                  <td className="px-4 py-3 text-gray-600">{ch.university}</td>
+                  <td className="px-4 py-3 text-gray-600">{ch.region}</td>
+                  <td className="px-4 py-3 text-gray-500">{countMap[ch.id] ?? 0}</td>
+                  <td className="px-4 py-3">
+                    <Form method="post">
+                      <input type="hidden" name="intent" value="deleteChapter" />
+                      <input type="hidden" name="chapterId" value={ch.id} />
+                      <button
+                        type="submit"
+                        onClick={(e) => {
+                          if (!confirm(`Delete "${ch.nameEn}"? This cannot be undone.`)) {
+                            e.preventDefault()
+                          }
+                        }}
+                        className="text-xs text-red-500 hover:text-red-700"
+                      >
+                        {t("admin.pages.delete")}
+                      </button>
+                    </Form>
+                  </td>
+                </tr>
+                <tr
+                  key={`${ch.id}-discord`}
+                  className="border-t border-dashed border-gray-100 bg-gray-50"
+                >
+                  <td colSpan={6} className="px-4 py-3">
+                    <Form method="post" className="flex flex-wrap items-end gap-3">
+                      <input type="hidden" name="intent" value="updateDiscordSettings" />
+                      <input type="hidden" name="chapterId" value={ch.id} />
+                      <label className="flex flex-col gap-1">
+                        <span className="text-xs font-medium text-gray-500">
+                          {t("admin.chapters.discord.guild_id")}
+                        </span>
+                        <input
+                          name="guildId"
+                          defaultValue={discordSettingsMap[ch.id]?.guildId ?? ""}
+                          placeholder="000000000000000000"
+                          className="w-48 rounded border border-gray-200 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        <span className="text-xs font-medium text-gray-500">
+                          {t("admin.chapters.discord.channel_id")}
+                        </span>
+                        <input
+                          name="reminderChannelId"
+                          defaultValue={discordSettingsMap[ch.id]?.reminderChannelId ?? ""}
+                          placeholder="000000000000000000"
+                          className="w-48 rounded border border-gray-200 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </label>
+                      <label className="flex items-center gap-2 pb-1.5 text-xs text-gray-600">
+                        <input
+                          type="checkbox"
+                          name="enabled"
+                          value="1"
+                          defaultChecked={(discordSettingsMap[ch.id]?.enabled ?? 1) === 1}
+                          className="rounded border-gray-300"
+                        />
+                        {t("admin.chapters.discord.enabled")}
+                      </label>
+                      <div className="pb-1.5">
+                        <button
+                          type="submit"
+                          className="rounded bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+                        >
+                          {t("admin.chapters.discord.save")}
+                        </button>
+                      </div>
+                    </Form>
+                  </td>
+                </tr>
+              </>
             ))}
           </tbody>
         </table>

@@ -161,6 +161,12 @@
         "region": "Region",
         "lead_email": "Lead Email",
         "submit": "Create Chapter"
+      },
+      "discord": {
+        "guild_id": "Discord Guild ID",
+        "channel_id": "Reminder Channel ID",
+        "enabled": "Enabled",
+        "save": "Save Discord Settings"
       }
     },
     "pages": {

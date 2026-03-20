@@ -410,3 +410,18 @@ export const pageViews = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.userId, t.pageId] })],
 )
+
+// ---------------------------------------------------------------------------
+// discord_guild_settings (per-chapter Discord server reminder channel config)
+// ---------------------------------------------------------------------------
+export const discordGuildSettings = sqliteTable("discord_guild_settings", {
+  guildId: text("guild_id").primaryKey(),
+  chapterId: text("chapter_id")
+    .notNull()
+    .unique()
+    .references(() => chapters.id, { onDelete: "cascade" }),
+  reminderChannelId: text("reminder_channel_id").notNull(),
+  enabled: integer("enabled").notNull().default(1),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+})

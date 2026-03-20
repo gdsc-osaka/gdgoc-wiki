@@ -1,4 +1,4 @@
-import { and, eq, gt, isNull } from "drizzle-orm"
+import { and, eq, gt, isNull, ne } from "drizzle-orm"
 import { useTranslation } from "react-i18next"
 import { Form, useActionData, useLoaderData } from "react-router"
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router"
@@ -54,7 +54,19 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
     )
     .all()
 
-  return { noChapter: false as const, chapter, members, pendingInvitations }
+  const discordSetting = await db
+    .select()
+    .from(schema.discordGuildSettings)
+    .where(eq(schema.discordGuildSettings.chapterId, chapterId))
+    .get()
+
+  return {
+    noChapter: false as const,
+    chapter,
+    members,
+    pendingInvitations,
+    discordSetting: discordSetting ?? null,
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -156,6 +168,32 @@ export async function action({ request, context }: ActionFunctionArgs) {
     return { inviteOk: true, invitedEmail: email }
   }
 
+  if (intent === "updateDiscordSettings") {
+    const guildId = (form.get("guildId") as string).trim()
+    const reminderChannelId = (form.get("reminderChannelId") as string).trim()
+    const enabled = form.get("enabled") === "1" ? 1 : 0
+    if (!guildId || !reminderChannelId) {
+      return { discordError: "Guild ID and channel ID are required." }
+    }
+    const now = new Date()
+    await db
+      .delete(schema.discordGuildSettings)
+      .where(
+        and(
+          eq(schema.discordGuildSettings.chapterId, chapterId),
+          ne(schema.discordGuildSettings.guildId, guildId),
+        ),
+      )
+    await db
+      .insert(schema.discordGuildSettings)
+      .values({ guildId, chapterId, reminderChannelId, enabled, createdAt: now, updatedAt: now })
+      .onConflictDoUpdate({
+        target: schema.discordGuildSettings.guildId,
+        set: { chapterId, reminderChannelId, enabled, updatedAt: now },
+      })
+    return { discordOk: true }
+  }
+
   return {}
 }
 
@@ -183,7 +221,7 @@ export default function ChapterPage() {
     )
   }
 
-  const { chapter, members, pendingInvitations } = data
+  const { chapter, members, pendingInvitations, discordSetting } = data
 
   return (
     <div className="max-w-4xl px-8 py-8">
@@ -280,6 +318,66 @@ export default function ChapterPage() {
                 {t("chapter.form.save")}
               </button>
             </div>
+          </Form>
+        </div>
+      </section>
+
+      {/* Section: Discord Settings */}
+      <section className="mb-8">
+        <h2 className="mb-4 text-lg font-semibold text-gray-900">Discord Notification</h2>
+
+        {"discordOk" in (actionData ?? {}) && actionData?.discordOk && (
+          <div className="mb-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">
+            {t("chapter.update_success")}
+          </div>
+        )}
+        {"discordError" in (actionData ?? {}) && (
+          <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+            {(actionData as { discordError: string }).discordError}
+          </div>
+        )}
+
+        <div className="rounded-lg border border-gray-200 bg-white p-6">
+          <Form method="post" className="flex flex-wrap items-end gap-4">
+            <input type="hidden" name="intent" value="updateDiscordSettings" />
+            <label className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-gray-600">
+                {t("admin.chapters.discord.guild_id")}
+              </span>
+              <input
+                name="guildId"
+                defaultValue={discordSetting?.guildId ?? ""}
+                placeholder="000000000000000000"
+                className="w-52 rounded border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-gray-600">
+                {t("admin.chapters.discord.channel_id")}
+              </span>
+              <input
+                name="reminderChannelId"
+                defaultValue={discordSetting?.reminderChannelId ?? ""}
+                placeholder="000000000000000000"
+                className="w-52 rounded border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </label>
+            <label className="flex items-center gap-2 pb-0.5 text-sm text-gray-600">
+              <input
+                type="checkbox"
+                name="enabled"
+                value="1"
+                defaultChecked={(discordSetting?.enabled ?? 1) === 1}
+                className="rounded border-gray-300"
+              />
+              {t("admin.chapters.discord.enabled")}
+            </label>
+            <button
+              type="submit"
+              className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              {t("admin.chapters.discord.save")}
+            </button>
           </Form>
         </div>
       </section>

@@ -161,6 +161,12 @@
         "region": "地域",
         "lead_email": "リードのメールアドレス",
         "submit": "チャプターを作成"
+      },
+      "discord": {
+        "guild_id": "Discord サーバーID",
+        "channel_id": "リマインダーチャンネルID",
+        "enabled": "有効",
+        "save": "Discord設定を保存"
       }
     },
     "pages": {
