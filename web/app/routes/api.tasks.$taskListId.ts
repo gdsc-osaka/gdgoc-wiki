@@ -73,28 +73,27 @@ export async function action({ request, params, context }: ActionFunctionArgs) {
     return Response.json({ error: "Title is required" }, { status: 400 })
   }
 
-  // Get and increment the next task number atomically
-  const taskList = await db
-    .select({ nextTaskNumber: schema.taskLists.nextTaskNumber })
-    .from(schema.taskLists)
-    .where(eq(schema.taskLists.pageId, taskListId))
-    .get()
+  const taskId = nanoid()
+  const depIds = Array.isArray(dependencies) ? dependencies : []
 
-  if (!taskList) {
+  // Atomically increment nextTaskNumber and get both the assigned number and max sort order
+  const [updated] = await db
+    .update(schema.taskLists)
+    .set({ nextTaskNumber: sql`${schema.taskLists.nextTaskNumber} + 1` })
+    .where(eq(schema.taskLists.pageId, taskListId))
+    .returning({ nextTaskNumber: schema.taskLists.nextTaskNumber })
+
+  if (!updated) {
     return Response.json({ error: "Task list not found" }, { status: 404 })
   }
 
-  const taskNumber = taskList.nextTaskNumber
-  const taskId = nanoid()
+  const taskNumber = updated.nextTaskNumber - 1
 
-  // Get max sort order for this list
   const maxSort = await db
     .select({ max: sql<number>`coalesce(max(sort_order), -1)` })
     .from(schema.tasks)
     .where(eq(schema.tasks.taskListId, taskListId))
     .get()
-
-  const depIds = Array.isArray(dependencies) ? dependencies : []
 
   await db.batch([
     db.insert(schema.tasks).values({
@@ -112,10 +111,6 @@ export async function action({ request, params, context }: ActionFunctionArgs) {
       createdBy: user.id,
       sortOrder: (maxSort?.max ?? -1) + 1,
     }),
-    db
-      .update(schema.taskLists)
-      .set({ nextTaskNumber: taskNumber + 1 })
-      .where(eq(schema.taskLists.pageId, taskListId)),
     ...depIds.map((depId) =>
       db.insert(schema.taskDependencies).values({ taskId, dependsOnTaskId: depId }),
     ),

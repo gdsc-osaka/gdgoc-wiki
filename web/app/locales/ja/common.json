@@ -561,6 +561,8 @@
     "new_task": "新規タスク",
     "edit_task": "タスクを編集",
     "add_task_hint": "「タスクを追加…」行にタイトルを入力してタスクを作成してください。",
+    "add_task_tip_multiline": "ヒント: タイトル欄に複数行入力（Shift+Enterで改行）してからEnterを押すと、一括でタスクを作成できます。",
+    "add_task_tip_discord": "ヒント: Discordを連携しているメンバーは、タスクがアサインされたときにリマインド通知を受け取ります。",
     "add_task_placeholder": "タスクを追加…",
     "add_desc_placeholder": "説明…",
     "all_done": "すべてのタスクが完了しました！",

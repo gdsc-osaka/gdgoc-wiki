@@ -83,6 +83,9 @@ export default function TaskTableView({
   const [assigneeFilter, setAssigneeFilter] = useState<string[]>([])
   const [teamFilter, setTeamFilter] = useState<string[]>([])
   const [showTeamSettings, setShowTeamSettings] = useState(false)
+  const tipKey = useRef(
+    Math.random() < 0.5 ? "tasks.add_task_tip_multiline" : "tasks.add_task_tip_discord",
+  ).current
   const teamSettingsBtnRef = useRef<HTMLButtonElement>(null)
   const isMobile = useMediaQuery("(max-width: 768px)")
 
@@ -260,9 +263,10 @@ export default function TaskTableView({
       </div>
 
       {canManage && (
-        <div className="mt-2 flex flex-col items-center gap-1 text-center text-sm text-gray-400">
+        <div className="mt-2 pb-4 flex flex-col items-center gap-1 text-center text-sm text-gray-400">
           <ArrowUpRight size={32} className="translate-x-12" />
           <p>{t("tasks.add_task_hint")}</p>
+          <p className="text-xs text-gray-300">{t(tipKey)}</p>
         </div>
       )}
 

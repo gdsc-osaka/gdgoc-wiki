@@ -90,19 +90,26 @@ export default function NewTaskRow({
 
   // Accepts explicit field values to work around async state updates after setX calls
   function commitWith(fields: CommitFields) {
-    const trimmed = titleDraft.trim()
-    if (!trimmed) return
-    onCreate({
-      title: trimmed,
-      description: descDraft.trim(),
-      status: fields.status || "todo",
-      type: fields.type || "task",
-      dueDate: fields.dueDate,
-      assigneeId: fields.assigneeId,
-      assigneeName: fields.assigneeName,
-      teamId: fields.teamId,
-      dependencies: fields.dependencies,
-    })
+    const lines = titleDraft
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean)
+    if (lines.length === 0) return
+
+    for (const line of lines) {
+      onCreate({
+        title: line,
+        description: descDraft.trim(),
+        status: fields.status || "todo",
+        type: fields.type || "task",
+        dueDate: fields.dueDate,
+        assigneeId: fields.assigneeId,
+        assigneeName: fields.assigneeName,
+        teamId: fields.teamId,
+        dependencies: fields.dependencies,
+      })
+    }
+
     setTitleDraft("")
     setDescDraft("")
     setStatus("")
@@ -221,15 +228,23 @@ export default function NewTaskRow({
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
       >
-        <input
-          type="text"
-          className="w-full rounded border-0 bg-transparent text-sm text-gray-500 placeholder:italic placeholder:text-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-400"
+        <textarea
+          rows={1}
+          className="w-full resize-none overflow-hidden rounded border-0 bg-transparent text-sm text-gray-500 placeholder:italic placeholder:text-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-400"
           placeholder={t("tasks.add_task_placeholder")}
           value={titleDraft}
           onChange={(e) => setTitleDraft(e.target.value)}
+          onInput={(e) => {
+            const el = e.currentTarget
+            el.style.height = "auto"
+            el.style.height = `${el.scrollHeight}px`
+          }}
           onBlur={() => commitWith(current())}
           onKeyDown={(e) => {
-            if (e.key === "Enter") commitWith(current())
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault()
+              commitWith(current())
+            }
           }}
         />
       </td>
