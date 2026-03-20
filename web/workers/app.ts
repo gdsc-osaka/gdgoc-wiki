@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/d1"
 import { createRequestHandler } from "react-router"
 import * as schema from "../app/db/schema"
 import { createAuth } from "../app/lib/auth.server"
+import { sendDueTaskReminders } from "../app/lib/discord-reminders.server"
 import { isIngestionQueueMessage } from "../app/lib/ingestion-jobs.server"
 import {
   isTranslationQueueBody,
@@ -59,6 +60,12 @@ export default {
     return requestHandler(request, {
       cloudflare: { env, ctx },
     })
+  },
+
+  // Cron trigger: fires at 15:00 UTC (= midnight JST) daily to send Discord DM reminders.
+  async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    console.log("[scheduled] cron fired:", event.cron, "at", new Date().toISOString())
+    ctx.waitUntil(sendDueTaskReminders(env))
   },
 
   // Queue consumer for background translation and ingestion jobs.

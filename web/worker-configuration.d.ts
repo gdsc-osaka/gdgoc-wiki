@@ -39,6 +39,7 @@ declare global {
     GOOGLE_DOCS_CLIENT_SECRET: string
     WIKI_DISCORD_SECRET: string
     FCM_SERVICE_ACCOUNT_JSON: string
+    DISCORD_BOT_TOKEN: string
 
     // Vars (defined in wrangler.toml [vars])
     ENVIRONMENT: string
