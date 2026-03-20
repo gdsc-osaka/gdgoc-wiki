@@ -27,6 +27,8 @@ interface DropdownMenuProps {
   header?: string
   /** Placeholder for the search input */
   searchPlaceholder?: string
+  /** Extra classes applied to the label span inside the trigger */
+  labelClass?: string
 }
 
 const triggerBase = "flex items-center gap-1 text-left text-sm"
@@ -53,6 +55,7 @@ export default function DropdownMenu({
   searchable,
   header,
   searchPlaceholder,
+  labelClass,
 }: DropdownMenuProps) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState<MenuPosition | null>(null)
@@ -241,7 +244,9 @@ export default function DropdownMenu({
               {selected.label.slice(0, 1).toUpperCase()}
             </div>
           ))}
-        <span className="truncate">{selected?.label ?? placeholder}</span>
+        <span className={`truncate${labelClass ? ` ${labelClass}` : ""}`}>
+          {selected?.label ?? placeholder}
+        </span>
         <ChevronDown size={12} className="flex-shrink-0 opacity-60" />
       </button>
 

@@ -28,6 +28,12 @@ export function formatDate(dateStr: string): string {
   return `${d.getMonth() + 1}/${d.getDate()}`
 }
 
+/** Format YYYY-MM-DD → YY/MM/DD for compact display */
+export function formatDueDate(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-")
+  return `${y.slice(2)}/${m}/${d}`
+}
+
 export function isWeekend(dateStr: string): boolean {
   const d = new Date(dateStr)
   return d.getDay() === 0 || d.getDay() === 6

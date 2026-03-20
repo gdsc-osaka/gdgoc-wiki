@@ -154,7 +154,7 @@ export default function TaskTableView({
   return (
     <div className="space-y-4">
       <div className="overflow-x-auto border-y border-gray-200">
-        <table className="min-w-full table-fixed divide-y divide-gray-200">
+        <table className="min-w-[900px] w-full table-fixed divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               <th className="w-[3%] px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
@@ -224,10 +224,10 @@ export default function TaskTableView({
                   />
                 </span>
               </th>
-              <th className="w-[20%] px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+              <th className="w-[18%] px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                 {t("tasks.col_title")}
               </th>
-              <th className="w-[40%] px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+              <th className="w-[25%] px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                 {t("tasks.description")}
               </th>
             </tr>

@@ -4,6 +4,7 @@ import AssigneeCell from "./AssigneeCell"
 import DepsDropdown from "./DepsDropdown"
 import DropdownMenu, { type DropdownOption } from "./DropdownMenu"
 import { STATUSES, STATUS_CHIP, TYPES, TYPE_CHIP } from "./task-options"
+import { formatDueDate } from "./task-utils"
 
 interface Team {
   id: string
@@ -120,13 +121,18 @@ export default function TaskRow({
 
       {/* Due Date */}
       <td className="overflow-hidden px-3 py-2">
-        <input
-          type="date"
-          className="rounded border-0 bg-transparent text-sm focus:ring-1 focus:ring-blue-500"
-          value={task.dueDate ?? ""}
-          onMouseDown={(e) => e.stopPropagation()}
-          onChange={(e) => onUpdate(task.id, "dueDate", e.target.value || null)}
-        />
+        <div className="relative flex items-center">
+          <span className="text-sm text-gray-700">
+            {task.dueDate ? formatDueDate(task.dueDate) : <span className="text-gray-400">—</span>}
+          </span>
+          <input
+            type="date"
+            className="absolute inset-0 cursor-pointer opacity-0"
+            value={task.dueDate ?? ""}
+            onMouseDown={(e) => e.stopPropagation()}
+            onChange={(e) => onUpdate(task.id, "dueDate", e.target.value || null)}
+          />
+        </div>
       </td>
 
       {/* Assignee */}
@@ -146,6 +152,7 @@ export default function TaskRow({
             value={task.teamId ?? ""}
             options={teamOptions}
             onChange={(v) => onUpdate(task.id, "teamId", v || null)}
+            labelClass="max-w-[60px]"
           />
         ) : (
           <span className="text-sm text-gray-400">—</span>
