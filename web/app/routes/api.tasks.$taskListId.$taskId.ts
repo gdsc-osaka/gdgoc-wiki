@@ -75,8 +75,7 @@ export async function action({ request, params, context }: ActionFunctionArgs) {
     if (assigneeId !== undefined) {
       updates.assigneeId = assigneeId
       updates.assigneeName = null
-    }
-    if (assigneeName !== undefined) {
+    } else if (assigneeName !== undefined) {
       updates.assigneeName = assigneeName
       updates.assigneeId = null
     }

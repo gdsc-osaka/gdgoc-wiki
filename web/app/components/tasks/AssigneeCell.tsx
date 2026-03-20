@@ -227,18 +227,18 @@ export default function AssigneeCell({
         ) : (
           <Initials name={assignedMember.name} blue />
         )}
-        <span className="truncate">{assignedMember.name}</span>
+        <span className="max-w-[60px] truncate">{assignedMember.name}</span>
       </>
     )
   } else if (assigneeName) {
     triggerContent = (
       <>
         <Initials name={assigneeName} />
-        <span className="truncate">{assigneeName}</span>
+        <span className="max-w-[60px] truncate">{assigneeName}</span>
       </>
     )
   } else {
-    triggerContent = <span className="truncate text-gray-400">—</span>
+    triggerContent = <span className="max-w-[60px] truncate text-gray-400">—</span>
   }
 
   return (

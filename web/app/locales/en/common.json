@@ -569,7 +569,7 @@
     "col_assignee": "Assignee",
     "col_team": "Team",
     "col_due_date": "Due Date",
-    "col_deps": "Dependencies",
+    "col_deps": "Deps",
     "col_type": "Type",
     "status_todo": "To Do",
     "status_in_progress": "In Progress",

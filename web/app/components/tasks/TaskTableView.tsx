@@ -171,10 +171,10 @@ export default function TaskTableView({
                   />
                 </span>
               </th>
-              <th className="w-[7%] overflow-hidden px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+              <th className="w-[6%] overflow-hidden px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                 {t("tasks.col_due_date")}
               </th>
-              <th className="w-[7%] overflow-hidden px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+              <th className="w-[6%] overflow-hidden px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                 <span className="flex items-center justify-between">
                   {t("tasks.col_assignee")}
                   <ColumnFilterPopover
@@ -187,7 +187,7 @@ export default function TaskTableView({
                   />
                 </span>
               </th>
-              <th className="w-[7%] overflow-hidden px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+              <th className="w-[6%] overflow-hidden px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                 <span className="flex items-center justify-between">
                   {t("tasks.col_team")}
                   <span className="flex items-center gap-1">
@@ -210,10 +210,10 @@ export default function TaskTableView({
                   </span>
                 </span>
               </th>
-              <th className="w-[7%] overflow-hidden px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+              <th className="w-[6%] overflow-hidden px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                 {t("tasks.col_deps")}
               </th>
-              <th className="w-[7%] overflow-hidden px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+              <th className="w-[6%] overflow-hidden px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                 <span className="flex items-center justify-between">
                   {t("tasks.col_type")}
                   <ColumnFilterPopover
@@ -224,10 +224,10 @@ export default function TaskTableView({
                   />
                 </span>
               </th>
-              <th className="w-[21%] px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+              <th className="w-[20%] px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                 {t("tasks.col_title")}
               </th>
-              <th className="w-[34%] px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+              <th className="w-[40%] px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                 {t("tasks.description")}
               </th>
             </tr>

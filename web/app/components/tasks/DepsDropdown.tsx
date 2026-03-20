@@ -174,12 +174,21 @@ export default function DepsDropdown({
       <button
         ref={triggerRef}
         type="button"
-        className="flex items-center gap-1 rounded px-1.5 py-0.5 text-left text-sm text-gray-400 hover:bg-gray-100"
+        className="flex items-start gap-1 rounded px-1.5 py-0.5 text-left text-sm text-gray-400 hover:bg-gray-100"
         onClick={openMenu}
         onKeyDown={(e) => e.stopPropagation()}
       >
-        <span className="truncate">{label}</span>
-        <ChevronDown size={12} className="flex-shrink-0 opacity-60" />
+        <span className="flex flex-col leading-tight text-xs">
+          {value.length > 0 ? (
+            value
+              .map((id) => options.find((o) => o.id === id))
+              .filter((o): o is { id: string; number: number; title: string } => o !== undefined)
+              .map((o) => <span key={o.id}>#{o.number}</span>)
+          ) : (
+            <span className="text-gray-400">—</span>
+          )}
+        </span>
+        <ChevronDown size={12} className="mt-0.5 flex-shrink-0 opacity-60" />
       </button>
       {menu}
     </>
