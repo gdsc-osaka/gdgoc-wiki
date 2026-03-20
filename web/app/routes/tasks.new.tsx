@@ -46,7 +46,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
   const canLead = hasRole(user.role as string, "lead")
   const visibility: Visibility =
     (ALLOWED_VISIBILITY as readonly string[]).includes(rawVisibility) &&
-    (rawVisibility !== "private_to_lead" || canLead)
+    (rawVisibility === "public" || canLead)
       ? (rawVisibility as Visibility)
       : "public"
 

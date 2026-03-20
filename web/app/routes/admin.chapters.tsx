@@ -1,4 +1,5 @@
 import { and, count, eq, ne } from "drizzle-orm"
+import { Fragment } from "react"
 import { useTranslation } from "react-i18next"
 import { Form, useActionData, useLoaderData } from "react-router"
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router"
@@ -213,8 +214,8 @@ export default function AdminChapters() {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {chapters.map((ch) => (
-              <>
-                <tr key={ch.id} className="hover:bg-gray-50">
+              <Fragment key={ch.id}>
+                <tr className="hover:bg-gray-50">
                   <td className="px-4 py-3">
                     <div className="font-medium text-gray-900">{ch.nameEn}</div>
                     <div className="text-xs text-gray-400">{ch.nameJa}</div>
@@ -292,7 +293,7 @@ export default function AdminChapters() {
                     </Form>
                   </td>
                 </tr>
-              </>
+              </Fragment>
             ))}
           </tbody>
         </table>
