@@ -1,6 +1,7 @@
 import {
   ChartPie,
   Globe,
+  ListTodo,
   LogOut,
   Moon,
   PanelLeft,
@@ -231,6 +232,14 @@ function NewPageDropdown() {
           >
             <span>✎</span>
             <span>{t("pageTree.newPage_manual")}</span>
+          </Link>
+          <Link
+            to="/tasks/new"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+          >
+            <ListTodo size={14} />
+            <span>{t("pageTree.newTaskList")}</span>
           </Link>
         </div>
       )}

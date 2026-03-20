@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/d1"
 import { createRequestHandler } from "react-router"
 import * as schema from "../app/db/schema"
 import { createAuth } from "../app/lib/auth.server"
+import { sendDueTaskReminders } from "../app/lib/discord-reminders.server"
 import { isIngestionQueueMessage } from "../app/lib/ingestion-jobs.server"
 import {
   isTranslationQueueBody,
@@ -59,6 +60,18 @@ export default {
     return requestHandler(request, {
       cloudflare: { env, ctx },
     })
+  },
+
+  // Cron trigger: fires at 15:00 UTC (= 00:00 JST, i.e. the start of the next calendar day in JST).
+  // sendDueTaskReminders queries tasks whose dueDate matches that JST date, so reminders go out
+  // at the very beginning of the day the task is due.
+  async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    console.log("[scheduled] cron fired:", event.cron, "at", new Date().toISOString())
+    ctx.waitUntil(
+      sendDueTaskReminders(env).catch((err) => {
+        console.error("[scheduled] sendDueTaskReminders failed:", err)
+      }),
+    )
   },
 
   // Queue consumer for background translation and ingestion jobs.

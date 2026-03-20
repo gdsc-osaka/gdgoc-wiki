@@ -20,6 +20,7 @@ export default function CommentEditor({
   const { t } = useTranslation("common")
   const [contentJson, setContentJson] = useState("")
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false)
+  const [resetKey, setResetKey] = useState(0)
 
   // Whether the editor has actual content (not just an empty ProseMirror doc)
   const isDirty = (() => {
@@ -66,13 +67,14 @@ export default function CommentEditor({
   useEffect(() => {
     if (wasSubmittingRef.current && !isSubmitting) {
       setContentJson("")
+      setResetKey((k) => k + 1)
     }
     wasSubmittingRef.current = isSubmitting
   }, [isSubmitting])
 
   return (
     <div className="flex flex-col gap-2">
-      <TipTapEditor onChange={setContentJson} />
+      <TipTapEditor key={resetKey} onChange={setContentJson} />
 
       <div className="flex items-center justify-end gap-2">
         <button

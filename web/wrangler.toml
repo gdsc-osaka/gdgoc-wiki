@@ -19,6 +19,7 @@ zone_name = "gdgoc-osaka.jp"
 
 [vars]
 ENVIRONMENT = "production"
+BASE_URL = "https://wiki.gdgoc-osaka.jp"
 FIREBASE_API_KEY = "AIzaSyB7MPalhYWSgSWNMQ9rs3qqhk_TQg8IAHY"
 FIREBASE_AUTH_DOMAIN = "gdgoc-wiki.firebaseapp.com"
 FIREBASE_PROJECT_ID = "gdgoc-wiki"
@@ -97,8 +98,15 @@ tag = "v1"
 new_sqlite_classes = ["CollabDurableObject"]
 
 # ---------------------------------------------------------------------------
+# Cron Triggers
+# ---------------------------------------------------------------------------
+[triggers]
+crons = ["0 15 * * *"]
+
+# ---------------------------------------------------------------------------
 # Secrets (set via `wrangler secret put`)
 # RESEND_API_KEY          — Resend transactional email API key
 # WIKI_DISCORD_SECRET     — shared secret for Discord bot → wiki API auth
 # FCM_SERVICE_ACCOUNT_JSON — Firebase service account key JSON (for push notifications)
+# DISCORD_BOT_TOKEN       — Discord bot token for sending DM reminders
 # ---------------------------------------------------------------------------

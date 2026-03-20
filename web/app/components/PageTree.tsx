@@ -26,6 +26,7 @@ import {
   Folder,
   FolderOpen,
   GripVertical,
+  ListTodo,
   Plus,
 } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
@@ -240,7 +241,9 @@ function SortableTreeItem({
         )}
 
         <span className="flex-shrink-0 text-gray-400">
-          {hasChildren ? (
+          {node.pageType === "task-list" ? (
+            <ListTodo size={14} />
+          ) : hasChildren ? (
             isFolderCollapsed ? (
               <Folder size={14} />
             ) : (
@@ -251,7 +254,10 @@ function SortableTreeItem({
           )}
         </span>
 
-        <Link to={`/wiki/${node.slug}`} className="flex-1 truncate">
+        <Link
+          to={node.pageType === "task-list" ? `/tasks/${node.slug}` : `/wiki/${node.slug}`}
+          className="flex-1 truncate"
+        >
           {title}
         </Link>
       </div>
@@ -442,7 +448,9 @@ function TreeNode({ node, currentSlug, depth, isCollapsed }: TreeNodeProps) {
           ))}
 
         <span className="flex-shrink-0 text-gray-400">
-          {hasChildren ? (
+          {node.pageType === "task-list" ? (
+            <ListTodo size={14} />
+          ) : hasChildren ? (
             expanded ? (
               <FolderOpen size={14} />
             ) : (
@@ -454,7 +462,10 @@ function TreeNode({ node, currentSlug, depth, isCollapsed }: TreeNodeProps) {
         </span>
 
         {!isCollapsed && (
-          <Link to={`/wiki/${node.slug}`} className="flex-1 truncate">
+          <Link
+            to={node.pageType === "task-list" ? `/tasks/${node.slug}` : `/wiki/${node.slug}`}
+            className="flex-1 truncate"
+          >
             {title}
           </Link>
         )}
@@ -558,6 +569,14 @@ export default function PageTree({
             >
               <span>✎</span>
               <span>{t("pageTree.newPage_manual")}</span>
+            </Link>
+            <Link
+              to="/tasks/new"
+              onClick={() => setDropdownOpen(false)}
+              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+            >
+              <ListTodo size={14} />
+              <span>{t("pageTree.newTaskList")}</span>
             </Link>
           </div>
         )}

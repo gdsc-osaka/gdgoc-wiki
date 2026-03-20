@@ -6,6 +6,12 @@ export default [
   route("/login", "routes/login.tsx"),
   route("/logout", "routes/logout.tsx"),
 
+  // Task API routes (no app shell)
+  route("/api/tasks/:taskListId", "routes/api.tasks.$taskListId.ts"),
+  route("/api/tasks/:taskListId/:taskId", "routes/api.tasks.$taskListId.$taskId.ts"),
+  route("/api/tasks/:taskListId/teams", "routes/api.tasks.$taskListId.teams.ts"),
+  route("/api/tasks/:taskListId/reorder", "routes/api.tasks.$taskListId.reorder.ts"),
+
   // API routes (no app shell)
   route("/api/set-ui-lang", "routes/api.set-ui-lang.tsx"),
   route("/api/set-content-lang", "routes/api.set-content-lang.tsx"),
@@ -68,5 +74,9 @@ export default [
     route("/ingest/:sessionId", "routes/ingest.$sessionId.tsx"),
     route("/analyze", "routes/analyze.tsx"),
     route("/settings", "routes/settings.tsx"),
+    route("/tasks/new", "routes/tasks.new.tsx"),
+    route("/tasks/:slug", "routes/tasks.$slug.tsx"),
+    route("/tasks/:slug/settings", "routes/tasks.$slug.settings.tsx"),
+    route("/tasks/:slug/history", "routes/tasks.$slug.history.tsx"),
   ]),
 ] satisfies RouteConfig

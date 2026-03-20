@@ -39,9 +39,11 @@ declare global {
     GOOGLE_DOCS_CLIENT_SECRET: string
     WIKI_DISCORD_SECRET: string
     FCM_SERVICE_ACCOUNT_JSON: string
+    DISCORD_BOT_TOKEN: string
 
     // Vars (defined in wrangler.toml [vars])
     ENVIRONMENT: string
+    BASE_URL: string
     FIREBASE_API_KEY: string
     FIREBASE_AUTH_DOMAIN: string
     FIREBASE_PROJECT_ID: string
