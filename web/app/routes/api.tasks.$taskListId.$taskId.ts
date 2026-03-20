@@ -88,7 +88,9 @@ export async function action({ request, params, context }: ActionFunctionArgs) {
         const depTasks = await db
           .select({ id: schema.tasks.id })
           .from(schema.tasks)
-          .where(and(inArray(schema.tasks.id, dependencies), eq(schema.tasks.taskListId, taskListId)))
+          .where(
+            and(inArray(schema.tasks.id, dependencies), eq(schema.tasks.taskListId, taskListId)),
+          )
           .all()
 
         if (depTasks.length !== dependencies.length) {

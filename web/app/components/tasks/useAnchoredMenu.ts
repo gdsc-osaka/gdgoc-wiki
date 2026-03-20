@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 interface MenuPosition {
   top: number
@@ -22,7 +22,9 @@ interface UseAnchoredMenuResult {
   close: () => void
 }
 
-export function useAnchoredMenu({ searchable }: UseAnchoredMenuOptions = {}): UseAnchoredMenuResult {
+export function useAnchoredMenu({
+  searchable,
+}: UseAnchoredMenuOptions = {}): UseAnchoredMenuResult {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState<MenuPosition | null>(null)
   const [search, setSearch] = useState("")
@@ -55,10 +57,10 @@ export function useAnchoredMenu({ searchable }: UseAnchoredMenuOptions = {}): Us
     }
   }
 
-  function close() {
+  const close = useCallback(() => {
     setOpen(false)
     setSearch("")
-  }
+  }, [])
 
   // Close on outside click
   useEffect(() => {
@@ -70,7 +72,7 @@ export function useAnchoredMenu({ searchable }: UseAnchoredMenuOptions = {}): Us
     }
     document.addEventListener("mousedown", handleOutside)
     return () => document.removeEventListener("mousedown", handleOutside)
-  }, [open])
+  }, [open, close])
 
   // Close on Escape
   useEffect(() => {
@@ -80,14 +82,19 @@ export function useAnchoredMenu({ searchable }: UseAnchoredMenuOptions = {}): Us
     }
     document.addEventListener("keydown", handleKey)
     return () => document.removeEventListener("keydown", handleKey)
-  }, [open])
+  }, [open, close])
 
   // Reposition on scroll while open
   useEffect(() => {
     if (!open) return
     function handleScroll() {
-      const p = calcPos()
-      if (p) setPos(p)
+      const rect = triggerRef.current?.getBoundingClientRect()
+      if (!rect) return
+      setPos({
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.left + window.scrollX,
+        width: Math.max(rect.width, 160),
+      })
     }
     window.addEventListener("scroll", handleScroll, true)
     return () => window.removeEventListener("scroll", handleScroll, true)

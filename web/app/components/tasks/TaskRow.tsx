@@ -102,7 +102,13 @@ export default function TaskRow({
   ]
 
   return (
-    <tr className="group border-b border-gray-100 hover:bg-gray-50" onClick={() => onClick(task.id)}>
+    <tr
+      className="group border-b border-gray-100 hover:bg-gray-50"
+      onClick={() => onClick(task.id)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onClick(task.id)
+      }}
+    >
       {/* # — focusable button so keyboard users can open the task detail */}
       <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-400">
         <button
@@ -195,25 +201,8 @@ export default function TaskRow({
         />
       </td>
 
-      {/* Title — focusable cell so keyboard users can trigger inline edit */}
-      <td
-        role="button"
-        tabIndex={0}
-        className="break-words px-3 py-2 text-sm font-medium text-gray-900"
-        onClick={(e) => {
-          e.stopPropagation()
-          setEditingTitle(true)
-          setTitleDraft(task.title)
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault()
-            e.stopPropagation()
-            setEditingTitle(true)
-            setTitleDraft(task.title)
-          }
-        }}
-      >
+      {/* Title — inline-editable cell */}
+      <td className="break-words px-3 py-2 text-sm font-medium text-gray-900">
         {editingTitle ? (
           <input
             ref={titleInputRef}
@@ -254,29 +243,23 @@ export default function TaskRow({
             onMouseDown={(e) => e.stopPropagation()}
           />
         ) : (
-          <span title={t("tasks.click_to_edit")}>{titleDraft}</span>
+          <button
+            type="button"
+            className="w-full break-words text-left text-sm font-medium text-gray-900"
+            title={t("tasks.click_to_edit")}
+            onClick={(e) => {
+              e.stopPropagation()
+              setEditingTitle(true)
+              setTitleDraft(task.title)
+            }}
+          >
+            {titleDraft}
+          </button>
         )}
       </td>
 
-      {/* Description — focusable cell so keyboard users can trigger inline edit */}
-      <td
-        role="button"
-        tabIndex={0}
-        className="break-words px-3 py-2 text-sm text-gray-500"
-        onClick={(e) => {
-          e.stopPropagation()
-          setEditingDesc(true)
-          setDescDraft(task.description)
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault()
-            e.stopPropagation()
-            setEditingDesc(true)
-            setDescDraft(task.description)
-          }
-        }}
-      >
+      {/* Description — inline-editable cell */}
+      <td className="break-words px-3 py-2 text-sm text-gray-500">
         {editingDesc ? (
           <input
             ref={descInputRef}
@@ -301,7 +284,18 @@ export default function TaskRow({
             onMouseDown={(e) => e.stopPropagation()}
           />
         ) : (
-          <span title={t("tasks.click_to_edit")}>{descDraft || "—"}</span>
+          <button
+            type="button"
+            className="w-full break-words text-left text-sm text-gray-500"
+            title={t("tasks.click_to_edit")}
+            onClick={(e) => {
+              e.stopPropagation()
+              setEditingDesc(true)
+              setDescDraft(task.description)
+            }}
+          >
+            {descDraft || "—"}
+          </button>
         )}
       </td>
     </tr>

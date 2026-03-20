@@ -170,17 +170,16 @@ export async function action({ request, params, context }: ActionFunctionArgs) {
     const existing = await db
       .select()
       .from(schema.pageFavorites)
-      .where(and(eq(schema.pageFavorites.userId, user.id), eq(schema.pageFavorites.pageId, page.id)))
+      .where(
+        and(eq(schema.pageFavorites.userId, user.id), eq(schema.pageFavorites.pageId, page.id)),
+      )
       .get()
 
     if (existing) {
       await db
         .delete(schema.pageFavorites)
         .where(
-          and(
-            eq(schema.pageFavorites.userId, user.id),
-            eq(schema.pageFavorites.pageId, page.id),
-          ),
+          and(eq(schema.pageFavorites.userId, user.id), eq(schema.pageFavorites.pageId, page.id)),
         )
       return { ok: true, starred: false }
     }
@@ -238,6 +237,13 @@ export async function action({ request, params, context }: ActionFunctionArgs) {
 // ---------------------------------------------------------------------------
 
 type ViewTab = "table" | "timeline" | "remaining"
+
+async function ensureOkResponse(response: Response): Promise<void> {
+  if (!response.ok) {
+    const text = await response.text().catch(() => response.statusText)
+    throw new Error(`Request failed (${response.status}): ${text}`)
+  }
+}
 
 export default function TaskListView() {
   const {
@@ -355,13 +361,6 @@ export default function TaskListView() {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     })
-  }
-
-  async function ensureOkResponse(response: Response): Promise<void> {
-    if (!response.ok) {
-      const text = await response.text().catch(() => response.statusText)
-      throw new Error(`Request failed (${response.status}): ${text}`)
-    }
   }
 
   const handleUpdate = useCallback(

@@ -144,7 +144,6 @@ export default function DatePickerDropdown({ value, onChange }: DatePickerDropdo
       ? createPortal(
           <div
             ref={menuRef}
-            role="dialog"
             aria-label={t("tasks.calendar_label")}
             tabIndex={-1}
             style={{ position: "absolute", top: pos.top, left: pos.left }}
