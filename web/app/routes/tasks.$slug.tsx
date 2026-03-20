@@ -1,9 +1,23 @@
 import { and, eq, inArray } from "drizzle-orm"
-import { CalendarDays, Check, LayoutList, ListChecks, Pencil, X } from "lucide-react"
-import { type ReactNode, useCallback, useEffect, useState } from "react"
+import {
+  Archive,
+  CalendarDays,
+  Check,
+  History,
+  LayoutList,
+  ListChecks,
+  MoreHorizontal,
+  Pencil,
+  Share2,
+  Star,
+  X,
+} from "lucide-react"
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { useFetcher, useLoaderData, useRevalidator } from "react-router"
+import { Link, redirect, useFetcher, useLoaderData, useRevalidator } from "react-router"
 import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react-router"
+import ConfirmDialog from "~/components/ConfirmDialog"
+import Tooltip from "~/components/Tooltip"
 import DropdownMenu, { type DropdownOption } from "~/components/tasks/DropdownMenu"
 import TaskRemainingView from "~/components/tasks/TaskRemainingView"
 import TaskTableView from "~/components/tasks/TaskTableView"
@@ -103,6 +117,12 @@ export async function loader({ request, params, context }: LoaderFunctionArgs) {
     hasRole(user.role as string, "lead") ||
     user.id === page.authorId
 
+  const fav = await db
+    .select()
+    .from(schema.pageFavorites)
+    .where(and(eq(schema.pageFavorites.userId, user.id), eq(schema.pageFavorites.pageId, page.id)))
+    .get()
+
   return {
     page,
     tasks: tasks.map((t) => ({
@@ -116,6 +136,8 @@ export async function loader({ request, params, context }: LoaderFunctionArgs) {
     canChangeVisibility: hasRole(user.role as string, "lead"),
     userId: user.id,
     nextTaskNumber: taskListMeta.nextTaskNumber,
+    isStarred: !!fav,
+    canArchive: hasRole(user.role as string, "lead") || user.id === page.authorId,
   }
 }
 
@@ -139,15 +161,49 @@ export async function action({ request, params, context }: ActionFunctionArgs) {
 
   if (!page) throw new Response("Not found", { status: 404 })
 
+  const formData = await request.formData()
+  const intent = formData.get("intent") as string
+
+  if (intent === "toggleFavorite") {
+    const pageId = formData.get("pageId")
+    if (typeof pageId !== "string" || !pageId) {
+      return new Response("Missing pageId", { status: 400 })
+    }
+
+    const existing = await db
+      .select()
+      .from(schema.pageFavorites)
+      .where(and(eq(schema.pageFavorites.userId, user.id), eq(schema.pageFavorites.pageId, pageId)))
+      .get()
+
+    if (existing) {
+      await db
+        .delete(schema.pageFavorites)
+        .where(
+          and(eq(schema.pageFavorites.userId, user.id), eq(schema.pageFavorites.pageId, pageId)),
+        )
+      return { ok: true, starred: false }
+    }
+    await db.insert(schema.pageFavorites).values({ userId: user.id, pageId })
+    return { ok: true, starred: true }
+  }
+
+  if (intent === "archivePage") {
+    const canArchive = hasRole(user.role as string, "lead") || user.id === page.authorId
+    if (!canArchive) throw new Response("Forbidden", { status: 403 })
+    await db
+      .update(schema.pages)
+      .set({ status: "archived", updatedAt: new Date() })
+      .where(eq(schema.pages.id, page.id))
+    return redirect("/")
+  }
+
   const canManage =
     hasRole(user.role as string, "admin") ||
     hasRole(user.role as string, "lead") ||
     user.id === page.authorId
 
   if (!canManage) throw new Response("Forbidden", { status: 403 })
-
-  const formData = await request.formData()
-  const intent = formData.get("intent") as string
 
   if (intent === "updateSettings") {
     const titleJa = (formData.get("titleJa") as string) ?? page.titleJa
@@ -193,11 +249,15 @@ export default function TaskListView() {
     canManage,
     canChangeVisibility,
     nextTaskNumber,
+    isStarred,
+    canArchive,
   } = useLoaderData<typeof loader>()
   const { t, i18n } = useTranslation()
   const revalidator = useRevalidator()
   const settingsFetcher = useFetcher<{ ok: boolean }>()
   const visibilityFetcher = useFetcher<{ ok: boolean }>()
+  const favFetcher = useFetcher<{ ok: boolean; starred: boolean }>()
+  const archiveFetcher = useFetcher()
   const [activeTab, setActiveTab] = useState<ViewTab>("table")
 
   // Single lang state: controls both view-mode title and edit-mode input
@@ -211,6 +271,14 @@ export default function TaskListView() {
 
   // Single visibility state: used by the always-visible dropdown
   const [currentVisibility, setCurrentVisibility] = useState(page.visibility)
+
+  // Star / share / archive state
+  const [currentStarred, setCurrentStarred] = useState(isStarred)
+  const [copied, setCopied] = useState(false)
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const moreRef = useRef<HTMLDivElement>(null)
+  const optimisticStarred = favFetcher.state !== "idle" ? !currentStarred : currentStarred
 
   // Sync visibility with reloaded page data (when not editing)
   // biome-ignore lint/correctness/useExhaustiveDependencies: editMode intentionally omitted
@@ -232,6 +300,21 @@ export default function TaskListView() {
       revalidator.revalidate()
     }
   }, [visibilityFetcher.data, revalidator])
+
+  // Sync star state on navigation
+  useEffect(() => {
+    setCurrentStarred(isStarred)
+  }, [isStarred])
+
+  // Close "more" dropdown on outside click
+  useEffect(() => {
+    if (!moreOpen) return
+    const handler = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false)
+    }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [moreOpen])
 
   const title = displayLang === "en" ? page.titleEn || page.titleJa : page.titleJa || page.titleEn
 
@@ -262,6 +345,17 @@ export default function TaskListView() {
       fd.set("visibility", val)
       visibilityFetcher.submit(fd, { method: "post" })
     }
+  }
+
+  function handleToggleStar() {
+    favFetcher.submit({ intent: "toggleFavorite", pageId: page.id }, { method: "post" })
+  }
+
+  function handleShare() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
   }
 
   const handleUpdate = useCallback(
@@ -321,11 +415,120 @@ export default function TaskListView() {
     { value: "private_to_lead", label: t("wiki.visibility_lead") },
   ]
 
+  const btnBase =
+    "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
+
   return (
     <div>
-      <div className="px-4 pt-6 pb-4">
+      {/* Mini-header toolbar — mirrors wiki.$slug.tsx */}
+      <div className="flex items-center justify-end gap-2 border-b border-gray-100 px-4 py-2 md:px-10">
+        {/* Desktop action buttons (md+) */}
+        <div className="hidden items-center gap-1 md:flex">
+          <Link to={`/tasks/${page.slug}/history`} className={btnBase}>
+            <History size={14} />
+            {t("tasks.history")}
+          </Link>
+          <button
+            type="button"
+            onClick={handleToggleStar}
+            className={btnBase}
+            style={optimisticStarred ? { color: "#E06C00" } : undefined}
+          >
+            <Star
+              size={14}
+              style={optimisticStarred ? { fill: "#E06C00", color: "#E06C00" } : undefined}
+            />
+            {optimisticStarred ? t("wiki.unstar") : t("wiki.starred")}
+          </button>
+          <button type="button" onClick={handleShare} className={btnBase}>
+            <Share2 size={14} />
+            {copied ? t("wiki.share_copied") : t("wiki.share")}
+          </button>
+          <Tooltip label={t("tasks.archive_no_permission")} disabled={!canArchive}>
+            <button
+              type="button"
+              onClick={canArchive ? () => setArchiveDialogOpen(true) : undefined}
+              disabled={!canArchive}
+              className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:bg-amber-50 hover:text-amber-700 disabled:opacity-50"
+            >
+              <Archive size={14} />
+              {t("wiki.archive")}
+            </button>
+          </Tooltip>
+        </div>
+
+        {/* Mobile "more" dropdown (<md) */}
+        <div ref={moreRef} className="relative md:hidden">
+          <button
+            type="button"
+            onClick={() => setMoreOpen((o) => !o)}
+            className={btnBase}
+            aria-label="More actions"
+          >
+            <MoreHorizontal size={16} />
+          </button>
+          {moreOpen && (
+            <div className="absolute right-0 top-full z-50 mt-1 min-w-[160px] rounded-md border border-gray-200 bg-white py-1 shadow-lg">
+              <Link
+                to={`/tasks/${page.slug}/history`}
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"
+                onClick={() => setMoreOpen(false)}
+              >
+                <History size={14} />
+                {t("tasks.history")}
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  handleToggleStar()
+                  setMoreOpen(false)
+                }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"
+                style={optimisticStarred ? { color: "#E06C00" } : undefined}
+              >
+                <Star
+                  size={14}
+                  style={optimisticStarred ? { fill: "#E06C00", color: "#E06C00" } : undefined}
+                />
+                {optimisticStarred ? t("wiki.unstar") : t("wiki.starred")}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleShare()
+                  setMoreOpen(false)
+                }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"
+              >
+                <Share2 size={14} />
+                {copied ? t("wiki.share_copied") : t("wiki.share")}
+              </button>
+              <Tooltip label={t("tasks.archive_no_permission")} disabled={!canArchive}>
+                <button
+                  type="button"
+                  onClick={
+                    canArchive
+                      ? () => {
+                          setArchiveDialogOpen(true)
+                          setMoreOpen(false)
+                        }
+                      : undefined
+                  }
+                  disabled={!canArchive}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-amber-50 hover:text-amber-700 disabled:opacity-50"
+                >
+                  <Archive size={14} />
+                  {t("wiki.archive")}
+                </button>
+              </Tooltip>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="px-4 pt-6 pb-4 md:px-10">
         {/* Header */}
-        <div className="mb-6 flex items-center justify-between gap-3">
+        <div className="mb-6 flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-3">
           {/* Left: title or title input */}
           {editMode ? (
             <input
@@ -341,8 +544,8 @@ export default function TaskListView() {
             <h1 className="min-w-0 truncate text-2xl font-bold">{title}</h1>
           )}
 
-          {/* Right: JA|EN pill + visibility + action buttons */}
-          <div className="flex shrink-0 items-center gap-2">
+          {/* Right: JA|EN pill + visibility + Edit/Save/Cancel */}
+          <div className="flex items-center gap-2">
             {/* JA|EN — wiki-style pill */}
             <div className="flex gap-1 rounded-md border border-gray-200 bg-white p-0.5">
               {(["ja", "en"] as const).map((l) => (
@@ -448,6 +651,19 @@ export default function TaskListView() {
       {activeTab === "remaining" && (
         <TaskRemainingView tasks={tasks} members={members} onTaskClick={handleTaskClick} />
       )}
+
+      <ConfirmDialog
+        open={archiveDialogOpen}
+        title={t("wiki.archive")}
+        message={t("tasks.archive_confirm")}
+        confirmLabel={t("wiki.archive")}
+        cancelLabel={t("cancel")}
+        onConfirm={() => {
+          archiveFetcher.submit({ intent: "archivePage" }, { method: "post" })
+          setArchiveDialogOpen(false)
+        }}
+        onCancel={() => setArchiveDialogOpen(false)}
+      />
     </div>
   )
 }

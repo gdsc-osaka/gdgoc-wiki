@@ -77,5 +77,6 @@ export default [
     route("/tasks/new", "routes/tasks.new.tsx"),
     route("/tasks/:slug", "routes/tasks.$slug.tsx"),
     route("/tasks/:slug/settings", "routes/tasks.$slug.settings.tsx"),
+    route("/tasks/:slug/history", "routes/tasks.$slug.history.tsx"),
   ]),
 ] satisfies RouteConfig

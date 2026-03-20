@@ -591,7 +591,11 @@
     "view_remaining": "Remaining",
     "timeline_no_dates": "No tasks with due dates to display on the timeline.",
     "no_due_date": "No due date",
-    "use_as_assignee": "Use \"{{name}}\""
+    "use_as_assignee": "Use \"{{name}}\"",
+    "history": "History",
+    "history_empty": "No tasks have been created yet.",
+    "archive_confirm": "Archive this task list? You can restore it later.",
+    "archive_no_permission": "Only the author or a lead can archive this task list"
   },
   "lp": {
     "hero_title": "GDGoC Japan Wiki",
