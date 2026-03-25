@@ -428,7 +428,6 @@ export default function WikiPage() {
   const archiveFetcher = useFetcher()
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false)
   const [currentStarred, setCurrentStarred] = useState(isStarred)
-  const [copied, setCopied] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
   const moreRef = useRef<HTMLDivElement>(null)
@@ -503,14 +502,7 @@ export default function WikiPage() {
   }, [moreOpen])
 
   function handleShare() {
-    if (canManageAccess) {
-      setShareOpen(true)
-    } else {
-      navigator.clipboard.writeText(window.location.href).then(() => {
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
-      })
-    }
+    setShareOpen(true)
   }
 
   const jaUrl = `${location.pathname}?lang=ja`
@@ -583,7 +575,7 @@ export default function WikiPage() {
           </button>
           <button type="button" onClick={handleShare} className={btnBase}>
             <Share2 size={14} />
-            {copied ? t("wiki.share_copied") : t("wiki.share")}
+            {t("wiki.share")}
           </button>
           <Tooltip label={t("wiki.archive_no_permission")} disabled={!canArchive}>
             <button
@@ -652,7 +644,7 @@ export default function WikiPage() {
                 className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"
               >
                 <Share2 size={14} />
-                {copied ? t("wiki.share_copied") : t("wiki.share")}
+                {t("wiki.share")}
               </button>
               <Tooltip label={t("wiki.archive_no_permission")} disabled={!canArchive}>
                 <button

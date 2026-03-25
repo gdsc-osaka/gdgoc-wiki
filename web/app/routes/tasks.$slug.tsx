@@ -287,7 +287,6 @@ export default function TaskListView() {
 
   // Star / share / archive state
   const [currentStarred, setCurrentStarred] = useState(isStarred)
-  const [copied, setCopied] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
@@ -365,14 +364,7 @@ export default function TaskListView() {
   }
 
   function handleShare() {
-    if (canManageAccess) {
-      setShareOpen(true)
-    } else {
-      navigator.clipboard.writeText(window.location.href).then(() => {
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
-      })
-    }
+    setShareOpen(true)
   }
 
   const handleUpdate = useCallback(
@@ -463,7 +455,7 @@ export default function TaskListView() {
           </button>
           <button type="button" onClick={handleShare} className={btnBase}>
             <Share2 size={14} />
-            {copied ? t("wiki.share_copied") : t("wiki.share")}
+            {t("wiki.share")}
           </button>
           <Tooltip label={t("tasks.archive_no_permission")} disabled={!canArchive}>
             <button
@@ -522,7 +514,7 @@ export default function TaskListView() {
                 className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"
               >
                 <Share2 size={14} />
-                {copied ? t("wiki.share_copied") : t("wiki.share")}
+                {t("wiki.share")}
               </button>
               <Tooltip label={t("tasks.archive_no_permission")} disabled={!canArchive}>
                 <button
