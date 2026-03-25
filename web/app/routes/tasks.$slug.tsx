@@ -17,6 +17,7 @@ import { useTranslation } from "react-i18next"
 import { Link, redirect, useFetcher, useLoaderData, useRevalidator } from "react-router"
 import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react-router"
 import ConfirmDialog from "~/components/ConfirmDialog"
+import ShareDialog from "~/components/ShareDialog"
 import Tooltip from "~/components/Tooltip"
 import DropdownMenu, { type DropdownOption } from "~/components/tasks/DropdownMenu"
 import TaskRemainingView from "~/components/tasks/TaskRemainingView"
@@ -25,7 +26,8 @@ import TaskTimelineView from "~/components/tasks/TaskTimelineView"
 import * as schema from "~/db/schema"
 import { hasRole, requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
-import { buildVisibilityFilter, canUserSeePage } from "~/lib/page-visibility.server"
+import { canUserManageAccess } from "~/lib/page-access.server"
+import { canUserChangeVisibility, canUserSeePageAsync } from "~/lib/page-visibility.server"
 
 // ---------------------------------------------------------------------------
 // Meta
@@ -55,7 +57,7 @@ export async function loader({ request, params, context }: LoaderFunctionArgs) {
 
   if (!page) throw new Response("Not found", { status: 404 })
 
-  if (!canUserSeePage(user, page)) {
+  if (!(await canUserSeePageAsync(db, user, page))) {
     throw new Response("Forbidden", { status: 403 })
   }
 
@@ -123,6 +125,8 @@ export async function loader({ request, params, context }: LoaderFunctionArgs) {
     .where(and(eq(schema.pageFavorites.userId, user.id), eq(schema.pageFavorites.pageId, page.id)))
     .get()
 
+  const canManagePageAccess = await canUserManageAccess(db, page.id, user)
+
   return {
     page,
     tasks: tasks.map((t) => ({
@@ -133,7 +137,8 @@ export async function loader({ request, params, context }: LoaderFunctionArgs) {
     members,
     taskListId: page.id,
     canManage,
-    canChangeVisibility: hasRole(user.role as string, "lead"),
+    canChangeVisibility: canUserChangeVisibility(user, page),
+    canManageAccess: canManagePageAccess,
     userId: user.id,
     nextTaskNumber: taskListMeta.nextTaskNumber,
     isStarred: !!fav,
@@ -165,7 +170,8 @@ export async function action({ request, params, context }: ActionFunctionArgs) {
   const intent = formData.get("intent") as string
 
   if (intent === "toggleFavorite") {
-    if (!canUserSeePage(user, page)) throw new Response("Forbidden", { status: 403 })
+    if (!(await canUserSeePageAsync(db, user, page)))
+      throw new Response("Forbidden", { status: 403 })
 
     const existing = await db
       .select()
@@ -218,7 +224,7 @@ export async function action({ request, params, context }: ActionFunctionArgs) {
   }
 
   if (intent === "setVisibility") {
-    if (!hasRole(user.role as string, "lead")) throw new Response("Forbidden", { status: 403 })
+    if (!canUserChangeVisibility(user, page)) throw new Response("Forbidden", { status: 403 })
     const visibility = (formData.get("visibility") as string) ?? page.visibility
 
     await db
@@ -254,6 +260,7 @@ export default function TaskListView() {
     taskListId,
     canManage,
     canChangeVisibility,
+    canManageAccess,
     nextTaskNumber,
     isStarred,
     canArchive,
@@ -281,6 +288,7 @@ export default function TaskListView() {
   // Star / share / archive state
   const [currentStarred, setCurrentStarred] = useState(isStarred)
   const [copied, setCopied] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
   const moreRef = useRef<HTMLDivElement>(null)
@@ -357,10 +365,14 @@ export default function TaskListView() {
   }
 
   function handleShare() {
-    navigator.clipboard.writeText(window.location.href).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
+    if (canManageAccess) {
+      setShareOpen(true)
+    } else {
+      navigator.clipboard.writeText(window.location.href).then(() => {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      })
+    }
   }
 
   const handleUpdate = useCallback(
@@ -418,6 +430,7 @@ export default function TaskListView() {
   ]
 
   const visibilityOptions: DropdownOption[] = [
+    { value: "restricted", label: t("wiki.visibility_restricted") },
     { value: "public", label: t("wiki.visibility_public") },
     { value: "private_to_chapter", label: t("wiki.visibility_chapter") },
     { value: "private_to_lead", label: t("wiki.visibility_lead") },
@@ -671,6 +684,16 @@ export default function TaskListView() {
           setArchiveDialogOpen(false)
         }}
         onCancel={() => setArchiveDialogOpen(false)}
+      />
+
+      <ShareDialog
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        pageId={page.id}
+        pageTitle={title}
+        currentVisibility={page.visibility}
+        canManageAccess={canManageAccess}
+        canChangeVisibility={canChangeVisibility}
       />
     </div>
   )

@@ -412,6 +412,25 @@ export const pageViews = sqliteTable(
 )
 
 // ---------------------------------------------------------------------------
+// page_access (per-page fine-grained access control)
+// ---------------------------------------------------------------------------
+export const pageAccess = sqliteTable("page_access", {
+  id: text("id").primaryKey(),
+  pageId: text("page_id")
+    .notNull()
+    .references(() => pages.id, { onDelete: "cascade" }),
+  email: text("email").notNull(),
+  userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+  // "owner" | "editor" | "viewer"
+  pageRole: text("page_role").notNull().default("viewer"),
+  grantedBy: text("granted_by")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  createdAt: integer("created_at").notNull().default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at").notNull().default(sql`(unixepoch())`),
+})
+
+// ---------------------------------------------------------------------------
 // discord_guild_settings (per-chapter Discord server reminder channel config)
 // ---------------------------------------------------------------------------
 export const discordGuildSettings = sqliteTable("discord_guild_settings", {
