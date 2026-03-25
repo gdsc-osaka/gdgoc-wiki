@@ -6,7 +6,7 @@ import type { LoaderFunctionArgs, MetaFunction } from "react-router"
 import * as schema from "~/db/schema"
 import { requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
-import { canUserSeePage } from "~/lib/page-visibility.server"
+import { canUserSeePageAsync } from "~/lib/page-visibility.server"
 import { timeAgo } from "~/lib/time"
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
@@ -43,7 +43,7 @@ export async function loader({ request, params, context }: LoaderFunctionArgs) {
 
   if (!page) throw new Response("Not found", { status: 404 })
 
-  if (!canUserSeePage(user, page)) {
+  if (!(await canUserSeePageAsync(db, user, page))) {
     throw new Response("Forbidden", { status: 403 })
   }
 

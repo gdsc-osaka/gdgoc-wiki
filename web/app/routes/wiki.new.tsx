@@ -12,6 +12,7 @@ import { useThemeMode } from "~/hooks/useThemeMode"
 import { hasRole, requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
 import { generateSlug } from "~/lib/ingestion-pipeline.server"
+import { insertPageOwner } from "~/lib/page-access.server"
 
 // ---------------------------------------------------------------------------
 // Meta
@@ -80,6 +81,8 @@ export async function action({ request, context }: ActionFunctionArgs) {
     authorId: user.id,
     lastEditedBy: user.id,
   })
+
+  await insertPageOwner(db, pageId, user.id, user.email)
 
   if (isPublish) {
     await env.TRANSLATION_QUEUE.send({ pageId })

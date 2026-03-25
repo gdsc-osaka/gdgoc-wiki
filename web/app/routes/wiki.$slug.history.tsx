@@ -13,7 +13,7 @@ import * as schema from "~/db/schema"
 import { useThemeMode } from "~/hooks/useThemeMode"
 import { hasRole, requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
-import { canUserSeePage } from "~/lib/page-visibility.server"
+import { canUserSeePageAsync } from "~/lib/page-visibility.server"
 import { tiptapToMarkdown } from "~/lib/tiptap-convert"
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
@@ -73,7 +73,7 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
     throw new Response("Not Found", { status: 404 })
   }
 
-  if (!canUserSeePage(sessionUser, page)) {
+  if (!(await canUserSeePageAsync(db, sessionUser, page))) {
     throw new Response("Not Found", { status: 404 })
   }
 

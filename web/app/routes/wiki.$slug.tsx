@@ -19,6 +19,7 @@ import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react
 import { Link, redirect, useFetcher, useLoaderData, useLocation } from "react-router"
 import CommentSection from "~/components/CommentSection"
 import ConfirmDialog from "~/components/ConfirmDialog"
+import ShareDialog from "~/components/ShareDialog"
 import TagChip from "~/components/TagChip"
 import Tooltip from "~/components/Tooltip"
 import type { TocItem } from "~/components/WikiRightSidebar"
@@ -29,7 +30,8 @@ import { useThemeMode } from "~/hooks/useThemeMode"
 import { hasRole, requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
 import { deletePageEmbeddings } from "~/lib/embedding-pipeline.server"
-import { canUserChangeVisibility, canUserSeePage } from "~/lib/page-visibility.server"
+import { canUserManageAccess } from "~/lib/page-access.server"
+import { canUserChangeVisibility, canUserSeePageAsync } from "~/lib/page-visibility.server"
 import { timeAgo } from "~/lib/time"
 import { tiptapToMarkdown } from "~/lib/tiptap-convert"
 
@@ -72,7 +74,7 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
     throw new Response("Not Found", { status: 404 })
   }
 
-  if (!canUserSeePage(sessionUser, page)) {
+  if (!(await canUserSeePageAsync(db, sessionUser, page))) {
     throw new Response("Not Found", { status: 404 })
   }
 
@@ -207,6 +209,8 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
       .run(),
   )
 
+  const canManageAccess = await canUserManageAccess(db, page.id, sessionUser)
+
   return {
     page: {
       ...page,
@@ -223,6 +227,7 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
     currentUserId: sessionUser.id,
     visibility: page.visibility,
     canChangeVisibility: canUserChangeVisibility(sessionUser, page),
+    canManageAccess,
     isStarred: !!fav,
     sources,
     attachments,
@@ -234,7 +239,7 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
 // Action
 // ---------------------------------------------------------------------------
 
-const VALID_VISIBILITY = ["public", "private_to_chapter", "private_to_lead"] as const
+const VALID_VISIBILITY = ["public", "private_to_chapter", "private_to_lead", "restricted"] as const
 
 export async function action({ request, context, params }: ActionFunctionArgs) {
   const { env } = context.cloudflare
@@ -267,9 +272,9 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
       throw new Response("Forbidden", { status: 403 })
     }
 
-    // Auto-assign chapterId from user when setting chapter/lead-private on a page without one
+    // Auto-assign chapterId for chapter/lead-scoped visibility
     let chapterId = page.chapterId
-    if (newVisibility !== "public" && !chapterId) {
+    if (newVisibility !== "public" && newVisibility !== "restricted" && !chapterId) {
       if (!sessionUser.chapterId) {
         return new Response("Cannot set chapter-scoped visibility without a chapter", {
           status: 400,
@@ -374,6 +379,9 @@ export default function WikiPage() {
     attachments,
     comments,
     currentUserId,
+    canManageAccess,
+    canChangeVisibility,
+    visibility,
   } = useLoaderData<typeof loader>()
   const { t } = useTranslation("common")
   const theme = useThemeMode()
@@ -420,7 +428,7 @@ export default function WikiPage() {
   const archiveFetcher = useFetcher()
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false)
   const [currentStarred, setCurrentStarred] = useState(isStarred)
-  const [copied, setCopied] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
   const moreRef = useRef<HTMLDivElement>(null)
   const [mobileContentsOpen, setMobileContentsOpen] = useState(false)
@@ -494,10 +502,7 @@ export default function WikiPage() {
   }, [moreOpen])
 
   function handleShare() {
-    navigator.clipboard.writeText(window.location.href).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
+    setShareOpen(true)
   }
 
   const jaUrl = `${location.pathname}?lang=ja`
@@ -570,7 +575,7 @@ export default function WikiPage() {
           </button>
           <button type="button" onClick={handleShare} className={btnBase}>
             <Share2 size={14} />
-            {copied ? t("wiki.share_copied") : t("wiki.share")}
+            {t("wiki.share")}
           </button>
           <Tooltip label={t("wiki.archive_no_permission")} disabled={!canArchive}>
             <button
@@ -639,7 +644,7 @@ export default function WikiPage() {
                 className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"
               >
                 <Share2 size={14} />
-                {copied ? t("wiki.share_copied") : t("wiki.share")}
+                {t("wiki.share")}
               </button>
               <Tooltip label={t("wiki.archive_no_permission")} disabled={!canArchive}>
                 <button
@@ -756,6 +761,16 @@ export default function WikiPage() {
           setArchiveDialogOpen(false)
         }}
         onCancel={() => setArchiveDialogOpen(false)}
+      />
+
+      <ShareDialog
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        pageId={page.id}
+        pageTitle={title}
+        currentVisibility={visibility}
+        canManageAccess={canManageAccess}
+        canChangeVisibility={canChangeVisibility}
       />
 
       {/* Mobile contents bottom sheet */}

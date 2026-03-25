@@ -10,6 +10,7 @@ import * as schema from "~/db/schema"
 import { hasRole, requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
 import { generateSlug } from "~/lib/ingestion-pipeline.server"
+import { insertPageOwner } from "~/lib/page-access.server"
 
 // ---------------------------------------------------------------------------
 // Meta
@@ -89,6 +90,8 @@ export async function action({ request, context }: ActionFunctionArgs) {
       nextTaskNumber: 1,
     }),
   ])
+
+  await insertPageOwner(db, pageId, user.id, user.email)
 
   return redirect(`/tasks/${slug}`)
 }

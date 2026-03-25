@@ -9,7 +9,7 @@ import TeamManager from "~/components/tasks/TeamManager"
 import * as schema from "~/db/schema"
 import { hasRole, requireRole } from "~/lib/auth-utils.server"
 import { getDb } from "~/lib/db.server"
-import { canUserSeePage } from "~/lib/page-visibility.server"
+import { canUserChangeVisibility, canUserSeePageAsync } from "~/lib/page-visibility.server"
 
 // ---------------------------------------------------------------------------
 // Meta
@@ -37,7 +37,7 @@ export async function loader({ request, params, context }: LoaderFunctionArgs) {
 
   if (!page) throw new Response("Not found", { status: 404 })
 
-  if (!canUserSeePage(user, page)) {
+  if (!(await canUserSeePageAsync(db, user, page))) {
     throw new Response("Forbidden", { status: 403 })
   }
 
@@ -55,7 +55,7 @@ export async function loader({ request, params, context }: LoaderFunctionArgs) {
     .orderBy(schema.taskListTeams.sortOrder)
     .all()
 
-  return { page, teams, canChangeVisibility: hasRole(user.role as string, "lead") }
+  return { page, teams, canChangeVisibility: canUserChangeVisibility(user, page) }
 }
 
 // ---------------------------------------------------------------------------
@@ -112,6 +112,7 @@ export default function TaskListSettings() {
     "w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
 
   const visibilityOptions: DropdownOption[] = [
+    { value: "restricted", label: t("wiki.visibility_restricted") },
     { value: "public", label: t("wiki.visibility_public") },
     { value: "private_to_chapter", label: t("wiki.visibility_chapter") },
     { value: "private_to_lead", label: t("wiki.visibility_lead") },
